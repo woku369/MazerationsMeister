@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tank-Info (Offline) - MazerationsMeister</title>
+    <meta name="theme-color" content="#667eea">
+    <link rel="icon" href="/icon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+        .content {
+            padding: 20px;
+        }
+        .tank-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .info-box {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        .info-label {
+            font-size: 0.9em;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #1e293b;
+        }
+        .status-box {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .status-title {
+            font-weight: bold;
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+        .status-list {
+            list-style: none;
+            font-size: 0.9em;
+            color: #92400e;
+        }
+        .status-list li {
+            margin-bottom: 5px;
+        }
+        .button {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 5px;
+            transition: background 0.3s;
+        }
+        .button:hover {
+            background: #2563eb;
+        }
+        .button-secondary {
+            background: #6b7280;
+        }
+        .button-secondary:hover {
+            background: #4b5563;
+        }
+        .offline-indicator {
+            background: #ef4444;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .instructions {
+            background: #e0f2fe;
+            border: 1px solid #0284c7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .instructions h3 {
+            color: #0369a1;
+            margin-bottom: 10px;
+        }
+        .instructions ul {
+            color: #0369a1;
+            font-size: 0.9em;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo img {
+            max-width: 120px;
+            height: auto;
+        }
+        .progress-container {
+            position: relative;
+            background: #e5e7eb;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981 0%, #059669 50%, #047857 100%);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #1f2937;
+            z-index: 10;
+        }
+        .status-aktiv {
+            color: #059669 !important;
+        }
+        .status-wartung {
+            color: #f59e0b !important;
+        }
+        .status-offline {
+            color: #ef4444 !important;
+        }
+        @media (max-width: 600px) {
+            .tank-info {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h2 style="color: white; font-size: 1.8em; margin-bottom: 10px;">🏭 MazerationsMeister</h2>
+        </div>
+
+        <div class="card">
+            <div class="offline-indicator">
+                📡 OFFLINE-MODUS - Basis-Informationen
+            </div>
+            
+            <div class="header">
+                <h1 id="tank-title">Tank wird geladen...</h1>
+                <p>Grundlegende Tank-Informationen</p>
+            </div>
+            
+            <div class="content">
+                <div class="tank-info">
+                    <div class="info-box">
+                        <div class="info-label">Tank-Nummer</div>
+                        <div class="info-value" id="tank-nr">-</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-label">Kapazität</div>
+                        <div class="info-value" id="tank-capacity">-</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-label">Aktueller Füllstand</div>
+                        <div class="info-value" id="tank-fuellstand">-</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-label">Sorte</div>
+                        <div class="info-value" id="tank-sorte">-</div>
+                    </div>
+                </div>
+
+                <div class="info-box" style="grid-column: 1 / -1;">
+                    <div class="info-label">Batch-Nummer</div>
+                    <div class="info-value" id="tank-batch">-</div>
+                </div>
+
+                <!-- Erweiterte Daten -->
+                <div class="tank-info">
+                    <div class="info-box">
+                        <div class="info-label">Temperatur</div>
+                        <div class="info-value" id="tank-temperatur">-</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-label">Alkoholgehalt</div>
+                        <div class="info-value" id="tank-alkohol">-</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-label">pH-Wert</div>
+                        <div class="info-value" id="tank-ph">-</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-label">Status</div>
+                        <div class="info-value" id="tank-status">-</div>
+                    </div>
+                </div>
+
+                <!-- Verantwortlichkeiten -->
+                <div class="tank-info">
+                    <div class="info-box">
+                        <div class="info-label">Verantwortlicher</div>
+                        <div class="info-value" id="tank-verantwortlicher">-</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-label">Nächste Kontrolle</div>
+                        <div class="info-value" id="tank-kontrolle">-</div>
+                    </div>
+                </div>
+
+                <!-- Füllstand-Anzeige -->
+                <div class="info-box" style="grid-column: 1 / -1;">
+                    <div class="info-label">Füllstand-Anzeige</div>
+                    <div class="progress-container" style="margin-top: 10px;">
+                        <div class="progress-bar" id="fuellstand-bar"></div>
+                        <div class="progress-text" id="fuellstand-prozent">-</div>
+                    </div>
+                </div>
+
+                <div class="status-box">
+                    <div class="status-title">⚠️ Eingeschränkte Funktionen (App offline)</div>
+                    <ul class="status-list">
+                        <li>• Nur gespeicherte Grunddaten verfügbar</li>
+                        <li>• Keine aktuellen Füllstände</li>
+                        <li>• Keine Live-Temperaturen</li>
+                        <li>• Keine Buchungen möglich</li>
+                    </ul>
+                </div>
+
+                <div style="text-align: center;">
+                    <a href="#" onclick="tryReconnect()" class="button">🔄 Erneut versuchen</a>
+                    <a href="tel:+436991234567" class="button button-secondary">📞 Support anrufen</a>
+                </div>
+
+                <div class="instructions">
+                    <h3>🔧 App wieder starten:</h3>
+                    <ul>
+                        <li><strong>Desktop:</strong> MazerationsMeister-App starten</li>
+                        <li><strong>Server:</strong> Administrator kontaktieren</li>
+                        <li><strong>Netzwerk:</strong> WLAN-Verbindung prüfen</li>
+                        <li><strong>Alternative:</strong> ngrok-Tunnel verwenden</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="content">
+                <h3 style="color: #4f46e5; margin-bottom: 15px;">💡 Notfall-Protokoll</h3>
+                <p style="margin-bottom: 10px;"><strong>Bei kritischen Problemen:</strong></p>
+                <ul style="color: #64748b; font-size: 0.9em;">
+                    <li>• Tankstatus per Handy fotografieren</li>
+                    <li>• Messwerte manuell notieren</li>
+                    <li>• Administrator über WhatsApp informieren</li>
+                    <li>• Bei Alarm: Sofortmaßnahmen einleiten</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tank-Daten aus URL-Parametern extrahieren
+        function loadTankData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const fallbackData = urlParams.get('fallback');
+            const mode = urlParams.get('mode'); // 'github' oder normal
+            
+            if (fallbackData) {
+                try {
+                    const data = JSON.parse(decodeURIComponent(fallbackData));
+                    
+                    // Update Offline-Indicator für GitHub-Modus
+                    const offlineIndicator = document.querySelector('.offline-indicator');
+                    if (mode === 'github' && data.githubConnected) {
+                        if (data.githubSetupNeeded) {
+                            offlineIndicator.textContent = '🔗 GITHUB-MODUS - Setup erforderlich';
+                            offlineIndicator.style.background = '#f59e0b'; // Orange für Setup needed
+                            
+                            // GitHub Setup-Hinweis hinzufügen
+                            const githubSetupBox = document.createElement('div');
+                            githubSetupBox.className = 'status-box';
+                            githubSetupBox.innerHTML = `
+                                <div class="status-title">⚙️ GitHub Pages Setup erforderlich</div>
+                                <ul class="status-list">
+                                    <li>• Repository erstellen: github.com/woku369/MazerationsMeister</li>
+                                    <li>• Settings → Pages aktivieren</li>
+                                    <li>• tank-viewer.html hochladen</li>
+                                    <li>• Nach Setup: QR-Codes funktionieren cross-network</li>
+                                </ul>
+                            `;
+                            document.querySelector('.content').appendChild(githubSetupBox);
+                        } else {
+                            offlineIndicator.textContent = '🔗 GITHUB-MODUS - Online verfügbar';
+                            offlineIndicator.style.background = '#10b981'; // Grün für vollständiges GitHub
+                        }
+                    }
+                    
+                    // Basis-Daten
+                    document.getElementById('tank-title').textContent = `Tank ${data.tankNr}`;
+                    document.getElementById('tank-nr').textContent = data.tankNr;
+                    document.getElementById('tank-capacity').textContent = `${data.volumen.toLocaleString('de-DE')} L`;
+                    
+                    // Erweiterte Daten mit besseren Fallbacks für GitHub-Modus
+                    document.getElementById('tank-fuellstand').textContent = 
+                        `${(data.aktuellerFuellstand || 0).toLocaleString('de-DE')} L`;
+                    document.getElementById('tank-sorte').textContent = data.sorte || (mode === 'github' ? 'Siehe Desktop-App (GitHub sync)' : 'Siehe Desktop-App');
+                    document.getElementById('tank-batch').textContent = data.batch || 'Automatisch generiert';
+                    document.getElementById('tank-temperatur').textContent = data.temperatur || 'Siehe Desktop-App';
+                    document.getElementById('tank-alkohol').textContent = data.alkoholgehalt || 'Siehe Desktop-App';
+                    document.getElementById('tank-ph').textContent = data.ph_wert || 'Nicht gemessen';
+                    document.getElementById('tank-verantwortlicher').textContent = data.verantwortlicher || 'Siehe Desktop-App';
+                    document.getElementById('tank-kontrolle').textContent = data.naechsteKontrolle || 'Siehe Desktop-App';
+                    
+                    // Status mit Farbe
+                    const statusElement = document.getElementById('tank-status');
+                    statusElement.textContent = data.status || 'Unbekannt';
+                    if (data.status === 'Aktiv') {
+                        statusElement.className = 'info-value status-aktiv';
+                    }
+                    
+                    // Füllstand-Anzeige
+                    const fuellstandProzent = Math.round((data.aktuellerFuellstand / data.volumen) * 100);
+                    const progressBar = document.getElementById('fuellstand-bar');
+                    const progressText = document.getElementById('fuellstand-prozent');
+                    
+                    progressBar.style.width = `${fuellstandProzent}%`;
+                    progressText.textContent = `${fuellstandProzent}%`;
+                    
+                    // Farbe je nach Füllstand
+                    if (fuellstandProzent > 80) {
+                        progressBar.style.background = '#ef4444'; // Rot - zu voll
+                    } else if (fuellstandProzent < 20) {
+                        progressBar.style.background = '#f59e0b'; // Orange - zu wenig
+                    } else {
+                        progressBar.style.background = 'linear-gradient(90deg, #10b981 0%, #059669 50%, #047857 100%)'; // Grün - OK
+                    }
+                    
+                    // Update page title
+                    document.title = `Tank ${data.tankNr} - ${data.sorte} (${fuellstandProzent}%) - MazerationsMeister`;
+                    
+                    // Letztes Update anzeigen
+                    if (data.letzteAktualisierung) {
+                        const updateInfo = document.createElement('div');
+                        updateInfo.className = 'text-sm text-muted-foreground mt-2';
+                        updateInfo.innerHTML = `<em>Letzte Aktualisierung: ${data.letzteAktualisierung}</em>`;
+                        document.querySelector('.content').appendChild(updateInfo);
+                    }
+                } catch (e) {
+                    console.error('Fehler beim Laden der Tank-Daten:', e);
+                    showError();
+                }
+            } else {
+                // Tank-ID aus URL extrahieren
+                const path = window.location.pathname;
+                const tankId = path.split('/').pop();
+                document.getElementById('tank-title').textContent = `Tank ${tankId}`;
+                document.getElementById('tank-nr').textContent = tankId || 'Unbekannt';
+                showLimitedData();
+            }
+        }
+
+        function showLimitedData() {
+            // Zeige Hinweis für begrenzte Daten
+            const limitedInfo = document.createElement('div');
+            limitedInfo.className = 'status-box';
+            limitedInfo.innerHTML = `
+                <div class="status-title">⚠️ Begrenzte Daten verfügbar</div>
+                <p>Der QR-Code enthält nur grundlegende Tank-Informationen. 
+                Für vollständige Daten benötigen Sie eine aktive Verbindung zur App.</p>
+            `;
+            document.querySelector('.content').appendChild(limitedInfo);
+        }
+
+        function showError() {
+            document.getElementById('tank-title').textContent = 'Tank-Daten nicht verfügbar';
+            document.getElementById('tank-nr').textContent = 'Fehler';
+            document.getElementById('tank-capacity').textContent = 'Unbekannt';
+            document.getElementById('tank-description').textContent = 'Daten konnten nicht geladen werden';
+        }
+
+        function tryReconnect() {
+            // Versuche zur normalen App-URL zurückzukehren
+            const urlParams = new URLSearchParams(window.location.search);
+            const fallbackData = urlParams.get('fallback');
+            
+            if (fallbackData) {
+                try {
+                    const data = JSON.parse(decodeURIComponent(fallbackData));
+                    // Konstruiere Tank-ID aus tankNr
+                    const tankId = `tank-${data.tankNr.toLowerCase().replace(/\s+/g, '')}`;
+                    const appUrl = `/inventory/tank/${tankId}?fallback=${encodeURIComponent(fallbackData)}`;
+                    window.location.href = appUrl;
+                } catch (e) {
+                    // Fallback: Reload current page
+                    window.location.reload();
+                }
+            } else {
+                window.location.href = '/inventory';
+            }
+        }
+
+        // Auto-Reconnect alle 30 Sekunden versuchen
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 20; // Max 10 Minuten
+
+        function autoReconnect() {
+            if (reconnectAttempts >= maxReconnectAttempts) {
+                console.log('Auto-Reconnect gestoppt nach', maxReconnectAttempts, 'Versuchen');
+                return;
+            }
+
+            reconnectAttempts++;
+            console.log(`Auto-Reconnect Versuch ${reconnectAttempts}/${maxReconnectAttempts}`);
+
+            // Versuche Health-Check
+            fetch('/api/health', { method: 'HEAD', cache: 'no-cache' })
+                .then(response => {
+                    if (response.ok) {
+                        console.log('✅ App wieder online! Leite um...');
+                        tryReconnect();
+                    }
+                })
+                .catch(() => {
+                    // Noch offline, nächster Versuch in 30 Sekunden
+                    setTimeout(autoReconnect, 30000);
+                });
+        }
+
+        // Daten beim Laden der Seite einlesen
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTankData();
+            
+            // Starte Auto-Reconnect nach 30 Sekunden
+            setTimeout(autoReconnect, 30000);
+        });
+
+        // Service Worker registrieren (falls verfügbar)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(e => {
+                console.log('Service Worker nicht verfügbar:', e);
+            });
+        }
+    </script>
+</body>
+</html>

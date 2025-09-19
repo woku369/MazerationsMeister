@@ -1,0 +1,34 @@
+{
+  "lastExport": "2025-09-16T22:50:00.000Z",
+  "version": "1.0.0",
+  "tanks": [
+    {
+      "id": "tank-uqeuw4deu",
+      "tankNr": "T 341",
+      "bezeichnung": "Tank 341 - Hauptlager",
+      "volumenLiter": 6000
+    }
+  ],
+  "inventory": [
+    {
+      "id": "inv-sample-1",
+      "tankNr": "T 341",
+      "artikel": "Apfelmazeration Premium",
+      "artikelBezeichnung": "Apfelmazeration Premium",
+      "menge": 2500,
+      "einheit": "L",
+      "location": "Tank T 341",
+      "lastUpdate": "2025-09-16T20:30:00.000Z"
+    },
+    {
+      "id": "inv-sample-2", 
+      "tankNr": "T 341",
+      "artikel": "Birnenmazeration",
+      "artikelBezeichnung": "Birnenmazeration Spezial",
+      "menge": 1200,
+      "einheit": "L",
+      "location": "Tank T 341",
+      "lastUpdate": "2025-09-16T19:15:00.000Z"
+    }
+  ]
+}

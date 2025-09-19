@@ -1,0 +1,88 @@
+{
+  "name": "MazerationsMeister",
+  "short_name": "MazMeister",
+  "description": "Professionelle Tank-Verwaltung für Mazerationen mit OneDrive-Sync",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "business", "utilities"],
+  "lang": "de",
+  "dir": "ltr",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/images/gurktaler-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/images/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop Ansicht der Tank-Verwaltung"
+    },
+    {
+      "src": "/images/screenshot-mobile.png", 
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile Tank-Detail-Ansicht"
+    }
+  ],
+  "features": [
+    "Cross Platform",
+    "Offline Support",
+    "Background Sync"
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "shortcuts": [
+    {
+      "name": "Tank-Übersicht",
+      "short_name": "Tanks",
+      "description": "Direkt zur Tank-Verwaltung",
+      "url": "/inventory",
+      "icons": [
+        {
+          "src": "/icon.ico",
+          "sizes": "any"
+        }
+      ]
+    },
+    {
+      "name": "Neues Inventar",
+      "short_name": "Add Item", 
+      "description": "Neuen Inventar-Eintrag hinzufügen",
+      "url": "/inventory?action=add",
+      "icons": [
+        {
+          "src": "/icon.ico",
+          "sizes": "any"
+        }
+      ]
+    },
+    {
+      "name": "QR-Scanner",
+      "short_name": "QR Scan",
+      "description": "QR-Code für Tank scannen",
+      "url": "/?scan=true",
+      "icons": [
+        {
+          "src": "/icon.ico", 
+          "sizes": "any"
+        }
+      ]
+    }
+  ]
+}

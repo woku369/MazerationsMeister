@@ -1,0 +1,17 @@
+import type {NextConfig} from 'next';
+
+const nextConfig: NextConfig = {
+  // Entferne output: 'export' für bessere Electron-Kompatibilität
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  images: {
+    unoptimized: true
+  }
+  // Entferne experimental.esmExternals da es von Turbopack nicht unterstützt wird
+};
+
+export default nextConfig;
