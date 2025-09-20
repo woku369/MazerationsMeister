@@ -153,10 +153,12 @@
         // Get parameters from URL
         const urlParams = new URLSearchParams(window.location.search);
         const tankId = urlParams.get('tank');
+        const dataUrl = urlParams.get('dataUrl');
+        const backupUrl = urlParams.get('backupUrl');
         const fallbackData = urlParams.get('fallback');
         const mode = urlParams.get('mode');
         
-        console.log('🔍 Tank Viewer gestartet:', { tankId, mode, hasFallback: !!fallbackData });
+        console.log('🔍 Tank Viewer gestartet:', { tankId, mode, dataUrl, backupUrl, hasFallback: !!fallbackData });
 
         // Tank data cache
         let tankData = null;
@@ -178,7 +180,43 @@
             try {
                 console.log('📡 Lade Tank-Daten...');
                 
-                // Strategy 1: Use fallback data from URL (GitHub Pages/QR-Code)
+                // Strategy 1: Use dataUrl parameter (GitHub Pages with live data)
+                if (dataUrl) {
+                    console.log('📊 Lade Daten von dataUrl:', dataUrl);
+                    try {
+                        const response = await fetch(dataUrl);
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log('✅ Daten erfolgreich von dataUrl geladen:', data);
+                            displayTankData(data);
+                            return;
+                        } else {
+                            console.warn('⚠️ DataUrl nicht verfügbar:', response.status);
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ Fehler beim Laden von dataUrl:', error);
+                    }
+                }
+                
+                // Strategy 2: Use backup URL if dataUrl failed
+                if (backupUrl) {
+                    console.log('🔄 Verwende Backup-URL:', backupUrl);
+                    try {
+                        const response = await fetch(backupUrl);
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log('✅ Daten erfolgreich von Backup-URL geladen:', data);
+                            displayTankData(data);
+                            return;
+                        } else {
+                            console.warn('⚠️ Backup-URL nicht verfügbar:', response.status);
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ Fehler beim Laden von Backup-URL:', error);
+                    }
+                }
+                
+                // Strategy 3: Use fallback data from URL (embedded in QR-Code)
                 const fallback = parseFallbackData();
                 if (fallback) {
                     console.log('✅ Verwende Fallback-Daten aus QR-Code:', fallback);
@@ -186,7 +224,8 @@
                     return;
                 }
                 
-                // Strategy 2: Try to load from same directory (legacy)
+                // Strategy 4: Try to load from same directory (legacy)
+                console.log('🔄 Versuche lokale tank-data.json...');
                 const response = await fetch('./tank-data.json');
                 
                 if (!response.ok) {
