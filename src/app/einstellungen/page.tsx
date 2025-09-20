@@ -11,7 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Download, Upload, Trash2, Settings, Cloud, Smartphone, Github } from "lucide-react";
+import { Download, Upload, Trash2, Settings, Cloud, Smartphone, Github, Clock, CheckCircle } from "lucide-react";
+import { getTankAutoSync } from "@/lib/tank-auto-sync";
 
 
 export default function EinstellungenPage() {
@@ -60,6 +61,24 @@ export default function EinstellungenPage() {
     return '';
   });
   
+  // Auto-Sync Status und Konfiguration
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
+  const [autoSyncInterval, setAutoSyncInterval] = useState(15);
+  const [autoSyncStatus, setAutoSyncStatus] = useState<any>(null);
+  
+  // Auto-Sync initialisieren
+  React.useEffect(() => {
+    if (hydrated) {
+      const autoSync = getTankAutoSync();
+      const status = autoSync.getStatus();
+      setAutoSyncEnabled(status.enabled);
+      if (status.config?.interval) {
+        setAutoSyncInterval(status.config.interval);
+      }
+      setAutoSyncStatus(status);
+    }
+  }, [hydrated]);
+
   // GitHub-Konfiguration
   const [githubToken, setGithubToken] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -74,17 +93,46 @@ export default function EinstellungenPage() {
     return false;
   });
   
-  const handleSaveGitHubConfig = () => {
+  const handleSaveGitHubConfig = async () => {
     localStorage.setItem('github-token', githubToken.trim());
     localStorage.setItem('github-enabled', githubEnabled.toString());
+    
+    // Auto-Sync konfigurieren
+    if (githubEnabled && githubToken.trim()) {
+      const autoSync = getTankAutoSync();
+      const success = await autoSync.initialize({
+        enabled: autoSyncEnabled,
+        interval: autoSyncInterval,
+        githubToken: githubToken.trim(),
+        githubUsername: 'woku369',
+        githubRepository: 'MazerationsMeister'
+      });
+      
+      if (success) {
+        setAutoSyncStatus(autoSync.getStatus());
+        alert('GitHub-Konfiguration und Auto-Sync aktiviert!');
+      } else {
+        alert('GitHub-Konfiguration gespeichert, aber Auto-Sync-Aktivierung fehlgeschlagen!');
+      }
+    } else {
+      alert('GitHub-Konfiguration gespeichert!');
+    }
     
     // Event für Synchronisation mit anderen Komponenten aussenden
     window.dispatchEvent(new CustomEvent('githubConfigUpdated', {
       detail: { token: githubToken.trim(), enabled: githubEnabled }
     }));
-    
-    alert('GitHub-Konfiguration gespeichert und synchronisiert!');
-    // Optional: Test der GitHub-Verbindung hier
+  };
+
+  const handleManualSync = async () => {
+    const autoSync = getTankAutoSync();
+    const success = await autoSync.syncNow();
+    if (success) {
+      setAutoSyncStatus(autoSync.getStatus());
+      alert('Tank-Daten erfolgreich zu GitHub synchronisiert!');
+    } else {
+      alert('Synchronisation fehlgeschlagen! Prüfen Sie Ihre GitHub-Konfiguration.');
+    }
   };
   
   const handleSaveOneDriveConfig = () => {
@@ -261,11 +309,86 @@ export default function EinstellungenPage() {
                   GitHub-Integration aktivieren
                 </Label>
               </div>
+
+              {githubEnabled && (
+                <div className="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-semibold text-blue-900 flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Automatische Tank-Daten Synchronisation
+                  </h4>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="auto-sync-enabled"
+                      checked={autoSyncEnabled}
+                      onChange={e => setAutoSyncEnabled(e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                    <Label htmlFor="auto-sync-enabled" className="text-sm">
+                      Auto-Sync aktivieren
+                    </Label>
+                  </div>
+
+                  {autoSyncEnabled && (
+                    <div>
+                      <Label htmlFor="sync-interval" className="text-sm font-medium">
+                        Sync-Intervall (Minuten)
+                      </Label>
+                      <Input
+                        id="sync-interval"
+                        type="number"
+                        min="5"
+                        max="1440"
+                        value={autoSyncInterval}
+                        onChange={e => setAutoSyncInterval(parseInt(e.target.value) || 15)}
+                        className="mt-1 w-32"
+                      />
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Tank-Daten werden alle {autoSyncInterval} Minuten zu GitHub hochgeladen
+                      </div>
+                    </div>
+                  )}
+
+                  {autoSyncStatus && (
+                    <div className="text-xs space-y-1">
+                      <div className="flex items-center gap-2">
+                        {autoSyncStatus.enabled ? (
+                          <CheckCircle className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <Clock className="h-3 w-3 text-gray-400" />
+                        )}
+                        <span className="font-semibold">Status:</span>
+                        <span>{autoSyncStatus.enabled ? 'Aktiv' : 'Inaktiv'}</span>
+                      </div>
+                      {autoSyncStatus.lastSync && (
+                        <div>
+                          <span className="font-semibold">Letzte Sync:</span> {autoSyncStatus.lastSync.toLocaleString()}
+                        </div>
+                      )}
+                      {autoSyncStatus.nextSync && (
+                        <div>
+                          <span className="font-semibold">Nächste Sync:</span> {autoSyncStatus.nextSync.toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
               
-              <Button onClick={handleSaveGitHubConfig} className="flex items-center gap-2">
-                <Github className="h-4 w-4" />
-                GitHub-Konfiguration speichern
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={handleSaveGitHubConfig} className="flex items-center gap-2">
+                  <Github className="h-4 w-4" />
+                  GitHub-Konfiguration speichern
+                </Button>
+                
+                {githubEnabled && githubToken && (
+                  <Button variant="outline" onClick={handleManualSync} className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Jetzt synchronisieren
+                  </Button>
+                )}
+              </div>
               
               <div className="text-xs text-muted-foreground">
                 <strong>Status:</strong><br />
