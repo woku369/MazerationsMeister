@@ -194,38 +194,30 @@ export class TankDataGitHubSync {
     try {
       console.log('🔄 Starte Tank-Daten Synchronisation zu GitHub...');
 
-      // Verwende Timestamp für Backup-Datei + statische Hauptdatei
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
       const tankDataContent = JSON.stringify({
         tanks: tankData,
         inventory: inventoryData,
         lastUpdated: new Date().toISOString(),
-        timestamp: timestamp
+        timestamp: new Date().toISOString()
       }, null, 2);
 
       const files: GitHubFile[] = [
         {
-          path: 'tank-data.json', // Hauptdatei für QR-Codes (überschreibt immer)
+          path: 'tank-data.json', // Nur Hauptdatei - keine Backups mehr
           content: tankDataContent,
           message: `Tank data update - ${new Date().toLocaleString()}`
-        },
-        {
-          path: `backups/tank-data-${timestamp}.json`, // Backup mit Timestamp
-          content: tankDataContent,
-          message: `Tank data backup - ${new Date().toLocaleString()}`
         }
       ];
 
-      console.log(`📦 Updating main tank-data.json + creating backup: tank-data-${timestamp}.json`);
+      console.log(`📦 Updating tank-data.json (simplified - no backups)`);
 
       const result = await this.githubService.uploadMultipleFiles(files);
       
       if (result.success) {
         console.log('✅ Tank-Daten erfolgreich zu GitHub synchronisiert!');
         console.log(`🔗 Tank-Daten URL: ${this.githubService.getGitHubPagesUrl('tank-data.json')}`);
-        console.log(`📋 Backup erstellt: ${this.githubService.getGitHubPagesUrl(`backups/tank-data-${timestamp}.json`)}`);
       } else {
-        console.error('❌ Tank-Daten Synchronisation teilweise fehlgeschlagen');
+        console.error('❌ Tank-Daten Synchronisation fehlgeschlagen');
       }
 
       return result.success;
