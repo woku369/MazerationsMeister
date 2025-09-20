@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { initialTankDefinitions, TankDefinition } from "@/schemas/tankSchema";
 import type { StoredInventoryItem } from "@/schemas/inventorySchema";
-import { syncTankDefinitionsWithInventory, getTankDefinitions } from "@/lib/tank-sync";
+import { syncTankDefinitionsWithInventory, getTankDefinitions, fixTankIds } from "@/lib/tank-sync";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -161,6 +161,8 @@ export default function TankManagement() {
 
   const loadTankData = () => {
     try {
+      // KRITISCHE KORREKTUR: Tank-IDs erst bereinigen
+      fixTankIds();
       // Synchronisiere zunächst mit Inventory
       syncTankDefinitionsWithInventory();
       // Dann lade die aktualisierten Tank-Definitionen
@@ -237,7 +239,14 @@ export default function TankManagement() {
       // GitHub zuerst versuchen, wenn aktiviert
       if (githubEnabled && githubToken) {
         // Teste ob GitHub Pages verfügbar ist
-        const githubPagesUrl = `https://woku369.github.io/MazerationsMeister/tank-viewer.html?tank=${tank.id}`;
+        const githubPagesUrl = `https://woku369.github.io/MazerationsMeister/tank-offline.html?tank=${tank.tankNr}&fallback=${encodeURIComponent(JSON.stringify({
+          tankNr: tank.tankNr,
+          bezeichnung: tank.bezeichnung,
+          volumen: tank.volumenLiter,
+          aktuellerFuellstand: getTankFillLevel(tank.tankNr).totalVolume,
+          sorte: getTankFillLevel(tank.tankNr).contents,
+          batch: "GitHub-Integration aktiv"
+        }))}&mode=github`;
         
         try {
           // Teste GitHub Pages Verfügbarkeit (einfacher Fetch-Test)
@@ -297,12 +306,12 @@ export default function TankManagement() {
             bezeichnung: tank.bezeichnung, 
             volumen: tank.volumenLiter 
           };
-          url = await cloudQRGenerator.generateCloudQRUrl(tank.id, tankInfo);
+          url = await cloudQRGenerator.generateCloudQRUrl(tank.tankNr, tankInfo);
         } catch (oneDriveError) {
           // Fallback zu Offline-Viewer mit eingebetteten Daten
           console.log("OneDrive nicht verfügbar, verwende Offline-Viewer");
           const encodedFallback = encodeURIComponent(JSON.stringify(fallbackData));
-          url = `${window.location.origin}/tank-offline.html?fallback=${encodedFallback}`;
+          url = `${window.location.origin}/tank-offline.html?tank=${tank.tankNr}&fallback=${encodedFallback}`;
         }
       }
       
@@ -320,7 +329,7 @@ export default function TankManagement() {
         status: "Notfall-Modus"
       };
       const encodedFallback = encodeURIComponent(JSON.stringify(basicFallback));
-      const fallbackUrl = `${window.location.origin}/tank-offline.html?fallback=${encodedFallback}`;
+      const fallbackUrl = `${window.location.origin}/tank-offline.html?tank=${tank.tankNr}&fallback=${encodedFallback}`;
       
       const qrCodeUrl = await QRCode.toDataURL(fallbackUrl);
       setQrCodeDataUrl(qrCodeUrl);
@@ -332,7 +341,7 @@ export default function TankManagement() {
   const addTank = (newTank: Omit<Tank, "id">) => {
     const tank: Tank = {
       ...newTank,
-      id: crypto.randomUUID(),
+      id: newTank.tankNr, // Verwende tankNr als ID für Konsistenz
       volumenLiter: newTank.volumenLiter || 5000, // Standardkapazität 5.000L
     };
     

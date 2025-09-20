@@ -34,7 +34,62 @@
   - Keine Azure-Registrierung erforderlich
   - Vereinfachte Daten-Synchronisation
 
-### Phase 3: Produktionsreife Implementierung 🚧 IN ARBEIT
+### Phase 3: KRITISCHE SYSTEM-BEREINIGUNG 🔴 DRINGEND
+
+#### Identifizierte Probleme (September 2025)
+1. **Inkonsistente Tank-IDs:** 
+   - QR-Code generiert "tank-fwdgp3bqt" 
+   - System erwartet "T341"
+   - tank-offline.html kann Tank nicht finden
+
+2. **Doppelte Token-Verwaltung:**
+   - Einstellungen → QR-Codes → Token-Eingabe
+   - Einstellungen → GitHub Integration → Token-Eingabe
+   - Verwirrende UX, keine Synchronisation
+
+3. **Mehrfache QR-Code Implementierungen:**
+   - Tank-Verwaltung (unter QR-Codes) → localhost URLs
+   - Tank-Inhalte → GitHub Pages URLs
+   - Verschiedene Parameter-Schemas
+
+4. **Navigations-Inkonsistenz:**
+   - Kein direkter "Inventory" Menüpunkt
+   - Tank-Management unter "Einstellungen" versteckt
+   - Benutzer findet Funktionen nicht
+
+#### BEREINIGUNGSSTRATEGIE (Priorität: KRITISCH)
+
+##### Schritt 1: Tank-ID Normalisierung ⚡ SOFORT
+- [ ] Alle Tank-IDs auf einheitliches Format (T341, T349, etc.)
+- [ ] QR-Code Parameter-Mapping korrigieren
+- [ ] tank-offline.html Tank-Lookup reparieren
+- [ ] Konsistenz zwischen allen Komponenten sicherstellen
+
+##### Schritt 2: Token-Management Vereinheitlichung ⚡ SOFORT  
+- [ ] Single-Point-of-Truth für GitHub Token
+- [ ] Automatische Synchronisation zwischen Komponenten
+- [ ] Entfernung redundanter Token-Eingabefelder
+- [ ] Event-basierte Token-Updates
+
+##### Schritt 3: QR-Code Konsolidierung ⚡ HEUTE
+- [ ] Eine einzige QR-Code Komponente
+- [ ] Einheitliche URL-Generierung (GitHub Pages)
+- [ ] Entfernung localhost-basierter QR-Codes  
+- [ ] Konsistente Parameter-Übertragung
+
+##### Schritt 4: Navigation Restrukturierung ⚡ HEUTE
+- [ ] "Inventory" als Haupt-Menüpunkt
+- [ ] Tank-Management direkt zugänglich  
+- [ ] Logische Gruppierung der Funktionen
+- [ ] Benutzerfreundliche Struktur
+
+##### Schritt 5: Testing & Validation ⚡ HEUTE
+- [ ] Ende-zu-Ende QR-Code Test
+- [ ] Mobile Offline-Funktionalität validieren
+- [ ] Token-Synchronisation testen
+- [ ] Alle Tank-IDs durchprüfen
+
+### Phase 4: Produktionsreife Implementierung 🚧
 
 #### 1. QR-Code Druckfunktion 🔴 AKTUELL
 **Problem:** Aktuelle Druckfunktion ohne Funktionalität

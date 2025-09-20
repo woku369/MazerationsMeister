@@ -22,6 +22,12 @@ export function syncTankDefinitionsWithInventory(): void {
   const inventoryItems: StoredInventoryItem[] = JSON.parse(storedInventory);
   const currentTanks: TankDefinition[] = storedTanks ? JSON.parse(storedTanks) : [];
   
+  // KRITISCHE KORREKTUR: Bestehende Tank-IDs zu tankNr korrigieren
+  const correctedTanks = currentTanks.map(tank => ({
+    ...tank,
+    id: tank.tankNr // Setze ID gleich tankNr für Konsistenz
+  }));
+  
   // Sammle alle eindeutigen Tank-Nummern aus dem Inventar
   const uniqueTankNrs = new Set<string>();
   inventoryItems.forEach(item => {
@@ -30,31 +36,32 @@ export function syncTankDefinitionsWithInventory(): void {
     }
   });
 
-  const existingTankNrs = new Set(currentTanks.map(tank => tank.tankNr));
-  let hasChanges = false;
+  const existingTankNrs = new Set(correctedTanks.map(tank => tank.tankNr));
+  let hasChanges = correctedTanks.length !== currentTanks.length || 
+                   correctedTanks.some((tank, i) => tank.id !== currentTanks[i]?.id);
 
   // Füge neue Tanks hinzu, die im Inventar gefunden wurden
   uniqueTankNrs.forEach(tankNr => {
     if (!existingTankNrs.has(tankNr)) {
       const newTank: TankDefinition = {
-        id: 'tank-' + Math.random().toString(36).substr(2, 9),
+        id: tankNr, // Verwende tankNr direkt als ID für Konsistenz
         tankNr: tankNr,
         bezeichnung: `Auto-erkannt: ${tankNr}`,
         volumenLiter: 5000, // Standardkapazität 5.000L, kann manuell angepasst werden
       };
-      currentTanks.push(newTank);
+      correctedTanks.push(newTank);
       hasChanges = true;
     }
   });
 
   if (hasChanges) {
-    localStorage.setItem('tankDefinitions', JSON.stringify(currentTanks));
-    console.log('✅ Tank-Sync: Tank-Definitionen gespeichert:', currentTanks.length, 'Tanks');
-    console.log('🔍 Tank-Sync Debug: Inventory noch vorhanden?', localStorage.getItem('inventoryItems') ? 'JA' : 'NEIN');
+    localStorage.setItem('tankDefinitions', JSON.stringify(correctedTanks));
+    console.log('✅ Tank-Sync: Tank-Definitionen korrigiert und gespeichert:', correctedTanks.length, 'Tanks');
+    console.log('🔍 Tank-Sync Debug: Korrigierte IDs:', correctedTanks.map(t => `${t.tankNr}(${t.id})`));
     
     // Event für andere Komponenten aussenden
     window.dispatchEvent(new CustomEvent('tankDefinitionsUpdated', {
-      detail: { tanks: currentTanks }
+      detail: { tanks: correctedTanks }
     }));
   } else {
     console.log('ℹ️ Tank-Sync: Keine Änderungen nötig');
@@ -77,4 +84,37 @@ export function getTankDefinitions(): TankDefinition[] {
 export function getTankByNumber(tankNr: string): TankDefinition | null {
   const tanks = getTankDefinitions();
   return tanks.find(tank => tank.tankNr === tankNr) || null;
+}
+
+/**
+ * NOTFALL-KORREKTUR: Bereinigt inkonsistente Tank-IDs in localStorage
+ * Sollte einmalig ausgeführt werden um das UUID-Problem zu beheben
+ */
+export function fixTankIds(): void {
+  if (typeof window === 'undefined') return;
+  
+  const storedTanks = localStorage.getItem('tankDefinitions');
+  if (!storedTanks) return;
+  
+  const tanks: TankDefinition[] = JSON.parse(storedTanks);
+  let hasChanges = false;
+  
+  const fixedTanks = tanks.map(tank => {
+    if (tank.id !== tank.tankNr) {
+      console.log(`🔧 Korrigiere Tank-ID: ${tank.id} → ${tank.tankNr}`);
+      hasChanges = true;
+      return { ...tank, id: tank.tankNr };
+    }
+    return tank;
+  });
+  
+  if (hasChanges) {
+    localStorage.setItem('tankDefinitions', JSON.stringify(fixedTanks));
+    console.log('✅ Tank-ID Korrektur abgeschlossen');
+    
+    // Event für andere Komponenten aussenden
+    window.dispatchEvent(new CustomEvent('tankDefinitionsUpdated', {
+      detail: { tanks: fixedTanks }
+    }));
+  }
 }

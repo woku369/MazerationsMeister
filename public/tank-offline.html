@@ -308,6 +308,7 @@
         function loadTankData() {
             const urlParams = new URLSearchParams(window.location.search);
             const fallbackData = urlParams.get('fallback');
+            const tankId = urlParams.get('tank'); // Tank-Nr aus URL Parameter
             const mode = urlParams.get('mode'); // 'github' oder normal
             
             if (fallbackData) {
