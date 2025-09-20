@@ -239,7 +239,7 @@ export default function TankManagement() {
       // GitHub zuerst versuchen, wenn aktiviert
       if (githubEnabled && githubToken) {
         // Teste ob GitHub Pages verfügbar ist
-        const githubPagesUrl = `https://woku369.github.io/MazerationsMeister/tank-offline.html?tank=${tank.tankNr}&fallback=${encodeURIComponent(JSON.stringify({
+        const githubPagesUrl = `https://woku369.github.io/MazerationsMeister/tank-viewer.html?tank=${tank.tankNr}&fallback=${encodeURIComponent(JSON.stringify({
           tankNr: tank.tankNr,
           bezeichnung: tank.bezeichnung,
           volumen: tank.volumenLiter,
