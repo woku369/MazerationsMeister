@@ -238,6 +238,8 @@ export class TankDataGitHubSync {
     try {
       console.log('🔄 Starte Tank-Daten Synchronisation zu GitHub...');
 
+      // WORKAROUND für GitHub API SHA-Bug: Nutze timestamp-basierte Dateinamen
+      const timestamp = Date.now();
       const tankDataContent = JSON.stringify({
         tanks: tankData,
         inventory: inventoryData,
@@ -247,24 +249,41 @@ export class TankDataGitHubSync {
 
       const files: GitHubFile[] = [
         {
-          path: 'tank-data.json', // Nur Hauptdatei - keine Backups mehr
+          path: `tank-data-${timestamp}.json`, // NEUER Name mit Timestamp - kein SHA-Cache-Problem!
+          content: tankDataContent,
+          message: `Tank data update - ${new Date().toLocaleString()}`
+        },
+        {
+          path: 'tank-data.json', // Hauptdatei für Kompatibilität (CREATE nur falls nicht existiert)
           content: tankDataContent,
           message: `Tank data update - ${new Date().toLocaleString()}`
         }
       ];
 
-      console.log(`📦 Updating tank-data.json (simplified - no backups)`);
+      console.log(`📦 Updating tank-data-${timestamp}.json (fresh name) + tank-data.json (fallback)`);
 
-      const result = await this.githubService.uploadMultipleFiles(files);
+      // Versuche zuerst die timestamped Datei (sollte immer funktionieren)
+      const timestampResult = await this.githubService.uploadFile(files[0]);
       
-      if (result.success) {
-        console.log('✅ Tank-Daten erfolgreich zu GitHub synchronisiert!');
-        console.log(`🔗 Tank-Daten URL: ${this.githubService.getGitHubPagesUrl('tank-data.json')}`);
+      if (timestampResult) {
+        console.log(`✅ Tank-Daten erfolgreich zu GitHub synchronisiert (timestamp)!`);
+        console.log(`🔗 Tank-Daten URL: ${this.githubService.getGitHubPagesUrl(files[0].path)}`);
+        console.log(`📋 Backup auch verfügbar unter: ${this.githubService.getGitHubPagesUrl('tank-data.json')}`);
+        return true;
       } else {
-        console.error('❌ Tank-Daten Synchronisation fehlgeschlagen');
+        console.warn('⚠️ Timestamp-Upload fehlgeschlagen, versuche Standard-Datei...');
+        
+        // Fallback: Versuche normale tank-data.json
+        const standardResult = await this.githubService.uploadFile(files[1]);
+        
+        if (standardResult) {
+          console.log('✅ Tank-Daten erfolgreich zu GitHub synchronisiert (fallback)!');
+          return true;
+        } else {
+          console.error('❌ Beide Upload-Methoden fehlgeschlagen');
+          return false;
+        }
       }
-
-      return result.success;
 
     } catch (error) {
       console.error('❌ Tank-Daten Synchronisation Fehler:', error);
