@@ -35,68 +35,57 @@ export class GitHubService {
     try {
       console.log(`📤 Uploading to GitHub: ${file.path}`);
 
-      // Erst prüfen, ob Datei bereits existiert
-      const existingSha = await this.getFileSha(file.path);
-
-      const payload = {
-        message: file.message,
-        content: typeof window !== 'undefined' && typeof btoa !== 'undefined' 
-          ? btoa(unescape(encodeURIComponent(file.content))) 
-          : typeof Buffer !== 'undefined' 
-            ? Buffer.from(file.content, 'utf-8').toString('base64')
-            : btoa(file.content), // Fallback
-        branch: this.config.branch,
-        ...(existingSha && { sha: existingSha })
-      };
-
-      console.log(`📝 Uploading ${file.path} to branch ${this.config.branch}${existingSha ? ` (updating SHA: ${existingSha.substring(0, 8)}...)` : ' (new file)'}`);
-
-      const response = await fetch(`${this.baseUrl}/contents/${file.path}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `token ${this.config.token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/vnd.github.v3+json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error(`❌ GitHub API Error for ${file.path}:`, response.status, errorData);
+      // Mehrfache Retry-Versuche mit frischem SHA
+      const maxRetries = 3;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
         
-        // Bei 409 Conflict: SHA-Refresh versuchen
-        if (response.status === 409) {
-          console.log(`🔄 SHA Conflict detected, trying to refresh SHA for ${file.path}`);
-          const newSha = await this.getFileSha(file.path);
-          if (newSha && newSha !== existingSha) {
-            console.log(`🔄 Retrying with fresh SHA: ${newSha.substring(0, 8)}...`);
-            const retryPayload = { ...payload, sha: newSha };
-            const retryResponse = await fetch(`${this.baseUrl}/contents/${file.path}`, {
-              method: 'PUT',
-              headers: {
-                'Authorization': `token ${this.config.token}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/vnd.github.v3+json'
-              },
-              body: JSON.stringify(retryPayload)
-            });
-            
-            if (retryResponse.ok) {
-              const result = await retryResponse.json();
-              console.log(`✅ GitHub Upload successful (retry): ${file.path}`, result.content?.html_url);
-              return true;
-            } else {
-              console.error(`❌ Retry failed for ${file.path}:`, retryResponse.status, await retryResponse.text());
-            }
-          }
+        // Hole IMMER frischen SHA vor jedem Versuch
+        const currentSha = await this.getFileSha(file.path);
+        console.log(`🔄 Attempt ${attempt}/${maxRetries} - Using SHA: ${currentSha ? currentSha.substring(0, 8) + '...' : 'none'}`);
+
+        const payload = {
+          message: file.message,
+          content: typeof window !== 'undefined' && typeof btoa !== 'undefined' 
+            ? btoa(unescape(encodeURIComponent(file.content))) 
+            : typeof Buffer !== 'undefined' 
+              ? Buffer.from(file.content, 'utf-8').toString('base64')
+              : btoa(file.content), // Fallback
+          branch: this.config.branch,
+          ...(currentSha && { sha: currentSha })
+        };
+
+        const response = await fetch(`${this.baseUrl}/contents/${file.path}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `token ${this.config.token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/vnd.github.v3+json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log(`✅ GitHub Upload successful: ${file.path}`, result.content?.html_url);
+          return true;
         }
+
+        // Bei Fehlern
+        const errorData = await response.text();
+        console.error(`❌ Attempt ${attempt} failed for ${file.path}: ${response.status}`, errorData);
+        
+        // Bei SHA-Konflikt und noch Versuche übrig: kurz warten und retry
+        if (response.status === 409 && attempt < maxRetries) {
+          console.log(`⏳ Waiting 500ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, 500));
+          continue;
+        }
+        
+        // Andere Fehler oder alle Versuche aufgebraucht
         return false;
       }
 
-      const result = await response.json();
-      console.log(`✅ GitHub Upload successful: ${file.path}`, result.content?.html_url);
-      return true;
+      return false;
 
     } catch (error) {
       console.error(`❌ GitHub Upload Fehler für ${file.path}:`, error);
