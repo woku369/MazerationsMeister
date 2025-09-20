@@ -35,7 +35,7 @@ export class GitHubService {
     try {
       console.log(`📤 Uploading to GitHub: ${file.path}`);
 
-      // Mehrfache Retry-Versuche mit frischem SHA
+      // WORKAROUND für GitHub API SHA-Bug: DELETE -> CREATE statt UPDATE
       const maxRetries = 3;
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         
@@ -59,7 +59,8 @@ export class GitHubService {
           headers: {
             'Authorization': `token ${this.config.token}`,
             'Content-Type': 'application/json',
-            'Accept': 'application/vnd.github.v3+json'
+            'Accept': 'application/vnd.github.v3+json',
+            'Cache-Control': 'no-cache'
           },
           body: JSON.stringify(payload)
         });
@@ -73,6 +74,60 @@ export class GitHubService {
         // Bei Fehlern
         const errorData = await response.text();
         console.error(`❌ Attempt ${attempt} failed for ${file.path}: ${response.status}`, errorData);
+        
+        // WORKAROUND: Bei hartnäckigen SHA-Konflikten -> DELETE und CREATE
+        if (response.status === 409 && attempt === maxRetries && currentSha) {
+          console.log(`🔄 WORKAROUND: DELETE and CREATE für ${file.path}...`);
+          
+          // 1. DELETE alte Datei
+          const deleteResponse = await fetch(`${this.baseUrl}/contents/${file.path}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `token ${this.config.token}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify({
+              message: `Delete ${file.path} for workaround`,
+              sha: currentSha,
+              branch: this.config.branch
+            })
+          });
+          
+          if (deleteResponse.ok) {
+            console.log(`🗑️ Alte Datei gelöscht, erstelle neu...`);
+            // 2. Warte kurz
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // 3. CREATE neue Datei (ohne SHA)
+            const createPayload = {
+              message: file.message,
+              content: payload.content,
+              branch: this.config.branch
+              // KEIN SHA bei CREATE
+            };
+            
+            const createResponse = await fetch(`${this.baseUrl}/contents/${file.path}`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `token ${this.config.token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+              },
+              body: JSON.stringify(createPayload)
+            });
+            
+            if (createResponse.ok) {
+              const result = await createResponse.json();
+              console.log(`✅ GitHub Upload successful (workaround): ${file.path}`, result.content?.html_url);
+              return true;
+            } else {
+              console.error(`❌ Workaround CREATE failed:`, createResponse.status, await createResponse.text());
+            }
+          } else {
+            console.error(`❌ Workaround DELETE failed:`, deleteResponse.status, await deleteResponse.text());
+          }
+        }
         
         // Bei SHA-Konflikt und noch Versuche übrig: kurz warten und retry
         if (response.status === 409 && attempt < maxRetries) {
