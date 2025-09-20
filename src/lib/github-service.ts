@@ -49,6 +49,8 @@ export class GitHubService {
         ...(existingSha && { sha: existingSha })
       };
 
+      console.log(`📝 Uploading ${file.path} to branch ${this.config.branch}${existingSha ? ` (updating SHA: ${existingSha.substring(0, 8)}...)` : ' (new file)'}`);
+
       const response = await fetch(`${this.baseUrl}/contents/${file.path}`, {
         method: 'PUT',
         headers: {
@@ -61,12 +63,39 @@ export class GitHubService {
 
       if (!response.ok) {
         const errorData = await response.text();
-        console.error(`GitHub API Error:`, response.status, errorData);
+        console.error(`❌ GitHub API Error for ${file.path}:`, response.status, errorData);
+        
+        // Bei 409 Conflict: SHA-Refresh versuchen
+        if (response.status === 409) {
+          console.log(`🔄 SHA Conflict detected, trying to refresh SHA for ${file.path}`);
+          const newSha = await this.getFileSha(file.path);
+          if (newSha && newSha !== existingSha) {
+            console.log(`🔄 Retrying with fresh SHA: ${newSha.substring(0, 8)}...`);
+            const retryPayload = { ...payload, sha: newSha };
+            const retryResponse = await fetch(`${this.baseUrl}/contents/${file.path}`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `token ${this.config.token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+              },
+              body: JSON.stringify(retryPayload)
+            });
+            
+            if (retryResponse.ok) {
+              const result = await retryResponse.json();
+              console.log(`✅ GitHub Upload successful (retry): ${file.path}`, result.content?.html_url);
+              return true;
+            } else {
+              console.error(`❌ Retry failed for ${file.path}:`, retryResponse.status, await retryResponse.text());
+            }
+          }
+        }
         return false;
       }
 
       const result = await response.json();
-      console.log(`✅ GitHub Upload erfolgreich: ${file.path}`, result.content?.html_url);
+      console.log(`✅ GitHub Upload successful: ${file.path}`, result.content?.html_url);
       return true;
 
     } catch (error) {
@@ -95,6 +124,8 @@ export class GitHubService {
    */
   private async getFileSha(path: string): Promise<string | null> {
     try {
+      console.log(`🔍 Getting SHA for ${path} on branch ${this.config.branch}`);
+      
       const response = await fetch(`${this.baseUrl}/contents/${path}?ref=${this.config.branch}`, {
         headers: {
           'Authorization': `token ${this.config.token}`,
@@ -104,11 +135,17 @@ export class GitHubService {
 
       if (response.ok) {
         const data = await response.json();
+        console.log(`✅ Found existing file ${path}, SHA: ${data.sha.substring(0, 8)}...`);
         return data.sha;
+      } else if (response.status === 404) {
+        console.log(`ℹ️ File ${path} does not exist yet (will be created)`);
+        return null;
+      } else {
+        console.warn(`⚠️ Unexpected response for ${path}:`, response.status, await response.text());
+        return null;
       }
-      return null;
     } catch (error) {
-      console.log(`ℹ️ Datei ${path} existiert noch nicht (wird neu erstellt)`);
+      console.log(`ℹ️ Error getting SHA for ${path}, assuming new file:`, error);
       return null;
     }
   }
@@ -157,6 +194,7 @@ export class TankDataGitHubSync {
     try {
       console.log('🔄 Starte Tank-Daten Synchronisation zu GitHub...');
 
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const files: GitHubFile[] = [
         {
           path: 'tank-data.json',
@@ -166,11 +204,6 @@ export class TankDataGitHubSync {
             lastUpdated: new Date().toISOString()
           }, null, 2),
           message: `Update tank data - ${new Date().toLocaleString()}`
-        },
-        {
-          path: 'tank-viewer.html',
-          content: await this.getTankViewerHTML(),
-          message: `Update tank viewer - ${new Date().toLocaleString()}`
         }
       ];
 
