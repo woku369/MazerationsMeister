@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import QRCode from "qrcode";
+import { getTankAutoSync } from "@/lib/tank-auto-sync";
 import * as cloudQRGenerator from "@/lib/cloud-qr-generator";
 import OneDriveAutoUploader from "@/lib/onedrive-auto-uploader";
 import * as oneDriveExport from "@/lib/onedrive-export";
@@ -215,7 +216,7 @@ export default function TankManagement() {
     setShowGithubSetup(true);
   };
 
-  const handleGitHubSetup = () => {
+  const handleGitHubSetup = async () => {
     if (githubToken.trim()) {
       setGithubEnabled(true);
       setShowGithubSetup(false);
@@ -229,6 +230,18 @@ export default function TankManagement() {
       window.dispatchEvent(new CustomEvent('githubConfigUpdated', {
         detail: { token: githubToken, enabled: true }
       }));
+      
+      // WICHTIG: Auto-Sync über zentrale Steuerung initialisieren (verhindert Race Conditions)
+      console.log("🔄 Initialisiere zentrale Auto-Sync für Race Condition Prevention...");
+      const autoSync = getTankAutoSync();
+      await autoSync.initialize({
+        enabled: true,
+        interval: 60, // Standard: 60 Minuten
+        githubToken: githubToken.trim(),
+        githubUsername: 'woku369',
+        githubRepository: 'MazerationsMeister'
+      });
+      console.log("✅ Auto-Sync erfolgreich initialisiert");
     }
   };
 

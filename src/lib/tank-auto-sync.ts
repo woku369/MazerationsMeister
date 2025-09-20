@@ -19,6 +19,7 @@ export class TankAutoSync {
   private githubSync: TankDataGitHubSync | null = null;
   private intervalId: NodeJS.Timeout | null = null;
   private lastSync: Date | null = null;
+  private isUploading: boolean = false; // MUTEX für parallele Uploads
 
   constructor() {
     this.loadConfig();
@@ -103,7 +104,14 @@ export class TankAutoSync {
       return false;
     }
 
+    // MUTEX: Verhindere parallele Uploads
+    if (this.isUploading) {
+      console.log('⏳ Upload bereits aktiv, warte auf Abschluss...');
+      return false;
+    }
+
     try {
+      this.isUploading = true; // LOCK
       console.log('🔄 Starte manuelle Tank-Synchronisation...');
 
       // Lade aktuelle Tank-Daten über universalStorage
@@ -133,6 +141,8 @@ export class TankAutoSync {
     } catch (error) {
       console.error('❌ Tank-Synchronisation fehlgeschlagen:', error);
       return false;
+    } finally {
+      this.isUploading = false; // UNLOCK
     }
   }
 
