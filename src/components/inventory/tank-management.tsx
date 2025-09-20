@@ -239,7 +239,7 @@ export default function TankManagement() {
       // GitHub zuerst versuchen, wenn aktiviert
       if (githubEnabled && githubToken) {
         // Teste ob GitHub Pages verfügbar ist
-        const githubPagesUrl = `https://woku369.github.io/MazerationsMeister/tank-offline.html?tank=${tank.tankNr}&fallback=${encodeURIComponent(JSON.stringify({
+        const githubPagesUrl = `https://woku369.github.io/MazerationsMeister/tank-offline?tank=${tank.tankNr}&fallback=${encodeURIComponent(JSON.stringify({
           tankNr: tank.tankNr,
           bezeichnung: tank.bezeichnung,
           volumen: tank.volumenLiter,
@@ -279,7 +279,7 @@ export default function TankManagement() {
           };
           
           const encodedFallback = encodeURIComponent(JSON.stringify(fallbackData));
-          url = `${window.location.origin}/tank-offline.html?fallback=${encodedFallback}&mode=github`;
+          url = `${window.location.origin}/tank-offline?fallback=${encodedFallback}&mode=github`;
         }
       } else {
         // Offline-Fallback mit eingebetteten Tank-Daten
@@ -311,7 +311,7 @@ export default function TankManagement() {
           // Fallback zu Offline-Viewer mit eingebetteten Daten
           console.log("OneDrive nicht verfügbar, verwende Offline-Viewer");
           const encodedFallback = encodeURIComponent(JSON.stringify(fallbackData));
-          url = `${window.location.origin}/tank-offline.html?tank=${tank.tankNr}&fallback=${encodedFallback}`;
+          url = `${window.location.origin}/tank-offline?tank=${tank.tankNr}&fallback=${encodedFallback}`;
         }
       }
       
@@ -329,7 +329,7 @@ export default function TankManagement() {
         status: "Notfall-Modus"
       };
       const encodedFallback = encodeURIComponent(JSON.stringify(basicFallback));
-      const fallbackUrl = `${window.location.origin}/tank-offline.html?tank=${tank.tankNr}&fallback=${encodedFallback}`;
+      const fallbackUrl = `${window.location.origin}/tank-offline?tank=${tank.tankNr}&fallback=${encodedFallback}`;
       
       const qrCodeUrl = await QRCode.toDataURL(fallbackUrl);
       setQrCodeDataUrl(qrCodeUrl);

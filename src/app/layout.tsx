@@ -5,6 +5,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import AppHeader from '@/components/layout/header';
 import Sidebar from '@/components/layout/sidebar';
+import AppDataInitializer from '@/components/app-data-initializer';
 import { cn } from '@/lib/utils';
 
 const inter = Inter({
@@ -58,16 +59,18 @@ export default function RootLayout({
       <body className={cn(
         "font-sans antialiased min-h-screen bg-background"
       )} suppressHydrationWarning={true}>
-        <div className="flex flex-row min-h-screen">
-          <Sidebar />
-          <div className="flex-1 flex flex-col lg:ml-64">
-            <AppHeader />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Toaster />
+        <AppDataInitializer>
+          <div className="flex flex-row min-h-screen">
+            <Sidebar />
+            <div className="flex-1 flex flex-col lg:ml-64">
+              <AppHeader />
+              <main className="flex-1">
+                {children}
+              </main>
+              <Toaster />
+            </div>
           </div>
-        </div>
+        </AppDataInitializer>
       </body>
     </html>
   );
