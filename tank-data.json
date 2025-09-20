@@ -2,7 +2,7 @@
   "tanks": [],
   "inventory": [
     {
-      "id": "df7d744e-db50-4e28-b25f-38a5ea01bc1b",
+      "id": "2a1bf7fe-d717-4de2-8d43-0b5f8ce7e2d1",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "P30000-60",
@@ -13,11 +13,11 @@
       "alcoholVolProzent": 60,
       "dichte20C": 0.9112,
       "literAbsolutalkohol": 1998,
-      "lastInventoryDate": "2025-09-20T19:32:21.076Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.900Z",
       "bemerkungen": ""
     },
     {
-      "id": "1b7fc04e-5471-4502-b558-ebcf1ffc8b35",
+      "id": "8810ac25-c7b4-46f8-bf8d-c0ad48b46107",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "GFKC-M",
@@ -28,11 +28,11 @@
       "alcoholVolProzent": 53.5,
       "dichte20C": 0.9257,
       "literAbsolutalkohol": 3466.8,
-      "lastInventoryDate": "2025-09-20T19:32:21.076Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.900Z",
       "bemerkungen": ""
     },
     {
-      "id": "8c270462-b040-4f6d-b71c-2d5c6b6fadb0",
+      "id": "04ef34b4-6565-470d-98aa-b11d5a247bfc",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2201-2400",
@@ -43,11 +43,11 @@
       "alcoholVolProzent": 54,
       "dichte20C": 0.9301,
       "literAbsolutalkohol": 456.3,
-      "lastInventoryDate": "2025-09-20T19:32:21.076Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     },
     {
-      "id": "1606b577-e141-4326-8057-505de0c7ed46",
+      "id": "fdd1e387-0a22-408a-8fb8-2f4ecfb726a9",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2102",
@@ -58,11 +58,11 @@
       "alcoholVolProzent": 53.1,
       "dichte20C": 0.9255,
       "literAbsolutalkohol": 2150.55,
-      "lastInventoryDate": "2025-09-20T19:32:21.076Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     },
     {
-      "id": "a1e7e124-9677-4846-a435-d50f585550ff",
+      "id": "382a1480-dae7-41d2-9aa0-87c1c0456398",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2201/2400",
@@ -73,11 +73,11 @@
       "alcoholVolProzent": 52.5,
       "dichte20C": 0.9268,
       "literAbsolutalkohol": 1606.5,
-      "lastInventoryDate": "2025-09-20T19:32:21.076Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     },
     {
-      "id": "c27dc448-3eff-4054-9710-be392331f5ad",
+      "id": "7741c1dd-76f0-49ca-867f-39e997d021f7",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2400",
@@ -88,11 +88,11 @@
       "alcoholVolProzent": 55.2,
       "dichte20C": 0.9211,
       "literAbsolutalkohol": 745.2,
-      "lastInventoryDate": "2025-09-20T19:32:21.077Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     },
     {
-      "id": "87b3e89c-b9a9-4eb4-9305-f457f11af7f5",
+      "id": "e0a0a374-f493-4a5f-9e68-a6bbc85e7a28",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2203/2400",
@@ -103,11 +103,11 @@
       "alcoholVolProzent": 52,
       "dichte20C": 0.9272,
       "literAbsolutalkohol": 785.2,
-      "lastInventoryDate": "2025-09-20T19:32:21.077Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     },
     {
-      "id": "a9e1629e-9349-4d54-a36c-4765ce942744",
+      "id": "a2a2704e-52c8-49a6-b46d-33ab91e460dc",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1301",
@@ -118,11 +118,11 @@
       "alcoholVolProzent": 54.2,
       "dichte20C": 0.9233,
       "literAbsolutalkohol": 3.64,
-      "lastInventoryDate": "2025-09-20T19:32:21.077Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     },
     {
-      "id": "9f6ae68a-26b4-4642-a260-6429ea604cd9",
+      "id": "dce06a68-246d-46d6-bdaa-ba9a7aab4fb3",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1701",
@@ -133,11 +133,11 @@
       "alcoholVolProzent": 74.5,
       "dichte20C": 0.8755,
       "literAbsolutalkohol": 22.72,
-      "lastInventoryDate": "2025-09-20T19:32:21.077Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     },
     {
-      "id": "4c23f05f-84e4-4909-bda2-b70f616a9d28",
+      "id": "28fa8f5f-75ee-43fc-88e9-fa3b55f4c53c",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1301",
@@ -148,11 +148,11 @@
       "alcoholVolProzent": 54.2,
       "dichte20C": 0.9233,
       "literAbsolutalkohol": 3.64,
-      "lastInventoryDate": "2025-09-20T19:32:21.077Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     },
     {
-      "id": "328db99d-3865-48b0-b271-5a777c061d09",
+      "id": "ccefcbd0-af6f-4295-ad83-3ffa1d44c3c0",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1400",
@@ -163,11 +163,11 @@
       "alcoholVolProzent": 47.1,
       "dichte20C": 0.9373,
       "literAbsolutalkohol": 38.15,
-      "lastInventoryDate": "2025-09-20T19:32:21.077Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     },
     {
-      "id": "ec908931-752f-4bfc-8466-f42a0dedea24",
+      "id": "3a4dcbaf-4dbb-4ad0-9ad9-7fbef6154e23",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1301",
@@ -178,11 +178,11 @@
       "alcoholVolProzent": 51.6,
       "dichte20C": 0.9286,
       "literAbsolutalkohol": 3.08,
-      "lastInventoryDate": "2025-09-20T19:32:21.077Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     },
     {
-      "id": "be35fc15-6ed0-464a-bcf7-a176cdfb7f84",
+      "id": "01747dfc-a2d7-461f-9f08-1da5ace6805c",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2015",
@@ -193,11 +193,11 @@
       "alcoholVolProzent": 74,
       "dichte20C": 0.877,
       "literAbsolutalkohol": 18.5,
-      "lastInventoryDate": "2025-09-20T19:32:21.077Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     },
     {
-      "id": "d79fd58b-d963-4a82-8e69-b0089bb28a8b",
+      "id": "e843e29c-d2f4-4a7f-9d84-132d806b6f33",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "GFKC-K",
@@ -208,11 +208,11 @@
       "alcoholVolProzent": 78.3,
       "dichte20C": 0.8695,
       "literAbsolutalkohol": 391.44,
-      "lastInventoryDate": "2025-09-20T19:32:21.077Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     },
     {
-      "id": "c9bbdf61-9489-4146-84fb-2f5404881cc6",
+      "id": "63a1b02d-c1bb-4341-b276-d582d2967db7",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2012",
@@ -223,11 +223,11 @@
       "alcoholVolProzent": 77.4,
       "dichte20C": 0.868,
       "literAbsolutalkohol": 4.99,
-      "lastInventoryDate": "2025-09-20T19:32:21.077Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     },
     {
-      "id": "b9795f22-d57c-433c-af79-98ff09ebdc03",
+      "id": "b60053db-20ff-47ca-a07a-3fcd527a9f2a",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2012",
@@ -238,11 +238,11 @@
       "alcoholVolProzent": 74,
       "dichte20C": 0.877,
       "literAbsolutalkohol": 4.33,
-      "lastInventoryDate": "2025-09-20T19:32:21.077Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     },
     {
-      "id": "632a4fdf-1221-4fb6-bf64-c5a2daad03f4",
+      "id": "9a8c5837-4f7b-4a4d-8720-56f9e422094b",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2012",
@@ -253,11 +253,11 @@
       "alcoholVolProzent": 75.3,
       "dichte20C": 0.8735,
       "literAbsolutalkohol": 23.27,
-      "lastInventoryDate": "2025-09-20T19:32:21.077Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     },
     {
-      "id": "b79f3083-9a6a-434e-b397-e3ae92eeb7d9",
+      "id": "3ccda5e2-b0f5-41b0-aa73-fc7288c4337c",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "S3 2013",
@@ -268,10 +268,10 @@
       "alcoholVolProzent": 73,
       "dichte20C": 0.8325,
       "literAbsolutalkohol": 20.89,
-      "lastInventoryDate": "2025-09-20T19:32:21.077Z",
+      "lastInventoryDate": "2025-09-20T20:07:17.901Z",
       "bemerkungen": ""
     }
   ],
-  "lastUpdated": "2025-09-20T19:32:43.668Z",
-  "timestamp": "2025-09-20T19:32:43.668Z"
+  "lastUpdated": "2025-09-20T20:07:47.721Z",
+  "timestamp": "2025-09-20T20:07:47.721Z"
 }
