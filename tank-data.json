@@ -1,5 +1,78 @@
 {
-  "tanks": [],
+  "tanks": [
+    {
+      "id": "T 341",
+      "tankNr": "T 341",
+      "bezeichnung": "Auto-erkannt: T 341",
+      "volumenLiter": 5000
+    },
+    {
+      "id": "T 349",
+      "tankNr": "T 349",
+      "bezeichnung": "Auto-erkannt: T 349",
+      "volumenLiter": 5000
+    },
+    {
+      "id": "T 1536",
+      "tankNr": "T 1536",
+      "bezeichnung": "Auto-erkannt: T 1536",
+      "volumenLiter": 5000
+    },
+    {
+      "id": "T 343",
+      "tankNr": "T 343",
+      "bezeichnung": "Auto-erkannt: T 343",
+      "volumenLiter": 5000
+    },
+    {
+      "id": "T 345",
+      "tankNr": "T 345",
+      "bezeichnung": "Auto-erkannt: T 345",
+      "volumenLiter": 5000
+    },
+    {
+      "id": "T 348",
+      "tankNr": "T 348",
+      "bezeichnung": "Auto-erkannt: T 348",
+      "volumenLiter": 5000
+    },
+    {
+      "id": "T 338",
+      "tankNr": "T 338",
+      "bezeichnung": "Auto-erkannt: T 338",
+      "volumenLiter": 5000
+    },
+    {
+      "id": "Fl",
+      "tankNr": "Fl",
+      "bezeichnung": "Auto-erkannt: Fl",
+      "volumenLiter": 5000
+    },
+    {
+      "id": "B",
+      "tankNr": "B",
+      "bezeichnung": "Auto-erkannt: B",
+      "volumenLiter": 5000
+    },
+    {
+      "id": "Fass",
+      "tankNr": "Fass",
+      "bezeichnung": "Auto-erkannt: Fass",
+      "volumenLiter": 5000
+    },
+    {
+      "id": "Cont",
+      "tankNr": "Cont",
+      "bezeichnung": "Auto-erkannt: Cont",
+      "volumenLiter": 5000
+    },
+    {
+      "id": "K",
+      "tankNr": "K",
+      "bezeichnung": "Auto-erkannt: K",
+      "volumenLiter": 5000
+    }
+  ],
   "inventory": [
     {
       "id": "2ade456b-e501-4d96-bcac-926d653b2e50",
@@ -272,6 +345,6 @@
       "bemerkungen": ""
     }
   ],
-  "lastUpdated": "2025-09-20T21:43:43.284Z",
-  "timestamp": "2025-09-20T21:43:43.284Z"
+  "lastUpdated": "2025-09-20T21:46:17.837Z",
+  "timestamp": "2025-09-20T21:46:17.837Z"
 }
