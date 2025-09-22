@@ -329,6 +329,7 @@
             let totalVolume = 0;
             let content = 'Nicht spezifiziert';
             let batch = '';
+            let tankInventory = []; // Variable in korrektem Scope definieren
             
             if (tank.aktuellerFuellstand !== undefined) {
                 // Fallback data - direkte Werte
@@ -338,7 +339,7 @@
                 console.log('📦 Fallback-Daten verwendet:', { totalVolume, content, batch });
             } else {
                 // Full dataset - berechne aus Inventar
-                const tankInventory = inventory.filter(item => 
+                tankInventory = inventory.filter(item => 
                     item.tankNr === tank.tankNr
                 );
                 totalVolume = tankInventory.reduce((sum, item) => sum + (item.currentQuantityLiters || 0), 0);
