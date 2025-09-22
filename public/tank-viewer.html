@@ -256,16 +256,67 @@
                 console.log('✅ Direkte Tank-Daten von Fallback verwendet');
             } else {
                 // Full dataset with tanks array
-                tank = data.tanks?.find(t => t.id === tankId || t.tankNr === tankId);
+                console.log('🔍 Vollständiges Dataset erhalten:', data);
+                console.log('🔍 Alle verfügbaren Tanks:', data.tanks);
+                console.log('🔍 Suche nach Tank mit ID:', tankId);
+                
+                // ERWEITERTE TANK-SUCHE: Versuche verschiedene ID-Felder
+                tank = data.tanks?.find(t => {
+                    const matches = [
+                        t.id === tankId,
+                        t.tankNr === tankId,
+                        t.bezeichnung === tankId,
+                        // Falls Tank-IDs wie "T 341" sind, versuche auch ohne Leerzeichen
+                        t.id === tankId.replace(/\s+/g, ''),
+                        t.tankNr === tankId.replace(/\s+/g, ''),
+                        // Versuche auch mit Leerzeichen falls tankId ohne ist
+                        t.id === `T ${tankId}`,
+                        t.tankNr === `T ${tankId}`
+                    ];
+                    
+                    console.log(`🔍 Tank ${t.tankNr} (ID: ${t.id}):`, matches.some(m => m));
+                    return matches.some(m => m);
+                });
+                
                 inventory = data.inventory || [];
-                console.log('🔍 Suche Tank in Dataset:', { tankId, foundTank: !!tank });
+                console.log('🔍 Tank-Suche Ergebnis:', { 
+                    sucheTank: tankId, 
+                    gefundenTank: tank ? `${tank.tankNr} (${tank.id})` : 'NICHT GEFUNDEN',
+                    verfügbareTanks: data.tanks ? data.tanks.map(t => `${t.tankNr} (${t.id})`).join(', ') : 'KEINE'
+                });
             }
             
+            // FALLBACK: Wenn Tank nicht gefunden, aber Inventory-Daten für diesen Tank existieren
+            if (!tank && data.inventory) {
+                console.log('🔄 FALLBACK: Versuche Tank aus Inventory-Daten zu rekonstruieren...');
+                const tankInventory = data.inventory.filter(item => 
+                    item.tankNr === tankId || 
+                    item.tankNr?.replace(/\s+/g, '') === tankId?.replace(/\s+/g, '') ||
+                    item.location?.includes(tankId)
+                );
+                
+                if (tankInventory.length > 0) {
+                    // Erstelle virtuelle Tank-Definition aus Inventory
+                    tank = {
+                        id: tankId,
+                        tankNr: tankId,
+                        bezeichnung: `Tank ${tankId}`,
+                        volumenLiter: 5000 // Standard-Kapazität
+                    };
+                    console.log('✅ Tank aus Inventory rekonstruiert:', tank);
+                }
+            }
+
             if (!tank) {
                 console.warn('⚠️ Tank nicht gefunden:', tankId);
                 if (data.tanks) {
                     console.warn('⚠️ Verfügbare Tank-IDs:', data.tanks.map(t => t.id));
+                    console.warn('⚠️ Verfügbare Tank-Nummern:', data.tanks.map(t => t.tankNr));
                     showError(`Tank "${tankId}" nicht gefunden. Verfügbare Tanks: ${data.tanks.map(t => `${t.tankNr} (${t.id})`).join(', ')}`);
+                } else if (data.inventory) {
+                    const availableTankNrs = [...new Set(data.inventory.map(i => i.tankNr))];
+                    console.warn('⚠️ Tanks in Inventory:', availableTankNrs);
+                    showError(`Tank "${tankId}" nicht gefunden. Tanks in Inventory: ${availableTankNrs.join(', ')}`);
                 } else {
                     showError(`Tank "${tankId}" nicht gefunden in den übertragenen Daten.`);
                 }

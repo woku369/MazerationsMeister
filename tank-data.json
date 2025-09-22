@@ -1,5 +1,102 @@
 {
-  "tanks": [],
+  "tanks": [
+    {
+      "id": "tank-t341",
+      "tankNr": "T 341",
+      "bezeichnung": "Tank 341 - Hauptlager",
+      "volumenLiter": 6000,
+      "containerType": "tank",
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "tank-t349",
+      "tankNr": "T 349", 
+      "bezeichnung": "Tank 349 - Gärtank",
+      "volumenLiter": 8000,
+      "containerType": "tank",
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "tank-t1536",
+      "tankNr": "T 1536",
+      "bezeichnung": "Tank 1536 - Reserve", 
+      "volumenLiter": 1500,
+      "containerType": "tank",
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "tank-t343",
+      "tankNr": "T 343",
+      "bezeichnung": "Tank 343 - Lager",
+      "volumenLiter": 5000,
+      "containerType": "tank",
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "tank-t345", 
+      "tankNr": "T 345",
+      "bezeichnung": "Tank 345 - Mischung",
+      "volumenLiter": 4000,
+      "containerType": "tank",
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "tank-t348",
+      "tankNr": "T 348", 
+      "bezeichnung": "Tank 348 - Finale",
+      "volumenLiter": 2000,
+      "containerType": "tank",
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "tank-t338",
+      "tankNr": "T 338",
+      "bezeichnung": "Tank 338 - Vorrat",
+      "volumenLiter": 2000,
+      "containerType": "tank", 
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "cont-fl",
+      "tankNr": "Fl",
+      "bezeichnung": "Flaschen",
+      "volumenLiter": 100,
+      "containerType": "bottle",
+      "hasUniqueNumber": false
+    },
+    {
+      "id": "cont-b",
+      "tankNr": "B", 
+      "bezeichnung": "Behälter",
+      "volumenLiter": 500,
+      "containerType": "other",
+      "hasUniqueNumber": false
+    },
+    {
+      "id": "cont-fass",
+      "tankNr": "Fass",
+      "bezeichnung": "Fässer",
+      "volumenLiter": 200,
+      "containerType": "barrel",
+      "hasUniqueNumber": false
+    },
+    {
+      "id": "cont-cont",
+      "tankNr": "Cont",
+      "bezeichnung": "Container",
+      "volumenLiter": 1000,
+      "containerType": "ibc",
+      "hasUniqueNumber": false
+    },
+    {
+      "id": "cont-k",
+      "tankNr": "K",
+      "bezeichnung": "Kanister", 
+      "volumenLiter": 100,
+      "containerType": "other",
+      "hasUniqueNumber": false
+    }
+  ],
   "inventory": [
     {
       "id": "df7d744e-db50-4e28-b25f-38a5ea01bc1b",
@@ -272,6 +369,8 @@
       "bemerkungen": ""
     }
   ],
-  "lastUpdated": "2025-09-20T19:32:43.668Z",
-  "timestamp": "2025-09-20T19:32:43.668Z"
+  "lastUpdated": "2025-09-22T08:30:00.000Z",
+  "lastExport": "2025-09-22T08:30:00.000Z",
+  "timestamp": "2025-09-22T08:30:00.000Z",
+  "version": "2.0.0"
 }
