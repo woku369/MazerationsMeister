@@ -1,4 +1,19 @@
 /**
+ * Hilfsfunktion: Konvertiert Umlaute zu ASCII-sicheren Alternativen
+ */
+function toAsciiSafe(text: string): string {
+  return text
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/Ä/g, 'Ae')
+    .replace(/Ö/g, 'Oe')
+    .replace(/Ü/g, 'Ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^\x00-\x7F]/g, ''); // Entferne alle Nicht-ASCII Zeichen
+}
+
+/**
  * GitHub Service für automatische Tank-Daten Synchronisation
  * Lädt Tank-Daten automatisch zu GitHub Pages hoch
  */
@@ -219,6 +234,21 @@ export class GitHubService {
       return false;
     }
   }
+
+  /**
+   * Konvertiert Umlaute und Sonderzeichen zu ASCII-sicheren Alternativen
+   */
+  private toAsciiSafe(text: string): string {
+    return text
+      .replace(/ä/g, 'ae')
+      .replace(/ö/g, 'oe')
+      .replace(/ü/g, 'ue')
+      .replace(/Ä/g, 'Ae')
+      .replace(/Ö/g, 'Oe')
+      .replace(/Ü/g, 'Ue')
+      .replace(/ß/g, 'ss')
+      .replace(/[^\x00-\x7F]/g, ''); // Entferne alle Nicht-ASCII Zeichen
+  }
 }
 
 /**
@@ -234,13 +264,26 @@ export class TankDataGitHubSync {
   /**
    * Synchronisiert alle Tank-Daten zu GitHub
    */
-  async syncTankData(tankData: any, inventoryData: any): Promise<boolean> {
+  async syncTankData(tankData: any, inventoryData: any): Promise<{ success: boolean; backupUrl?: string }> {
     try {
       console.log('🔄 Starte Tank-Daten Synchronisation zu GitHub...');
 
+      // WICHTIG: Erstelle ASCII-sichere Version für GitHub Pages
+      const asciiSafeInventory = inventoryData.map((item: any) => ({
+        ...item,
+        produktName: toAsciiSafe(item.produktName || ''),
+        chargenNummer: toAsciiSafe(item.chargenNummer || ''),
+        bemerkungen: toAsciiSafe(item.bemerkungen || '')
+      }));
+
+      const asciiSafeTanks = tankData.map((tank: any) => ({
+        ...tank,
+        bezeichnung: toAsciiSafe(tank.bezeichnung || '')
+      }));
+
       const tankDataContent = JSON.stringify({
-        tanks: tankData,
-        inventory: inventoryData,
+        tanks: asciiSafeTanks,
+        inventory: asciiSafeInventory,
         lastUpdated: new Date().toISOString(),
         timestamp: new Date().toISOString()
       }, null, 2);
@@ -279,20 +322,20 @@ export class TankDataGitHubSync {
           console.log('✅ Hauptdatei tank-data.json erfolgreich aktualisiert!');
           console.log(`🔗 Tank-Daten sofort verfügbar: ${this.githubService.getGitHubPagesUrl('tank-data.json')}`);
           console.log(`📋 Backup verfügbar: ${this.githubService.getGitHubPagesUrl(files[0].path)}`);
-          return true;
+          return { success: true, backupUrl: this.githubService.getGitHubPagesUrl(files[0].path) };
         } else {
           console.warn('⚠️ Hauptdatei-Update fehlgeschlagen, aber Backup wurde erstellt');
           console.log(`🔗 Daten verfügbar über Backup: ${this.githubService.getGitHubPagesUrl(files[0].path)}`);
-          return true; // Backup reicht aus
+          return { success: true, backupUrl: this.githubService.getGitHubPagesUrl(files[0].path) }; // Backup reicht aus
         }
       } else {
         console.error('❌ Backup-Erstellung fehlgeschlagen');
-        return false;
+        return { success: false };
       }
 
     } catch (error) {
       console.error('❌ Tank-Daten Synchronisation Fehler:', error);
-      return false;
+      return { success: false };
     }
   }
 
@@ -397,6 +440,13 @@ export class TankDataGitHubSync {
     </script>
 </body>
 </html>`;
+  }
+
+  /**
+   * Lädt statische QR-System Dateien hoch (dummy für Kompatibilität)
+   */
+  async uploadStaticFiles(): Promise<{ success: boolean; message: string }> {
+    return { success: true, message: 'Static files upload not implemented' };
   }
 
   /**
