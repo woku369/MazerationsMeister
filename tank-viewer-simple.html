@@ -155,9 +155,9 @@
         // 🎯 VEREINFACHTE TANK-VIEWER LOGIK
         // Nur noch tankId Parameter, lädt immer fresh tank-data.json
         
-        // URL Parameter
+        // URL Parameter - KOMPATIBEL mit beiden Systemen
         const urlParams = new URLSearchParams(window.location.search);
-        const tankId = urlParams.get('tankId') || urlParams.get('tank');
+        const tankId = urlParams.get('tank') || urlParams.get('tankId') || urlParams.get('tankNr');
         
         console.log('🚀 STATISCHER TANK VIEWER gestartet für Tank:', tankId);
         
