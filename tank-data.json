@@ -1,5 +1,102 @@
 {
-  "tanks": [],
+  "tanks": [
+    {
+      "id": "T 341",
+      "tankNr": "T 341",
+      "bezeichnung": "Auto-erkannt: T 341",
+      "volumenLiter": 5000,
+      "containerType": "tank",
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "T 349",
+      "tankNr": "T 349",
+      "bezeichnung": "Auto-erkannt: T 349",
+      "volumenLiter": 5000,
+      "containerType": "tank",
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "T 1536",
+      "tankNr": "T 1536",
+      "bezeichnung": "Auto-erkannt: T 1536",
+      "volumenLiter": 5000,
+      "containerType": "tank",
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "T 343",
+      "tankNr": "T 343",
+      "bezeichnung": "Auto-erkannt: T 343",
+      "volumenLiter": 5000,
+      "containerType": "tank",
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "T 345",
+      "tankNr": "T 345",
+      "bezeichnung": "Auto-erkannt: T 345",
+      "volumenLiter": 5000,
+      "containerType": "tank",
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "T 348",
+      "tankNr": "T 348",
+      "bezeichnung": "Auto-erkannt: T 348",
+      "volumenLiter": 5000,
+      "containerType": "tank",
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "T 338",
+      "tankNr": "T 338",
+      "bezeichnung": "Auto-erkannt: T 338",
+      "volumenLiter": 5000,
+      "containerType": "tank",
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "Fl",
+      "tankNr": "Fl",
+      "bezeichnung": "Auto-erkannt: Fl",
+      "volumenLiter": 5000,
+      "containerType": "other",
+      "hasUniqueNumber": false
+    },
+    {
+      "id": "B",
+      "tankNr": "B",
+      "bezeichnung": "Auto-erkannt: B",
+      "volumenLiter": 5000,
+      "containerType": "other",
+      "hasUniqueNumber": false
+    },
+    {
+      "id": "Fass",
+      "tankNr": "Fass",
+      "bezeichnung": "Auto-erkannt: Fass",
+      "volumenLiter": 5000,
+      "containerType": "other",
+      "hasUniqueNumber": false
+    },
+    {
+      "id": "Cont",
+      "tankNr": "Cont",
+      "bezeichnung": "Auto-erkannt: Cont",
+      "volumenLiter": 5000,
+      "containerType": "other",
+      "hasUniqueNumber": false
+    },
+    {
+      "id": "K",
+      "tankNr": "K",
+      "bezeichnung": "Auto-erkannt: K",
+      "volumenLiter": 5000,
+      "containerType": "other",
+      "hasUniqueNumber": false
+    }
+  ],
   "inventory": [
     {
       "id": "daf2d41b-2177-40c4-b3f7-f7708816a3d1",
@@ -272,6 +369,6 @@
       "bemerkungen": ""
     }
   ],
-  "lastUpdated": "2025-09-26T07:29:15.285Z",
-  "timestamp": "2025-09-26T07:29:15.285Z"
+  "lastUpdated": "2025-09-26T08:14:31.515Z",
+  "timestamp": "2025-09-26T08:14:31.515Z"
 }
