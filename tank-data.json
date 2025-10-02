@@ -95,6 +95,204 @@
       "volumenLiter": 5000,
       "containerType": "other",
       "hasUniqueNumber": false
+    },
+    {
+      "id": "Fl",
+      "tankNr": "Fl",
+      "bezeichnung": "Mariendistel (Fl-1)",
+      "volumenLiter": 6.75,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "Mariendistel"
+    },
+    {
+      "id": "Fl",
+      "tankNr": "Fl",
+      "bezeichnung": "Benedikten (Fl-2)",
+      "volumenLiter": 6.75,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "Benedikten"
+    },
+    {
+      "id": "Fl",
+      "tankNr": "Fl",
+      "bezeichnung": "Zirbe (Fl-3)",
+      "volumenLiter": 6,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "Zirbe"
+    },
+    {
+      "id": "B",
+      "tankNr": "B",
+      "bezeichnung": "Oregano (B-1)",
+      "volumenLiter": 30.5,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "Oregano"
+    },
+    {
+      "id": "B",
+      "tankNr": "B",
+      "bezeichnung": "GFKC-A (B-2)",
+      "volumenLiter": 25,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "GFKC-A"
+    },
+    {
+      "id": "B",
+      "tankNr": "B",
+      "bezeichnung": "Sauvignon Bl (B-3)",
+      "volumenLiter": 31,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "Sauvignon Bl"
+    },
+    {
+      "id": "B",
+      "tankNr": "B",
+      "bezeichnung": "Marc d SWS (B-4)",
+      "volumenLiter": 28.61,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "Marc d SWS"
+    },
+    {
+      "id": "Fass",
+      "tankNr": "Fass",
+      "bezeichnung": "Baldrian (Fass-1)",
+      "volumenLiter": 81,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "Baldrian"
+    },
+    {
+      "id": "Cont",
+      "tankNr": "Cont",
+      "bezeichnung": "GFKC-K (Cont-1)",
+      "volumenLiter": 138.9,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "GFKC-K"
+    },
+    {
+      "id": "K",
+      "tankNr": "K",
+      "bezeichnung": "VL Zirbe (K-1)",
+      "volumenLiter": 6,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "VL Zirbe"
+    },
+    {
+      "id": "K",
+      "tankNr": "K",
+      "bezeichnung": "VL Zirbe (K-2)",
+      "volumenLiter": 6,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "VL Zirbe"
+    },
+    {
+      "id": "Fl-1",
+      "tankNr": "Fl",
+      "bezeichnung": "Mariendistel (Fl-1)",
+      "volumenLiter": 6.75,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "Mariendistel"
+    },
+    {
+      "id": "Fl-2",
+      "tankNr": "Fl",
+      "bezeichnung": "Benedikten (Fl-2)",
+      "volumenLiter": 6.75,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "Benedikten"
+    },
+    {
+      "id": "Fl-3",
+      "tankNr": "Fl",
+      "bezeichnung": "Zirbe (Fl-3)",
+      "volumenLiter": 6,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "Zirbe"
+    },
+    {
+      "id": "B-1",
+      "tankNr": "B",
+      "bezeichnung": "Oregano (B-1)",
+      "volumenLiter": 30.5,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "Oregano"
+    },
+    {
+      "id": "B-2",
+      "tankNr": "B",
+      "bezeichnung": "GFKC-A (B-2)",
+      "volumenLiter": 25,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "GFKC-A"
+    },
+    {
+      "id": "B-3",
+      "tankNr": "B",
+      "bezeichnung": "Sauvignon Bl (B-3)",
+      "volumenLiter": 31,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "Sauvignon Bl"
+    },
+    {
+      "id": "B-4",
+      "tankNr": "B",
+      "bezeichnung": "Marc d SWS (B-4)",
+      "volumenLiter": 28.61,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "Marc d SWS"
+    },
+    {
+      "id": "Fass-1",
+      "tankNr": "Fass",
+      "bezeichnung": "Baldrian (Fass-1)",
+      "volumenLiter": 81,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "Baldrian"
+    },
+    {
+      "id": "Cont-1",
+      "tankNr": "Cont",
+      "bezeichnung": "GFKC-K (Cont-1)",
+      "volumenLiter": 138.9,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "GFKC-K"
+    },
+    {
+      "id": "K-1",
+      "tankNr": "K",
+      "bezeichnung": "VL Zirbe (K-1)",
+      "volumenLiter": 6,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "VL Zirbe"
+    },
+    {
+      "id": "K-2",
+      "tankNr": "K",
+      "bezeichnung": "VL Zirbe (K-2)",
+      "volumenLiter": 6,
+      "containerType": "other",
+      "hasUniqueNumber": false,
+      "currentContent": "VL Zirbe"
     }
   ],
   "inventory": [
@@ -369,6 +567,6 @@
       "bemerkungen": ""
     }
   ],
-  "lastUpdated": "2025-10-02T07:57:11.514Z",
-  "timestamp": "2025-10-02T07:57:11.514Z"
+  "lastUpdated": "2025-10-02T08:11:06.173Z",
+  "timestamp": "2025-10-02T08:11:06.173Z"
 }
