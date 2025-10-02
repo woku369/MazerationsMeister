@@ -106,11 +106,11 @@
       "produktName": "Sprit",
       "category": "Dest",
       "tankNr": "T 341",
-      "currentQuantityLiters": 3330,
+      "currentQuantityLiters": 3630,
       "alcoholVolProzent": 60,
       "dichte20C": 0.9112,
       "literAbsolutalkohol": 1998,
-      "lastInventoryDate": "2025-10-01T19:35:38.451Z",
+      "lastInventoryDate": "2025-10-02T07:56:37.362Z",
       "bemerkungen": ""
     },
     {
@@ -369,6 +369,6 @@
       "bemerkungen": ""
     }
   ],
-  "lastUpdated": "2025-10-02T07:48:22.829Z",
-  "timestamp": "2025-10-02T07:48:22.829Z"
+  "lastUpdated": "2025-10-02T07:57:11.514Z",
+  "timestamp": "2025-10-02T07:57:11.514Z"
 }
