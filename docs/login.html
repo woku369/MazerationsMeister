@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Login - MazerationsMeister</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .login-container {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 400px;
+      width: 100%;
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .logo {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .logo-icon {
+      font-size: 60px;
+      margin-bottom: 10px;
+    }
+    
+    h1 {
+      font-size: 24px;
+      color: #333;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+    
+    .pin-display {
+      background: #f5f5f5;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .pin-dots {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+    
+    .pin-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid #ddd;
+      transition: all 0.2s;
+    }
+    
+    .pin-dot.filled {
+      background: #667eea;
+      border-color: #667eea;
+      transform: scale(1.1);
+    }
+    
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .numpad-btn {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 15px;
+      font-size: 28px;
+      font-weight: 600;
+      color: #333;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .numpad-btn:active {
+      transform: scale(0.95);
+      background: #f5f5f5;
+    }
+    
+    .numpad-btn.backspace {
+      background: #ff6b6b;
+      color: white;
+      border-color: #ff6b6b;
+      font-size: 24px;
+    }
+    
+    .numpad-btn.submit {
+      background: #51cf66;
+      color: white;
+      border-color: #51cf66;
+      font-size: 24px;
+    }
+    
+    .numpad-btn.zero {
+      grid-column: 2;
+    }
+    
+    .info-text {
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+      margin-top: 20px;
+    }
+    
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      font-size: 13px;
+      color: #1976d2;
+    }
+    
+    .info-box strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+    
+    .error-message {
+      background: #ffebee;
+      color: #c62828;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 15px;
+      font-size: 14px;
+      animation: shake 0.5s;
+      display: none;
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+    
+    .success-message {
+      background: #e8f5e9;
+      color: #2e7d32;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 15px;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .loading {
+      display: none;
+      text-align: center;
+      margin-top: 20px;
+    }
+    
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="logo">
+      <div class="logo-icon">🔐</div>
+      <h1>MazerationsMeister</h1>
+      <p class="subtitle">Zugriff geschützt</p>
+    </div>
+    
+    <div class="error-message" id="errorMessage">
+      Ungültige PIN. Bitte versuche es erneut.
+    </div>
+    
+    <div class="success-message" id="successMessage">
+      ✓ Login erfolgreich!
+    </div>
+    
+    <div class="pin-display">
+      <div class="pin-dots" id="pinDots">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+    </div>
+    
+    <div class="numpad">
+      <button class="numpad-btn" onclick="addDigit('1')">1</button>
+      <button class="numpad-btn" onclick="addDigit('2')">2</button>
+      <button class="numpad-btn" onclick="addDigit('3')">3</button>
+      <button class="numpad-btn" onclick="addDigit('4')">4</button>
+      <button class="numpad-btn" onclick="addDigit('5')">5</button>
+      <button class="numpad-btn" onclick="addDigit('6')">6</button>
+      <button class="numpad-btn" onclick="addDigit('7')">7</button>
+      <button class="numpad-btn" onclick="addDigit('8')">8</button>
+      <button class="numpad-btn" onclick="addDigit('9')">9</button>
+      <button class="numpad-btn backspace" onclick="removeDigit()">⌫</button>
+      <button class="numpad-btn zero" onclick="addDigit('0')">0</button>
+      <button class="numpad-btn submit" onclick="submitPIN()">✓</button>
+    </div>
+    
+    <div class="info-box">
+      <strong>PIN-Optionen:</strong>
+      • <strong>Admin-PIN:</strong> 30 Tage gültig<br>
+      • <strong>Gast-PIN:</strong> 24 Stunden gültig
+    </div>
+    
+    <div class="info-text">
+      Nach erfolgreicher Anmeldung bleibst du automatisch eingeloggt.
+    </div>
+    
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p style="margin-top: 10px; color: #666;">Überprüfe PIN...</p>
+    </div>
+  </div>
+
+  <script src="auth-config.js"></script>
+  <script>
+    let currentPIN = '';
+    const maxLength = 5;  // 5-stellige PIN
+    
+    // URL-Parameter auslesen (redirect nach Login)
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirectUrl = urlParams.get('redirect') || 'tank-viewer.html';
+    
+    // Ziffer hinzufügen
+    function addDigit(digit) {
+      if (currentPIN.length < maxLength) {
+        currentPIN += digit;
+        updateDisplay();
+        
+        // Vibration-Feedback (falls unterstützt)
+        if (navigator.vibrate) {
+          navigator.vibrate(10);
+        }
+        
+        // Auto-Submit bei 5 Ziffern
+        if (currentPIN.length === maxLength) {
+          setTimeout(() => submitPIN(), 200);
+        }
+      }
+    }
+    
+    // Ziffer entfernen
+    function removeDigit() {
+      if (currentPIN.length > 0) {
+        currentPIN = currentPIN.slice(0, -1);
+        updateDisplay();
+        
+        if (navigator.vibrate) {
+          navigator.vibrate(10);
+        }
+      }
+    }
+    
+    // Display aktualisieren
+    function updateDisplay() {
+      const dots = document.querySelectorAll('.pin-dot');
+      dots.forEach((dot, index) => {
+        if (index < currentPIN.length) {
+          dot.classList.add('filled');
+        } else {
+          dot.classList.remove('filled');
+        }
+      });
+    }
+    
+    // PIN absenden
+    async function submitPIN() {
+      if (currentPIN.length !== maxLength) {
+        showError('Bitte gib eine 5-stellige PIN ein.');
+        return;
+      }
+      
+      // Loading anzeigen
+      document.getElementById('loading').style.display = 'block';
+      document.querySelector('.numpad').style.opacity = '0.5';
+      
+      // Login versuchen
+      try {
+        const result = await login(currentPIN);
+        
+        if (result.success) {
+          showSuccess(result.role);
+          
+          // Nach Login weiterleiten
+          setTimeout(() => {
+            const tank = urlParams.get('tank');
+            if (tank) {
+              window.location.href = `${redirectUrl}?tank=${encodeURIComponent(tank)}`;
+            } else {
+              window.location.href = redirectUrl;
+            }
+          }, 1500);
+        } else {
+          showError(result.error);
+          resetPIN();
+        }
+      } catch (error) {
+        showError('Fehler beim Login. Bitte versuche es erneut.');
+        resetPIN();
+      }
+      
+      // Loading verstecken
+      document.getElementById('loading').style.display = 'none';
+      document.querySelector('.numpad').style.opacity = '1';
+    }
+    
+    // Fehlermeldung anzeigen
+    function showError(message) {
+      const errorEl = document.getElementById('errorMessage');
+      errorEl.textContent = message;
+      errorEl.style.display = 'block';
+      
+      setTimeout(() => {
+        errorEl.style.display = 'none';
+      }, 3000);
+      
+      // Vibration bei Fehler
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+      }
+    }
+    
+    // Erfolgsmeldung anzeigen
+    function showSuccess(role) {
+      const successEl = document.getElementById('successMessage');
+      
+      if (role === 'admin') {
+        successEl.textContent = '✓ Admin-Login erfolgreich! (30 Tage gültig)';
+      } else if (role === 'guest') {
+        successEl.textContent = '✓ Gast-Login erfolgreich! (24 Stunden gültig)';
+      }
+      
+      successEl.style.display = 'block';
+      
+      // Vibration bei Erfolg
+      if (navigator.vibrate) {
+        navigator.vibrate(200);
+      }
+    }
+    
+    // PIN zurücksetzen
+    function resetPIN() {
+      currentPIN = '';
+      updateDisplay();
+    }
+    
+    // Tastatur-Support
+    document.addEventListener('keydown', (e) => {
+      if (e.key >= '0' && e.key <= '9') {
+        addDigit(e.key);
+      } else if (e.key === 'Backspace') {
+        removeDigit();
+      } else if (e.key === 'Enter') {
+        submitPIN();
+      }
+    });
+    
+    // Check ob bereits eingeloggt
+    if (checkAuth()) {
+      // Bereits eingeloggt → Direkt weiterleiten
+      const tank = urlParams.get('tank');
+      if (tank) {
+        window.location.href = `${redirectUrl}?tank=${encodeURIComponent(tank)}`;
+      } else {
+        window.location.href = redirectUrl;
+      }
+    }
+  </script>
+</body>
+</html>
