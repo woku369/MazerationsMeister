@@ -388,34 +388,52 @@
     // Tank-Daten von GitHub laden
     async function fetchTankData(tankNr) {
       try {
-        // 1. Lade tank-data.json von GitHub (fresh-main branch)
-        const response = await fetch(
-          'https://raw.githubusercontent.com/woku369/MazerationsMeister/fresh-main/tank-data.json'
-        );
+        // 1. Lade tank-data.json von GLEICHER Domain (GitHub Pages)
+        const response = await fetch('/MazerationsMeister/tank-data.json');
         
         if (!response.ok) {
           throw new Error('Tank-Daten konnten nicht geladen werden');
         }
         
-        const allTanks = await response.json();
+        const data = await response.json();
         
-        // 2. Finde den gewünschten Tank
+        // 2. Handle both formats: {tanks: [...]} or direct array [...]
+        const allTanks = data.tanks || data;
+        
+        // 3. Finde den gewünschten Tank
         const tank = allTanks.find(t => 
-          (t.tankNr === tankNr) || (t.tankId === tankNr)
+          (t.tankNr === tankNr) || (t.tankId === tankNr) || (t.id === tankNr)
         );
         
         if (!tank) {
           throw new Error(`Tank ${tankNr} nicht gefunden`);
         }
         
-        // 3. Gebe Tank-Daten im erwarteten Format zurück
+        // 4. Extrahiere Füllstände aus inventory Array (falls vorhanden)
+        let currentFill = tank.currentFill || 0;
+        let contents = tank.contents || [];
+        
+        if (data.inventory && Array.isArray(data.inventory)) {
+          const inventoryItems = data.inventory.filter(item => item.tankNr === tankNr);
+          if (inventoryItems.length > 0) {
+            currentFill = inventoryItems.reduce((sum, item) => sum + (item.currentQuantityLiters || 0), 0);
+            contents = inventoryItems.map(item => ({
+              produktName: item.produktName || '',
+              category: item.category || '',
+              volume: item.currentQuantityLiters || 0,
+              alcoholVolProzent: item.alcoholVolProzent || 0
+            }));
+          }
+        }
+        
+        // 5. Gebe Tank-Daten im erwarteten Format zurück
         return {
-          tankNr: tank.tankNr || tank.tankId,
+          tankNr: tank.tankNr || tank.tankId || tank.id,
           bezeichnung: tank.bezeichnung || tank.name || `Tank ${tankNr}`,
           capacity: tank.volumenLiter || tank.capacity || 0,
-          currentFill: tank.currentFill || 0,
+          currentFill: currentFill,
           type: tank.containerType || tank.type || 'tank',
-          contents: tank.contents || []
+          contents: contents
         };
         
       } catch (error) {
