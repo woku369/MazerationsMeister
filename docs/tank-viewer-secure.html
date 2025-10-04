@@ -388,9 +388,9 @@
     // Tank-Daten von GitHub laden
     async function fetchTankData(tankNr) {
       try {
-        // 1. Lade tank-data.json von GitHub
+        // 1. Lade tank-data.json von GitHub (fresh-main branch)
         const response = await fetch(
-          'https://raw.githubusercontent.com/woku369/MazerationsMeister/main-pages/tank-data.json'
+          'https://raw.githubusercontent.com/woku369/MazerationsMeister/fresh-main/tank-data.json'
         );
         
         if (!response.ok) {
