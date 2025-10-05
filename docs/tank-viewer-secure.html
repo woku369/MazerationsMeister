@@ -597,10 +597,13 @@
               📊 Container-Übersicht
             </h2>
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
-              ${filledTanks.map(tank => `
+              ${filledTanks.map(tank => {
+                // Display label: Use full ID for indexed containers (Fass-1, B-2), otherwise tankNr
+                const displayLabel = tank.id.match(/^(.+?)-(\d+)$/) ? tank.id : tank.tankNr;
+                return `
                 <div style="border: 2px solid #667eea; border-radius: 12px; padding: 15px; background: white;">
                   <h3 style="margin: 0 0 10px 0; color: #333;">
-                    ${tank.tankNr}
+                    ${displayLabel}
                   </h3>
                   ${tank.products.length > 0 ? `
                     <div style="font-size: 13px; color: #00b894; font-weight: 600; margin-bottom: 8px;">
@@ -623,7 +626,8 @@
                     ${currentDate}
                   </div>
                 </div>
-              `).join('')}
+              `;
+              }).join('')}
             </div>
           </div>
         `;
