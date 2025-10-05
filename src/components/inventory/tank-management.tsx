@@ -374,10 +374,14 @@ export default function TankManagement() {
       return `${item.produktName}${category} (${item.currentQuantityLiters}L)`;
     }).join(', ') || 'Leer';
     
+    // Kategorien sammeln (unique)
+    const categories = [...new Set(tankItems.map(item => item.category).filter(Boolean))];
+    
     return {
       totalVolume,
       contents,
       products: tankItems.map(item => item.produktName), // Array von Produktnamen
+      categories: categories, // Array von Kategorien (Maz, Dest, Sbl)
       items: tankItems
     };
   };
@@ -1258,6 +1262,16 @@ export default function TankManagement() {
                                 <p className="text-green-600 font-semibold">
                                   ✓ {fillInfo.products.join(', ')}
                                 </p>
+                                {fillInfo.categories && fillInfo.categories.length > 0 && (
+                                  <p className="text-purple-600 text-xs font-medium">
+                                    📋 {fillInfo.categories.map(cat => {
+                                      if (cat === 'Maz') return 'Mazerat';
+                                      if (cat === 'Dest') return 'Destillat';
+                                      if (cat === 'Sbl') return 'Selbstbeleg';
+                                      return cat;
+                                    }).join(', ')}
+                                  </p>
+                                )}
                                 <p className="text-blue-600">
                                   {fillInfo.totalVolume.toFixed(1)}L / {tank.volumenLiter}L
                                 </p>

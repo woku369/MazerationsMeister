@@ -565,11 +565,12 @@
             tankItems = inventory.filter(item => item.tankNr === tank.tankNr);
           }
           
-          // Sum up fill and collect products
+          // Sum up fill and collect products + categories
           const totalFill = tankItems.reduce((sum, item) => sum + (item.currentQuantityLiters || 0), 0);
           const products = [...new Set(tankItems.map(item => item.produktName).filter(Boolean))];
+          const categories = [...new Set(tankItems.map(item => item.category).filter(Boolean))];
           
-          containerDataMap.set(tank.id, { fill: totalFill, products: products });
+          containerDataMap.set(tank.id, { fill: totalFill, products: products, categories: categories });
         });
         
         // Filtere nur befüllte Tanks
@@ -581,7 +582,8 @@
           const fill = data ? data.fill : 0;
           const percent = Math.round((fill / (tank.volumenLiter || 1)) * 100);
           const products = data ? data.products : [];
-          return { ...tank, currentFill: fill, fillPercent: percent, products: products };
+          const categories = data ? data.categories : [];
+          return { ...tank, currentFill: fill, fillPercent: percent, products: products, categories: categories };
         }).sort((a, b) => {
           // Sortierung: Tank > Cont > IBC > Fass > K > Fl > B
           const typeOrder = { 'T': 1, 'Cont': 2, 'IBC': 3, 'Fass': 4, 'K': 5, 'Fl': 6, 'B': 7 };
@@ -631,6 +633,16 @@
                   ${tank.products.length > 0 ? `
                     <div style="font-size: 13px; color: #00b894; font-weight: 600; margin-bottom: 8px;">
                       ✓ ${tank.products.join(', ')}
+                    </div>
+                  ` : ''}
+                  ${tank.categories.length > 0 ? `
+                    <div style="font-size: 11px; color: #6c5ce7; font-weight: 500; margin-bottom: 8px;">
+                      📋 ${tank.categories.map(cat => {
+                        if (cat === 'Maz') return 'Mazerat';
+                        if (cat === 'Dest') return 'Destillat';
+                        if (cat === 'Sbl') return 'Selbstbeleg';
+                        return cat;
+                      }).join(', ')}
                     </div>
                   ` : ''}
                   <div style="background: #f0f0f0; border-radius: 8px; height: 20px; overflow: hidden; margin-bottom: 8px;">
