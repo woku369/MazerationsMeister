@@ -540,11 +540,18 @@
         const allTanks = data.tanks || data;
         const inventory = data.inventory || [];
         
-        // Erstelle Map: tankNr -> Füllstand
+        // Erstelle Map: tankNr -> Füllstand UND Produkte
         const fillMap = new Map();
+        const productsMap = new Map();
         inventory.forEach(item => {
           const current = fillMap.get(item.tankNr) || 0;
           fillMap.set(item.tankNr, current + (item.currentQuantityLiters || 0));
+          
+          const products = productsMap.get(item.tankNr) || [];
+          if (item.produktName && !products.includes(item.produktName)) {
+            products.push(item.produktName);
+          }
+          productsMap.set(item.tankNr, products);
         });
         
         // Filtere nur befüllte Tanks
@@ -554,12 +561,15 @@
         }).map(tank => {
           const fill = fillMap.get(tank.tankNr) || 0;
           const percent = Math.round((fill / (tank.volumenLiter || 1)) * 100);
-          return { ...tank, currentFill: fill, fillPercent: percent };
+          const products = productsMap.get(tank.tankNr) || [];
+          return { ...tank, currentFill: fill, fillPercent: percent, products: products };
         }).sort((a, b) => b.fillPercent - a.fillPercent); // Sortiere nach Füllgrad
         
         // Master-View HTML generieren
         document.getElementById('tankTitle').textContent = `Übersicht: ${filledTanks.length} befüllte Container`;
         document.getElementById('tankNr').textContent = 'ALLE';
+        
+        const currentDate = new Date().toLocaleDateString('de-DE');
         
         const contentDiv = document.getElementById('tankContent');
         contentDiv.innerHTML = `
@@ -573,9 +583,11 @@
                   <h3 style="margin: 0 0 10px 0; color: #333;">
                     ${tank.tankNr}
                   </h3>
-                  <div style="font-size: 13px; color: #666; margin-bottom: 8px;">
-                    ${tank.bezeichnung || ''}
-                  </div>
+                  ${tank.products.length > 0 ? `
+                    <div style="font-size: 13px; color: #00b894; font-weight: 600; margin-bottom: 8px;">
+                      ✓ ${tank.products.join(', ')}
+                    </div>
+                  ` : ''}
                   <div style="background: #f0f0f0; border-radius: 8px; height: 20px; overflow: hidden; margin-bottom: 8px;">
                     <div style="
                       height: 100%; 
@@ -584,9 +596,12 @@
                       transition: width 0.5s;
                     "></div>
                   </div>
-                  <div style="display: flex; justify-content: space-between; font-size: 12px;">
-                    <span>${tank.currentFill}L / ${tank.volumenLiter}L</span>
+                  <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                    <span>${tank.currentFill.toFixed(1)}L / ${tank.volumenLiter}L</span>
                     <strong>${tank.fillPercent}%</strong>
+                  </div>
+                  <div style="text-align: center; font-size: 11px; color: #999;">
+                    ${currentDate}
                   </div>
                 </div>
               `).join('')}
