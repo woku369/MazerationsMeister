@@ -540,28 +540,47 @@
         const allTanks = data.tanks || data;
         const inventory = data.inventory || [];
         
-        // Erstelle Map: tankNr -> Füllstand UND Produkte
-        const fillMap = new Map();
-        const productsMap = new Map();
-        inventory.forEach(item => {
-          const current = fillMap.get(item.tankNr) || 0;
-          fillMap.set(item.tankNr, current + (item.currentQuantityLiters || 0));
+        // Erstelle Map: container.id -> {fill, products}
+        const containerDataMap = new Map();
+        
+        allTanks.forEach(tank => {
+          // Für jeden Container: Finde passende Inventory-Items
+          let tankItems = [];
           
-          const products = productsMap.get(item.tankNr) || [];
-          if (item.produktName && !products.includes(item.produktName)) {
-            products.push(item.produktName);
+          // Check if ID has container index (e.g. "Fass-1", "B-12")
+          const match = tank.id.match(/^(.+?)-(\d+)$/);
+          if (match) {
+            const baseTankNr = match[1];
+            const containerIndex = parseInt(match[2], 10);
+            
+            // Get all items for this tankNr
+            const allItemsWithTankNr = inventory.filter(item => item.tankNr === baseTankNr);
+            
+            // Take the item at position [containerIndex - 1]
+            if (allItemsWithTankNr[containerIndex - 1]) {
+              tankItems = [allItemsWithTankNr[containerIndex - 1]];
+            }
+          } else {
+            // No index: match all items with exact tankNr
+            tankItems = inventory.filter(item => item.tankNr === tank.tankNr);
           }
-          productsMap.set(item.tankNr, products);
+          
+          // Sum up fill and collect products
+          const totalFill = tankItems.reduce((sum, item) => sum + (item.currentQuantityLiters || 0), 0);
+          const products = [...new Set(tankItems.map(item => item.produktName).filter(Boolean))];
+          
+          containerDataMap.set(tank.id, { fill: totalFill, products: products });
         });
         
         // Filtere nur befüllte Tanks
         const filledTanks = allTanks.filter(tank => {
-          const fill = fillMap.get(tank.tankNr) || 0;
-          return fill > 0;
+          const data = containerDataMap.get(tank.id);
+          return data && data.fill > 0;
         }).map(tank => {
-          const fill = fillMap.get(tank.tankNr) || 0;
+          const data = containerDataMap.get(tank.id);
+          const fill = data ? data.fill : 0;
           const percent = Math.round((fill / (tank.volumenLiter || 1)) * 100);
-          const products = productsMap.get(tank.tankNr) || [];
+          const products = data ? data.products : [];
           return { ...tank, currentFill: fill, fillPercent: percent, products: products };
         }).sort((a, b) => b.fillPercent - a.fillPercent); // Sortiere nach Füllgrad
         
