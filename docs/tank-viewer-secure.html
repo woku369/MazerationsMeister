@@ -582,7 +582,25 @@
           const percent = Math.round((fill / (tank.volumenLiter || 1)) * 100);
           const products = data ? data.products : [];
           return { ...tank, currentFill: fill, fillPercent: percent, products: products };
-        }).sort((a, b) => b.fillPercent - a.fillPercent); // Sortiere nach Füllgrad
+        }).sort((a, b) => {
+          // Sortierung: Tank > Cont > IBC > Fass > K > Fl > B
+          const typeOrder = { 'T': 1, 'Cont': 2, 'IBC': 3, 'Fass': 4, 'K': 5, 'Fl': 6, 'B': 7 };
+          const getTypeOrder = (tank) => {
+            if (tank.tankNr.startsWith('T ')) return typeOrder['T'];
+            if (tank.tankNr === 'Cont') return typeOrder['Cont'];
+            if (tank.tankNr === 'IBC') return typeOrder['IBC'];
+            if (tank.tankNr === 'Fass') return typeOrder['Fass'];
+            if (tank.tankNr === 'K') return typeOrder['K'];
+            if (tank.tankNr === 'Fl') return typeOrder['Fl'];
+            if (tank.tankNr === 'B') return typeOrder['B'];
+            return 999;
+          };
+          const orderA = getTypeOrder(a);
+          const orderB = getTypeOrder(b);
+          if (orderA !== orderB) return orderA - orderB;
+          // Innerhalb gleicher Typ: nach ID sortieren
+          return a.id.localeCompare(b.id, undefined, { numeric: true });
+        });
         
         // Master-View HTML generieren
         document.getElementById('tankTitle').textContent = `Übersicht: ${filledTanks.length} befüllte Container`;
@@ -598,8 +616,13 @@
             </h2>
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
               ${filledTanks.map(tank => {
-                // Display label: Use full ID for indexed containers (Fass-1, B-2), otherwise tankNr
-                const displayLabel = tank.id.match(/^(.+?)-(\d+)$/) ? tank.id : tank.tankNr;
+                // Display label: Show container ID with index (B-1, Fass-2) or tankNr+bezeichnung for others
+                let displayLabel = tank.tankNr;
+                if (tank.id.includes('-') && tank.id.match(/^(.+?)-(\d+)$/)) {
+                  displayLabel = tank.id;  // Use full ID like "B-1", "Fass-2"
+                } else if (tank.bezeichnung && tank.bezeichnung !== tank.tankNr) {
+                  displayLabel = `${tank.tankNr} - ${tank.bezeichnung}`;
+                }
                 return `
                 <div style="border: 2px solid #667eea; border-radius: 12px; padding: 15px; background: white;">
                   <h3 style="margin: 0 0 10px 0; color: #333;">
@@ -619,7 +642,7 @@
                     "></div>
                   </div>
                   <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
-                    <span>${tank.currentFill.toFixed(1)}L / ${tank.volumenLiter}L</span>
+                    <span>${tank.currentFill.toFixed(1)}L / ${tank.volumenLiter.toFixed(1)}L</span>
                     <strong>${tank.fillPercent}%</strong>
                   </div>
                   <div style="text-align: center; font-size: 11px; color: #999;">
