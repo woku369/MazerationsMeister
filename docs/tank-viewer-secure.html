@@ -423,7 +423,7 @@
       
       // Fallback für GitHub Pages: Lade ECHTE Daten von app-data.json
       try {
-        const response = await fetch('docs/app-data.json');
+        const response = await fetch('./app-data.json');
         if (!response.ok) throw new Error('Daten nicht verfügbar');
         
         const appData = await response.json();

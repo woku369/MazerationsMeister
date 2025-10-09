@@ -385,7 +385,7 @@
       }
     }
 
-    // Tank-Daten von Electron App abrufen
+    // Tank-Daten von Electron App oder GitHub Pages abrufen
     async function fetchTankData(tankNr) {
       // Prüfe ob in Electron
       if (window.electron && window.electron.hybridStorage) {
@@ -421,17 +421,51 @@
         }
       }
       
-      // Fallback: Demo-Daten (für Entwicklung/Test)
-      return {
-        tankNr: tankNr,
-        bezeichnung: `Tank ${tankNr}`,
-        capacity: 500,
-        currentFill: 450,
-        type: 'tank',
-        contents: [
-          { produktName: 'Zitronenmelisse', category: 'M', volume: 450 }
-        ]
-      };
+      // Fallback für GitHub Pages: Lade ECHTE Daten von app-data.json
+      try {
+        const response = await fetch('./app-data.json');
+        if (!response.ok) throw new Error('Daten nicht verfügbar');
+        
+        const appData = await response.json();
+        
+        // Finde Tank mit tankNr oder id
+        const tank = appData.tanks?.find(t => 
+          t.tankNr === tankNr || 
+          t.id === tankNr || 
+          t.bezeichnung === tankNr
+        );
+        
+        if (!tank) {
+          throw new Error('Tank nicht gefunden in app-data.json');
+        }
+        
+        // Berechne Füllstand aus Inventory
+        const tankItems = appData.inventory?.filter(item => 
+          item.tankNr === tank.tankNr || 
+          item.tankNr === tank.id ||
+          item.tankNr === tank.bezeichnung
+        ) || [];
+        
+        const currentFill = tankItems.reduce((sum, item) => 
+          sum + (parseFloat(item.currentQuantityLiters) || 0), 0
+        );
+        
+        return {
+          tankNr: tank.tankNr || tank.id || tank.bezeichnung,
+          bezeichnung: tank.bezeichnung || tank.id,
+          capacity: parseFloat(tank.volumenLiter) || 0,
+          currentFill: currentFill,
+          type: tank.containerType || 'tank',
+          contents: tankItems.map(item => ({
+            produktName: item.produktName || 'Unbekannt',
+            category: item.category || '',
+            volume: parseFloat(item.currentQuantityLiters) || 0
+          }))
+        };
+      } catch (error) {
+        console.error('Fehler beim Laden von GitHub Pages:', error);
+        throw new Error('Tank-Daten konnten nicht geladen werden: ' + error.message);
+      }
     }
 
     // Init
