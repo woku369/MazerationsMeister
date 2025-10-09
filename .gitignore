@@ -24,6 +24,7 @@
 /dist-optimized/
 /dist-new/
 /.build-minimal/
+/dist-minimal-*/
 
 # misc
 .DS_Store

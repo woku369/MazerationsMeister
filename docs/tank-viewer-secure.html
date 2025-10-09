@@ -210,90 +210,6 @@
       margin-left: 8px;
     }
     
-    /* Füllstandsbalken */
-    .fill-bar-container {
-      margin: 30px 0;
-      background: #f0f0f0;
-      border-radius: 12px;
-      height: 40px;
-      position: relative;
-      overflow: hidden;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .fill-bar {
-      height: 100%;
-      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-      border-radius: 12px;
-      transition: width 0.8s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 600;
-      font-size: 14px;
-      min-width: 50px;
-    }
-    
-    .fill-bar.low {
-      background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
-    }
-    
-    .fill-bar.medium {
-      background: linear-gradient(90deg, #ffeaa7 0%, #fdcb6e 100%);
-    }
-    
-    .fill-bar.high {
-      background: linear-gradient(90deg, #55efc4 0%, #00b894 100%);
-    }
-    
-    /* Chargen-Details */
-    .charge-item {
-      background: #f8f9fa;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      border-left: 4px solid #667eea;
-    }
-    
-    .charge-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-    
-    .charge-product {
-      font-weight: 600;
-      font-size: 16px;
-      color: #333;
-    }
-    
-    .charge-volume {
-      font-size: 18px;
-      font-weight: 700;
-      color: #667eea;
-    }
-    
-    .charge-details {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 8px;
-      margin-top: 8px;
-      font-size: 13px;
-      color: #666;
-    }
-    
-    .charge-detail {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    
-    .charge-detail-label {
-      font-weight: 500;
-    }
-    
     .category-mazerat {
       background: #4caf50;
       color: white;
@@ -355,13 +271,6 @@
     <div style="text-align: center;">
       <span id="statusBadge" class="status-badge">Lädt...</span>
     </div>
-    
-    <!-- Füllstandsbalken -->
-    <div class="fill-bar-container">
-      <div class="fill-bar" id="fillBar" style="width: 0%;">
-        <span id="fillBarText">0%</span>
-      </div>
-    </div>
 
     <div class="contents-section" id="contentsSection" style="display: none;">
       <h3 class="contents-title">📦 Aktueller Inhalt</h3>
@@ -410,13 +319,6 @@
     async function loadTankData() {
       const urlParams = new URLSearchParams(window.location.search);
       const tankNr = urlParams.get('tank');
-      const viewMode = urlParams.get('view');
-      
-      // Master-View: Alle befüllten Tanks anzeigen
-      if (viewMode === 'all') {
-        await loadAllTanks();
-        return;
-      }
       
       if (!tankNr) {
         alert('Keine Tank-Nummer angegeben');
@@ -433,25 +335,7 @@
         document.getElementById('tankTitle').textContent = tankData.bezeichnung;
         document.getElementById('capacity').textContent = tankData.capacity;
         document.getElementById('currentFill').textContent = tankData.currentFill;
-        
-        const fillPercent = Math.round((tankData.currentFill / tankData.capacity) * 100);
-        document.getElementById('fillPercent').textContent = fillPercent;
-        
-        // Füllstandsbalken aktualisieren
-        const fillBar = document.getElementById('fillBar');
-        const fillBarText = document.getElementById('fillBarText');
-        fillBar.style.width = `${fillPercent}%`;
-        fillBarText.textContent = `${fillPercent}%`;
-        
-        // Farbe basierend auf Füllstand
-        fillBar.className = 'fill-bar';
-        if (fillPercent < 30) {
-          fillBar.classList.add('low');
-        } else if (fillPercent < 70) {
-          fillBar.classList.add('medium');
-        } else {
-          fillBar.classList.add('high');
-        }
+        document.getElementById('fillPercent').textContent = Math.round((tankData.currentFill / tankData.capacity) * 100);
         
         // Icon basierend auf Typ
         const icons = {
@@ -477,45 +361,16 @@
           const contentsSection = document.getElementById('contentsSection');
           const contentsList = document.getElementById('contentsList');
           
-          contentsList.innerHTML = tankData.contents.map(item => {
-            const categoryBadge = item.category === 'M' 
-              ? '<span class="category-badge category-mazerat">🌿 Mazerat</span>' 
-              : item.category === 'Dest' 
-              ? '<span class="category-badge category-destillat">💧 Destillat</span>'
-              : '';
-              
-            return `
-              <div class="charge-item">
-                <div class="charge-header">
-                  <div>
-                    <span class="charge-product">${item.produktName}</span>
-                    ${categoryBadge}
-                  </div>
-                  <span class="charge-volume">${item.volume}L</span>
-                </div>
-                <div class="charge-details">
-                  ${item.alcoholVolProzent ? `
-                    <div class="charge-detail">
-                      <span class="charge-detail-label">� Alkohol:</span>
-                      <span>${item.alcoholVolProzent}% vol</span>
-                    </div>
-                  ` : ''}
-                  ${item.chargenNummer ? `
-                    <div class="charge-detail">
-                      <span class="charge-detail-label">� Charge:</span>
-                      <span>${item.chargenNummer}</span>
-                    </div>
-                  ` : ''}
-                  ${item.dichte20C ? `
-                    <div class="charge-detail">
-                      <span class="charge-detail-label">⚖️ Dichte:</span>
-                      <span>${item.dichte20C}</span>
-                    </div>
-                  ` : ''}
-                </div>
+          contentsList.innerHTML = tankData.contents.map(item => `
+            <div class="content-item">
+              <div>
+                <span class="content-name">${item.produktName}</span>
+                ${item.category === 'M' ? '<span class="category-badge category-mazerat">🌿 Mazerat</span>' : ''}
+                ${item.category === 'Dest' ? '<span class="category-badge category-destillat">💧 Destillat</span>' : ''}
               </div>
-            `;
-          }).join('');
+              <span class="content-volume">${item.volume}L</span>
+            </div>
+          `).join('');
           
           contentsSection.style.display = 'block';
         }
@@ -529,220 +384,87 @@
         alert('Fehler beim Laden der Tank-Daten');
       }
     }
-    
-    // Master-View: Alle befüllten Tanks anzeigen
-    async function loadAllTanks() {
-      try {
-        const response = await fetch('/MazerationsMeister/tank-data.json');
-        if (!response.ok) throw new Error('Daten konnten nicht geladen werden');
-        
-        const data = await response.json();
-        const allTanks = data.tanks || data;
-        const inventory = data.inventory || [];
-        
-        // Erstelle Map: container.id -> {fill, products}
-        const containerDataMap = new Map();
-        
-        allTanks.forEach(tank => {
-          // Für jeden Container: Finde passende Inventory-Items
-          let tankItems = [];
+
+    // Tank-Daten von Electron App oder GitHub Pages abrufen
+    async function fetchTankData(tankNr) {
+      // Prüfe ob in Electron
+      if (window.electron && window.electron.hybridStorage) {
+        try {
+          // Hole Tank-Definitionen
+          const tanks = await window.electron.hybridStorage.getItem('tankDefinitions') || [];
+          const tank = tanks.find(t => t.tankNr === tankNr);
           
-          // Check if ID has container index (e.g. "Fass-1", "B-12")
-          const match = tank.id.match(/^(.+?)-(\d+)$/);
-          if (match) {
-            const baseTankNr = match[1];
-            const containerIndex = parseInt(match[2], 10);
-            
-            // Get all items for this tankNr
-            const allItemsWithTankNr = inventory.filter(item => item.tankNr === baseTankNr);
-            
-            // Take the item at position [containerIndex - 1]
-            if (allItemsWithTankNr[containerIndex - 1]) {
-              tankItems = [allItemsWithTankNr[containerIndex - 1]];
-            }
-          } else {
-            // No index: match all items with exact tankNr
-            tankItems = inventory.filter(item => item.tankNr === tank.tankNr);
+          if (!tank) {
+            throw new Error('Tank nicht gefunden');
           }
           
-          // Sum up fill and collect products + categories
-          const totalFill = tankItems.reduce((sum, item) => sum + (item.currentQuantityLiters || 0), 0);
-          const products = [...new Set(tankItems.map(item => item.produktName).filter(Boolean))];
-          const categories = [...new Set(tankItems.map(item => item.category).filter(Boolean))];
+          // Hole Inventar-Daten
+          const inventory = await window.electron.hybridStorage.getItem('inventoryItems') || [];
+          const tankItems = inventory.filter(item => item.tankNr === tankNr);
           
-          containerDataMap.set(tank.id, { fill: totalFill, products: products, categories: categories });
-        });
-        
-        // Filtere nur befüllte Tanks
-        const filledTanks = allTanks.filter(tank => {
-          const data = containerDataMap.get(tank.id);
-          return data && data.fill > 0;
-        }).map(tank => {
-          const data = containerDataMap.get(tank.id);
-          const fill = data ? data.fill : 0;
-          const percent = Math.round((fill / (tank.volumenLiter || 1)) * 100);
-          const products = data ? data.products : [];
-          const categories = data ? data.categories : [];
-          return { ...tank, currentFill: fill, fillPercent: percent, products: products, categories: categories };
-        }).sort((a, b) => {
-          // Sortierung: Tank > Cont > IBC > Fass > K > Fl > B
-          const typeOrder = { 'T': 1, 'Cont': 2, 'IBC': 3, 'Fass': 4, 'K': 5, 'Fl': 6, 'B': 7 };
-          const getTypeOrder = (tank) => {
-            if (tank.tankNr.startsWith('T ')) return typeOrder['T'];
-            if (tank.tankNr === 'Cont') return typeOrder['Cont'];
-            if (tank.tankNr === 'IBC') return typeOrder['IBC'];
-            if (tank.tankNr === 'Fass') return typeOrder['Fass'];
-            if (tank.tankNr === 'K') return typeOrder['K'];
-            if (tank.tankNr === 'Fl') return typeOrder['Fl'];
-            if (tank.tankNr === 'B') return typeOrder['B'];
-            return 999;
+          const currentFill = tankItems.reduce((sum, item) => sum + (item.currentQuantityLiters || 0), 0);
+          
+          return {
+            tankNr: tank.tankNr,
+            bezeichnung: tank.bezeichnung,
+            capacity: tank.volumenLiter,
+            currentFill: currentFill,
+            type: tank.containerType,
+            contents: tankItems.map(item => ({
+              produktName: item.produktName,
+              category: item.category,
+              volume: item.currentQuantityLiters
+            }))
           };
-          const orderA = getTypeOrder(a);
-          const orderB = getTypeOrder(b);
-          if (orderA !== orderB) return orderA - orderB;
-          // Innerhalb gleicher Typ: nach ID sortieren
-          return a.id.localeCompare(b.id, undefined, { numeric: true });
-        });
-        
-        // Master-View HTML generieren
-        document.getElementById('tankTitle').textContent = `Übersicht: ${filledTanks.length} befüllte Container`;
-        document.getElementById('tankNr').textContent = 'ALLE';
-        
-        const currentDate = new Date().toLocaleDateString('de-DE');
-        
-        const contentDiv = document.getElementById('tankContent');
-        contentDiv.innerHTML = `
-          <div style="padding: 20px;">
-            <h2 style="text-align: center; margin-bottom: 30px;">
-              📊 Container-Übersicht
-            </h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
-              ${filledTanks.map(tank => {
-                // Display label: Show container ID with index (B-1, Fass-2) or tankNr+bezeichnung for others
-                let displayLabel = tank.tankNr;
-                if (tank.id.includes('-') && tank.id.match(/^(.+?)-(\d+)$/)) {
-                  displayLabel = tank.id;  // Use full ID like "B-1", "Fass-2"
-                } else if (tank.bezeichnung && tank.bezeichnung !== tank.tankNr) {
-                  displayLabel = `${tank.tankNr} - ${tank.bezeichnung}`;
-                }
-                return `
-                <div style="border: 2px solid #667eea; border-radius: 12px; padding: 15px; background: white;">
-                  <h3 style="margin: 0 0 10px 0; color: #333;">
-                    ${displayLabel}
-                  </h3>
-                  ${tank.products.length > 0 ? `
-                    <div style="font-size: 13px; color: #00b894; font-weight: 600; margin-bottom: 8px;">
-                      ✓ ${tank.products.join(', ')}
-                    </div>
-                  ` : ''}
-                  ${tank.categories.length > 0 ? `
-                    <div style="font-size: 11px; color: #6c5ce7; font-weight: 500; margin-bottom: 8px;">
-                      📋 ${tank.categories.map(cat => {
-                        if (cat === 'Maz') return 'Mazerat';
-                        if (cat === 'Dest') return 'Destillat';
-                        if (cat === 'Sbl') return 'Selbstbeleg';
-                        return cat;
-                      }).join(', ')}
-                    </div>
-                  ` : ''}
-                  <div style="background: #f0f0f0; border-radius: 8px; height: 20px; overflow: hidden; margin-bottom: 8px;">
-                    <div style="
-                      height: 100%; 
-                      width: ${tank.fillPercent}%; 
-                      background: ${tank.fillPercent > 70 ? '#00b894' : tank.fillPercent > 30 ? '#fdcb6e' : '#f5576c'};
-                      transition: width 0.5s;
-                    "></div>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
-                    <span>${tank.currentFill.toFixed(1)}L / ${tank.volumenLiter.toFixed(1)}L</span>
-                    <strong>${tank.fillPercent}%</strong>
-                  </div>
-                  <div style="text-align: center; font-size: 11px; color: #999;">
-                    ${currentDate}
-                  </div>
-                </div>
-              `;
-              }).join('')}
-            </div>
-          </div>
-        `;
-        
-        document.getElementById('loadingScreen').style.display = 'none';
-        contentDiv.style.display = 'block';
-        
-      } catch (error) {
-        console.error('Fehler beim Laden der Übersicht:', error);
-        alert('Fehler beim Laden der Container-Übersicht');
-      }
-    }
-
-    // Tank-Daten von GitHub laden
-    async function fetchTankData(tankNr) {
-      try {
-        // 1. Lade tank-data.json von GLEICHER Domain (GitHub Pages)
-        const response = await fetch('/MazerationsMeister/tank-data.json');
-        
-        if (!response.ok) {
-          throw new Error('Tank-Daten konnten nicht geladen werden');
+        } catch (error) {
+          console.error('Electron-Fehler:', error);
         }
+      }
+      
+      // Fallback für GitHub Pages: Lade ECHTE Daten von app-data.json
+      try {
+        const response = await fetch('docs/app-data.json');
+        if (!response.ok) throw new Error('Daten nicht verfügbar');
         
-        const data = await response.json();
+        const appData = await response.json();
         
-        // 2. Handle both formats: {tanks: [...]} or direct array [...]
-        const allTanks = data.tanks || data;
-        
-        // 3. Finde den gewünschten Tank
-        const tank = allTanks.find(t => 
-          (t.tankNr === tankNr) || (t.tankId === tankNr) || (t.id === tankNr)
+        // Finde Tank mit tankNr oder id
+        const tank = appData.tanks?.find(t => 
+          t.tankNr === tankNr || 
+          t.id === tankNr || 
+          t.bezeichnung === tankNr
         );
         
         if (!tank) {
-          throw new Error(`Tank ${tankNr} nicht gefunden`);
+          throw new Error('Tank nicht gefunden in app-data.json');
         }
         
-        // 4. Extrahiere Füllstände aus inventory Array (falls vorhanden)
-        let currentFill = tank.currentFill || 0;
-        let contents = tank.contents || [];
+        // Berechne Füllstand aus Inventory
+        const tankItems = appData.inventory?.filter(item => 
+          item.tankNr === tank.tankNr || 
+          item.tankNr === tank.id ||
+          item.tankNr === tank.bezeichnung
+        ) || [];
         
-        if (data.inventory && Array.isArray(data.inventory)) {
-          const inventoryItems = data.inventory.filter(item => item.tankNr === tankNr);
-          if (inventoryItems.length > 0) {
-            currentFill = inventoryItems.reduce((sum, item) => sum + (item.currentQuantityLiters || 0), 0);
-            contents = inventoryItems.map(item => ({
-              produktName: item.produktName || '',
-              category: item.category || '',
-              volume: item.currentQuantityLiters || 0,
-              alcoholVolProzent: item.alcoholVolProzent || 0,
-              chargenNummer: item.chargenNummer || '',
-              dichte20C: item.dichte20C || 0
-            }));
-          }
-        }
+        const currentFill = tankItems.reduce((sum, item) => 
+          sum + (parseFloat(item.currentQuantityLiters) || 0), 0
+        );
         
-        // 5. Gebe Tank-Daten im erwarteten Format zurück
         return {
-          tankNr: tank.tankNr || tank.tankId || tank.id,
-          bezeichnung: tank.bezeichnung || tank.name || `Tank ${tankNr}`,
-          capacity: tank.volumenLiter || tank.capacity || 0,
+          tankNr: tank.tankNr || tank.id || tank.bezeichnung,
+          bezeichnung: tank.bezeichnung || tank.id,
+          capacity: parseFloat(tank.volumenLiter) || 0,
           currentFill: currentFill,
-          type: tank.containerType || tank.type || 'tank',
-          contents: contents
+          type: tank.containerType || 'tank',
+          contents: tankItems.map(item => ({
+            produktName: item.produktName || 'Unbekannt',
+            category: item.category || '',
+            volume: parseFloat(item.currentQuantityLiters) || 0
+          }))
         };
-        
       } catch (error) {
-        console.error('Fehler beim Laden der Tank-Daten:', error);
-        
-        // Fallback: Demo-Daten (nur für Entwicklung/Test)
-        return {
-          tankNr: tankNr,
-          bezeichnung: `Tank ${tankNr}`,
-          capacity: 500,
-          currentFill: 450,
-          type: 'tank',
-          contents: [
-            { produktName: 'Zitronenmelisse', category: 'M', volume: 450 }
-          ]
-        };
+        console.error('Fehler beim Laden von GitHub Pages:', error);
+        throw new Error('Tank-Daten konnten nicht geladen werden: ' + error.message);
       }
     }
 

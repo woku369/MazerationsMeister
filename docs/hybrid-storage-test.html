@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hybrid Storage Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+    .success { background: #d4edda; border-color: #c3e6cb; color: #155724; }
+    .error { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+    .info { background: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+    button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    #output { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 15px; font-family: monospace; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Hybrid Storage System Test</h1>
+    
+    <div class="test-section info">
+      <h3>ℹ️ Environment Info</h3>
+      <p>Diese Seite testet das Hybrid Storage System von MazerationsMeister.</p>
+      <p><strong>Electron:</strong> <span id="electron-status">Checking...</span></p>
+      <p><strong>Browser Storage:</strong> <span id="browser-status">Checking...</span></p>
+    </div>
+
+    <div class="test-section">
+      <h3>🧪 Tests</h3>
+      <button onclick="runBasicTest()">Basic Storage Test</button>
+      <button onclick="runTokenTest()">GitHub Token Test</button>
+      <button onclick="runPerformanceTest()">Performance Test</button>
+      <button onclick="runDiagnostics()">Diagnostics</button>
+      <button onclick="clearOutput()">Clear Output</button>
+    </div>
+
+    <div class="test-section">
+      <h3>📋 Output</h3>
+      <div id="output">Klicken Sie auf einen Test-Button um zu beginnen...\n</div>
+    </div>
+  </div>
+
+  <script type="module">
+    // Simple Hybrid Storage Implementation für Test
+    class SimpleHybridStorage {
+      constructor() {
+        this.isElectron = !!(window.electronAPI);
+        this.log('Hybrid Storage initialisiert', { isElectron: this.isElectron });
+      }
+
+      log(message, data = '') {
+        const timestamp = new Date().toISOString().substr(11, 8);
+        const output = document.getElementById('output');
+        output.textContent += `[${timestamp}] ${message} ${JSON.stringify(data)}\n`;
+        output.scrollTop = output.scrollHeight;
+      }
+
+      async set(key, value) {
+        try {
+          if (this.isElectron && window.electronAPI) {
+            await window.electronAPI.storageSet(key, value);
+            this.log(`✅ Electron SET: ${key}`);
+          } else {
+            localStorage.setItem(key, JSON.stringify(value));
+            this.log(`✅ Browser SET: ${key}`);
+          }
+        } catch (error) {
+          this.log(`❌ SET Error: ${key}`, error.message);
+          throw error;
+        }
+      }
+
+      async get(key) {
+        try {
+          if (this.isElectron && window.electronAPI) {
+            const value = await window.electronAPI.storageGet(key);
+            this.log(`✅ Electron GET: ${key}`, value);
+            return value;
+          } else {
+            const raw = localStorage.getItem(key);
+            const value = raw ? JSON.parse(raw) : null;
+            this.log(`✅ Browser GET: ${key}`, value);
+            return value;
+          }
+        } catch (error) {
+          this.log(`❌ GET Error: ${key}`, error.message);
+          return null;
+        }
+      }
+
+      async remove(key) {
+        try {
+          if (this.isElectron && window.electronAPI) {
+            const removed = await window.electronAPI.storageRemove(key);
+            this.log(`✅ Electron REMOVE: ${key}`, { removed });
+            return removed;
+          } else {
+            const existed = localStorage.getItem(key) !== null;
+            localStorage.removeItem(key);
+            this.log(`✅ Browser REMOVE: ${key}`, { existed });
+            return existed;
+          }
+        } catch (error) {
+          this.log(`❌ REMOVE Error: ${key}`, error.message);
+          return false;
+        }
+      }
+
+      async keys() {
+        try {
+          if (this.isElectron && window.electronAPI) {
+            const keys = await window.electronAPI.storageKeys();
+            this.log(`✅ Electron KEYS`, keys);
+            return keys;
+          } else {
+            const keys = Object.keys(localStorage);
+            this.log(`✅ Browser KEYS`, keys);
+            return keys;
+          }
+        } catch (error) {
+          this.log(`❌ KEYS Error`, error.message);
+          return [];
+        }
+      }
+
+      async diagnostics() {
+        try {
+          if (this.isElectron && window.electronAPI && window.electronAPI.storageDiagnostics) {
+            const diag = await window.electronAPI.storageDiagnostics();
+            this.log(`✅ Electron DIAGNOSTICS`, diag);
+            return diag;
+          } else {
+            const diag = {
+              environment: 'browser',
+              keyCount: Object.keys(localStorage).length,
+              storageSize: JSON.stringify(localStorage).length
+            };
+            this.log(`✅ Browser DIAGNOSTICS`, diag);
+            return diag;
+          }
+        } catch (error) {
+          this.log(`❌ DIAGNOSTICS Error`, error.message);
+          return { error: error.message };
+        }
+      }
+    }
+
+    // Global Storage Instance
+    window.storage = new SimpleHybridStorage();
+
+    // Environment Check
+    document.addEventListener('DOMContentLoaded', () => {
+      const electronStatus = document.getElementById('electron-status');
+      const browserStatus = document.getElementById('browser-status');
+
+      if (window.electronAPI) {
+        electronStatus.textContent = '✅ Available';
+        electronStatus.style.color = 'green';
+      } else {
+        electronStatus.textContent = '❌ Not Available (Browser Mode)';
+        electronStatus.style.color = 'orange';
+      }
+
+      try {
+        localStorage.setItem('__test__', 'test');
+        localStorage.removeItem('__test__');
+        browserStatus.textContent = '✅ Available';
+        browserStatus.style.color = 'green';
+      } catch {
+        browserStatus.textContent = '❌ Not Available';
+        browserStatus.style.color = 'red';
+      }
+
+      window.storage.log('🚀 Environment check completed');
+    });
+
+    // Test Functions
+    window.runBasicTest = async function() {
+      window.storage.log('\n🧪 Starting Basic Storage Test...');
+      
+      try {
+        // Set Test
+        await window.storage.set('test-string', 'Hello World!');
+        await window.storage.set('test-number', 42);
+        await window.storage.set('test-object', { name: 'Test', value: 123 });
+        
+        // Get Test
+        const str = await window.storage.get('test-string');
+        const num = await window.storage.get('test-number');
+        const obj = await window.storage.get('test-object');
+        
+        // Validation
+        const strOk = str === 'Hello World!';
+        const numOk = num === 42;
+        const objOk = obj && obj.name === 'Test' && obj.value === 123;
+        
+        window.storage.log(`String Test: ${strOk ? '✅' : '❌'}`);
+        window.storage.log(`Number Test: ${numOk ? '✅' : '❌'}`);
+        window.storage.log(`Object Test: ${objOk ? '✅' : '❌'}`);
+        
+        if (strOk && numOk && objOk) {
+          window.storage.log('🎉 Basic Test PASSED!');
+        } else {
+          window.storage.log('❌ Basic Test FAILED!');
+        }
+        
+      } catch (error) {
+        window.storage.log('❌ Basic Test Error:', error.message);
+      }
+    };
+
+    window.runTokenTest = async function() {
+      window.storage.log('\n🔑 Starting GitHub Token Test...');
+      
+      try {
+        const testToken = 'ghp_test_1234567890abcdef_token_test';
+        
+        // Save Token
+        await window.storage.set('github-token', testToken);
+        
+        // Retrieve Token
+        const retrievedToken = await window.storage.get('github-token');
+        
+        // Validation
+        const tokenOk = retrievedToken === testToken;
+        window.storage.log(`Token Match: ${tokenOk ? '✅' : '❌'}`);
+        
+        if (tokenOk) {
+          window.storage.log('🎉 GitHub Token Test PASSED!');
+          window.storage.log('💡 Token wird jetzt dauerhaft gespeichert - keine erneute Eingabe nötig!');
+        } else {
+          window.storage.log('❌ GitHub Token Test FAILED!');
+          window.storage.log('Expected:', testToken);
+          window.storage.log('Got:', retrievedToken);
+        }
+        
+      } catch (error) {
+        window.storage.log('❌ Token Test Error:', error.message);
+      }
+    };
+
+    window.runPerformanceTest = async function() {
+      window.storage.log('\n⚡ Starting Performance Test...');
+      
+      try {
+        const iterations = 50;
+        const startTime = performance.now();
+        
+        // Write Performance
+        for (let i = 0; i < iterations; i++) {
+          await window.storage.set(`perf-${i}`, { iteration: i, timestamp: Date.now() });
+        }
+        
+        const writeTime = performance.now() - startTime;
+        
+        // Read Performance
+        const readStart = performance.now();
+        for (let i = 0; i < iterations; i++) {
+          await window.storage.get(`perf-${i}`);
+        }
+        const readTime = performance.now() - readStart;
+        
+        // Cleanup
+        for (let i = 0; i < iterations; i++) {
+          await window.storage.remove(`perf-${i}`);
+        }
+        
+        window.storage.log(`Write Performance: ${writeTime.toFixed(2)}ms (${(writeTime/iterations).toFixed(2)}ms per operation)`);
+        window.storage.log(`Read Performance: ${readTime.toFixed(2)}ms (${(readTime/iterations).toFixed(2)}ms per operation)`);
+        window.storage.log('🎉 Performance Test Completed!');
+        
+      } catch (error) {
+        window.storage.log('❌ Performance Test Error:', error.message);
+      }
+    };
+
+    window.runDiagnostics = async function() {
+      window.storage.log('\n🔍 Starting Diagnostics...');
+      
+      try {
+        const diagnostics = await window.storage.diagnostics();
+        
+        window.storage.log('📊 Diagnostic Results:');
+        for (const [key, value] of Object.entries(diagnostics)) {
+          window.storage.log(`  ${key}: ${JSON.stringify(value)}`);
+        }
+        
+        const keys = await window.storage.keys();
+        window.storage.log(`📋 Current Keys (${keys.length}):`, keys);
+        
+      } catch (error) {
+        window.storage.log('❌ Diagnostics Error:', error.message);
+      }
+    };
+
+    window.clearOutput = function() {
+      document.getElementById('output').textContent = 'Output cleared.\n';
+    };
+  </script>
+</body>
+</html>
