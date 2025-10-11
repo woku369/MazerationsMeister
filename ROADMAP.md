@@ -1,224 +1,621 @@
-# MazerationsMeister - Roadmap & Entwicklungsplan# Roadmap und Änderungsprotokoll
+# MazerationsMeister - Roadmap# MazerationsMeister - Roadmap & Entwicklungsplan
 
 
 
-**Letzte Aktualisierung:** 05.10.2025  ## Roadmap
+**Stand:** 11. Oktober 2025  **Letzte Aktualisierung:** 11.11.2025  
 
-**Version:** 1.5.0  
+**Version:** 1.1.0 (Production Ready)  **Version:** 1.6.0 (In Development)  
 
-**Status:** ✅ Produktionsreif### Phase 1: Grundfunktionen ✅ 
+**Status:** ✅ Komplett funktionsfähig**Status:** 🚧 Rezepturen-System in Entwicklung
 
-1. ✅ Sidebar - Design und Implementierung einer Sidebar-Navigation.
 
----2. ✅ Dashboard - Entwicklung eines Dashboards mit Kennzahlen und Statistiken.
 
-3. ✅ Funktionsprüfung aller Seiten - Test und Review aller bestehenden Seiten.
+------
 
-## ✅ Abgeschlossene Phasen4. ✅ Berechnungsprüfung - Validierung aller Berechnungen und automatisierte Tests.
+
+
+## 📋 Übersicht## 🚀 Aktuelle Entwicklungsphase
+
+
+
+Der MazerationsMeister ist eine professionelle Desktop-Anwendung für Destillerien und Likörhersteller zur Verwaltung von Mazerationsprozessen, Lagerbeständen und Tank-Management.### Phase 5: Rezepturen-System (In Arbeit - November 2025) 🧪
+
+
+
+### **Aktuelle Hauptfunktionen:****Feature-Beschreibung:** Vollständiges System zur Verwaltung von Produktrezepturen für die Mischung mehrerer Komponenten zu Endprodukten (z.B. GFKC aus 10-12 Komponenten)
+
+- ✅ **Mazeration-Protokolle** - Vollständige Prozess-Dokumentation mit automatischen Berechnungen
+
+- ✅ **Lagerverwaltung** - Artikel-Stammdaten, Chargen, Transaktionen, Bestandsübersichten**Completed Foundational Work (11.11.2025):**
+
+- ✅ **Tank-Management** - QR-Code-System für mobile Tank-Abfragen- ✅ **Datenmodell mit Zod-Schemas** (`src/schemas/rezepturSchema.ts`)
+
+- ✅ **Rezeptur-System** - Excel-Style Editor für Produkt-Rezepturen (v1.1.0)  - RezepturKomponenteSchema: Komponenten mit Liter/Prozent-Input und Berechnungen
+
+- ✅ **PDF-Exporte** - Protokolle, Lagerstände, Produktions-Checklisten  - SensorikBewertungSchema: Bewertungen 1-10, Notizen, Freigabe-Flag
+
+- ✅ **Hybrid Storage** - localStorage + Electron Persistent Storage  - RezepturSchema: Vollständige Rezeptur mit Komponenten, Ergebnissen, Status-Workflow
+
+  - Status-Enum: entwurf → test → freigegeben → produziert → archiviert
+
+---  - Varianten-Support (Version A, B, C)
+
+
+
+## ✅ Abgeschlossene Entwicklung (v0.1.0 - v1.1.0)- ✅ **Business Logic & Calculations** (`src/lib/rezeptur-manager.ts`)
+
+  - berechneKomponente(): Liter↔Prozent Konvertierung, LA-Berechnung
+
+### **Phase 1: Grundfunktionen** (Abgeschlossen)  - berechneRezeptur(): Gewichteter %vol Durchschnitt
+
+- Dashboard mit Kennzahlen und Statistiken  - skaliereRezeptur(): Skalierung von 1L Test → 500L Produktion mit Verfügbarkeitsprüfung
+
+- Lagerhaltung und Bestandsführung  - validiereRezeptur(): Konsistenzprüfung
+
+- PDF-Exporte für Protokolle  - CRUD Operations: erstelle, fuegeHinzu, entferne, aktualisiere
+
+- Sidebar-Navigation und UI-Framework
+
+- ✅ **Main Page - Rezepturen-Übersicht** (`src/app/rezepturen/page.tsx`)
+
+### **Phase 2: QR-Code System** (Abgeschlossen)  - Card-Grid mit Rezeptur-Übersicht
+
+- QR-Code-Generierung für Tanks  - Suche und Status-Filter
+
+- Mobile Tank-Detail-Seiten mit Offline-Funktionalität  - localStorage-Integration
+
+- Automatische Tank-Synchronisation  - Navigation zum Editor
+
+- OneDrive-Backup-Integration (lokal, ohne Azure)
+
+- ✅ **UI-Integration**
+
+### **Phase 3: System-Stabilisierung** (Abgeschlossen - Oktober 2025)  - Sidebar-Menüpunkt "Rezepturen" mit Beaker-Icon
+
+- Hybrid Storage System (localStorage + Electron)  - app-data.ts erweitert mit rezepturen: Rezeptur[]
+
+- Kritische Produktionsfehler behoben  - Navigation positioniert zwischen Gebindeverwaltung und QR-Album
+
+  - Datenpersistenz vollständig funktionsfähig
+
+  - Lagerbewegungen aktualisieren UI korrekt- ✅ **Feature-Dokumentation** (`REZEPTUREN_FEATURE.md`)
+
+  - Chargen-Übersicht UX optimiert (Sticky Actions)  - Vollständige Workflow-Dokumentation
+
+- GitHub Pages Integration (`pages-clean` Branch)  - Datenmodell-Referenz
+
+- Build-System stabilisiert (Portable EXE funktioniert)  - Berechnungslogik-Erklärungen
+
+  - UI-Spezifikationen
+
+### **Phase 4: QR-System Perfektionierung** (Abgeschlossen - 05.10.2025)  - Implementierungs-Roadmap
+
+- Master-QR-Code für Container-Gesamtübersicht
+
+- Grid-Layout mit intelligenter Sortierung**In-Progress Work:**
+
+- Container-Indexierung (Fass-1, B-2, etc.)- 🚧 **Rezeptur-Editor** (`src/app/rezepturen/[id]/page.tsx`)
+
+- Kategorie-Integration (Mazerat/Destillat)  - Excel-Style Komponenten-Tabelle mit Dropdown für Inventory-Items
+
+- QR-Album Verbesserungen  - Liter/Prozent Toggle pro Zeile mit Live-Berechnung
+
+- Datenstruktur-Fixes (904L Bug behoben)  - Anzeige von berechneten Werten (Liter, %, %vol, LA)
+
+  - Add/Remove Komponenten-Buttons
+
+### **Phase 5: Rezeptur-System** ✅ (Abgeschlossen - 11.10.2025)  - Verfügbarkeits-Indikatoren aus Inventory
+
+
+
+**Das komplette Rezeptur-System ist fertig!** Siehe [REZEPTUR_MEILENSTEIN.md](./REZEPTUR_MEILENSTEIN.md) für Details.**Pending Features:**
+
+- [ ] **Sensory Evaluation Component**
+
+#### **Implementierte Features:**  - Bewertungsskala 1-10 für verschiedene Kriterien
+
+- ✅ **Rezeptur-Editor** (1439 Zeilen, Excel-Style)  - Notizen und Approval-Flag
+
+  - Inventory-Integration mit Dropdown  - Integration in Rezeptur-Workflow
+
+  - Freie Zutaten (Freitext: Wasser, Zucker, etc.)
+
+  - Editierbarer Alkoholgehalt pro Komponente- [ ] **Scaling & Availability Check**
+
+  - Auto-Berechnung (Liter, %, %vol, LA)  - Skalierungs-Dialog (1L → 500L)
+
+    - Verfügbarkeitsprüfung gegen aktuelles Inventory
+
+- ✅ **Intelligente Mengen-Anzeige**  - Warnungen bei unzureichenden Beständen
+
+  - ≤ 2L: Anzeige in **ml** (Testmischungen)
+
+  - > 2L: Anzeige in **L** (Produktionsmengen)- [ ] **Production Checklist**
+
+  - Deutsche Formatierung (Komma statt Punkt)  - PDF/Excel-Export mit Arbeitsanweisungen
+
+  - Checkliste für manuelle Produktion
+
+- ✅ **Alkohol-Korrektur**  - KEINE automatische Inventory-Buchung (bewusste Design-Entscheidung)
+
+  - Wasser/Sprit-Korrektur bei Abweichungen
+
+  - Gemessener vs. Ziel-Alkoholgehalt- [ ] **XLSX Export**
+
+  - Automatische Mengen-Berechnung  - Export von Rezepturen für externe Bearbeitung
+
+  - Import-Funktion für Bulk-Rezeptur-Updates
+
+- ✅ **Workflow-Status**  - Archivierung und Versionierung
+
+  - 5 Status-Checkboxen (Entwurf → Freigabe → Produktion → Fertig → Archiv)
+
+  - Visuelle Fortschritts-Anzeige**Key Design Decisions:**
+
+- ✅ **NO Automatic Inventory Booking**: Manuelle Workflow-Bestätigung via Checkliste
+
+- ✅ **Produktions-Protokoll**- ✅ **Variants Support**: Rezeptur-Versionen A, B, C für Iterationen
+
+  - Druckbares A4-Protokoll- ✅ **Offline-First**: localStorage mit GitHub-Sync
+
+  - SOLL/IST-Werte mit Abweichungen- ✅ **Single-File Storage**: Integration in app-data.json
+
+  - Summenzeile mit Gesamt-%vol- ✅ **Client-Side Only**: Keine Server-Anforderungen
+
+  - Sensorik-Bereich (karierte Notiz-Box)
+
+**User Requirements:**
+
+- ✅ **Datenmodell & Business Logic**1. "Varianten wären schon brauchbar" → Versionierung implementiert ✅
+
+  - Zod-Schemas für Validierung2. "KEINE automatischen Buchungen" → Manueller Workflow via Checkliste ✅
+
+  - Rezeptur-Manager mit CRUD-Operationen3. "Sensorikbewertungen im System zu haben" → Schema vorhanden, UI pending
+
+  - Persistent Storage via hybridStorage4. "Ein xlsx-export ist nie ganz verkehrt" → Pending implementation
+
+
+
+#### **Behobene Bugs:****Workflow:**
+
+- Storage-Problem (Editor → hybridStorage, Liste gefixet)```
+
+- %vol Summenzeile (×100 fehlte)1. Entwurf erstellen (10-12 Komponenten aus Inventory)
+
+- Alkohol-Button disabled Prop2. Test-Batch (1L) mit Berechnungen
+
+- TypeScript Errors (5×)3. Sensory Evaluation nach Test
+
+- Protokoll deutsche Formatierung4. Varianten erstellen (A, B, C)
+
+5. Freigabe bei erfolgreichem Test
+
+---6. Skalierung auf Produktionsmenge (500L)
+
+7. Verfügbarkeitsprüfung
+
+## 🚀 Geplante Entwicklung8. Produktion mit Checkliste (manuell)
+
+9. Archivierung nach Produktion
+
+### **Phase 6: Rezeptur-Erweiterungen** (Geplant)```
+
+
+
+#### **XLSX Export für Rezepturen** (Hohe Priorität)---
+
+- Export von Rezepturen für externe Bearbeitung
+
+- Import-Funktion für Bulk-Rezeptur-Updates## ✅ Abgeschlossene Phasen4. ✅ Berechnungsprüfung - Validierung aller Berechnungen und automatisierte Tests.
+
+- User-Request: "Ein xlsx-export ist nie ganz verkehrt"
 
 5. ✅ Exporte (PDF) der P  - PDF-Export mit mehreren QR-Codes
 
-### Phase 1: Grundfunktionen (Abgeschlossen)  - "Alle auswählen/aufheben" Funktionalität
+#### **Varianten-Verwaltung** (Mittlere Priorität)
 
-- ✅ Dashboard mit Kennzahlen und Statistiken  - Print-optimiertes Layout für Etikettendruck
+- Rezeptur-Versionen (A, B, C) für Iterationen### Phase 1: Grundfunktionen (Abgeschlossen)  - "Alle auswählen/aufheben" Funktionalität
 
-- ✅ Lagerhaltung und Bestandsführung
+- Vergleichs-Ansicht zwischen Varianten
 
-- ✅ Definition der Lagerbehälter (Import aus XLSX)##### SOFORT-MASSNAHMEN-PLAN:nd Lagerdaten - PDF-Export für Protokolle, Lagerstände und Bewegungen.
+- Versionierungs-Historie- ✅ Dashboard mit Kennzahlen und Statistiken  - Print-optimiertes Layout für Etikettendruck
 
-- ✅ PDF-Exporte für Protokolle und Lagerstände6. ✅ Lagerhaltung und Lagerstände - Erweiterung der Lagerlogik und Bestandsführung.
 
-- ✅ Sidebar-Navigation und UI-Framework7. ✅ Definition der Lagerbehälter (Import aus XLSX) - Importfunktion für Behälterdefinitionen aus Excel.
+
+### **Phase 7: Container-ID System** (Hohe Priorität)- ✅ Lagerhaltung und Bestandsführung
+
+
+
+**Problem:** Mehrere Produkte pro Behälter-Typ (z.B. 4× "B"-Glasballon)- ✅ Definition der Lagerbehälter (Import aus XLSX)##### SOFORT-MASSNAHMEN-PLAN:nd Lagerdaten - PDF-Export für Protokolle, Lagerstände und Bewegungen.
+
+
+
+**Lösung:** Dynamische Container-Nummerierung- ✅ PDF-Exporte für Protokolle und Lagerstände6. ✅ Lagerhaltung und Lagerstände - Erweiterung der Lagerlogik und Bestandsführung.
+
+- Schema: `{Typ}-{Nummer}` (z.B. "B-001", "Fl-012", "Fass-005")
+
+- Migration existierender Container- ✅ Sidebar-Navigation und UI-Framework7. ✅ Definition der Lagerbehälter (Import aus XLSX) - Importfunktion für Behälterdefinitionen aus Excel.
+
+- QR-Codes für eindeutige Container-IDs
 
 8. ✅ QR-Codes für Behälter, Lagerstand über QR abrufbar - Generierung und Scan-Funktion für QR-Codes.
 
-### Phase 2: QR-Code System (Abgeschlossen)
+**Erweiterte Funktionen:**
 
-- ✅ QR-Code-Generierung für Tanks und Container### Phase 2: QR-Code System & Mobile Optimierung ✅
+- Behälter-Status: Belegt, Leer, Außer Haus, Leihgabe, Defekt### Phase 2: QR-Code System (Abgeschlossen)
+
+- Bemerkungsfeld (z.B. "Leihgabe von Brennerei X")
+
+- Bulk-Container-Registrierung- ✅ QR-Code-Generierung für Tanks und Container### Phase 2: QR-Code System & Mobile Optimierung ✅
+
+- Außer-Haus-Tracking für Transport
 
 - ✅ Mobile Tank-Detail-Seiten mit PIN-Schutz
 
+### **Phase 8: QR-Code Batch-Druck für Chargen** (Mittlere Priorität)
+
 - ✅ Direktbearbeitung via Smartphone#### QR-Code Tank-Management ✅
+
+**User-Request:** Mehrfachauswahl für QR-Code-Generierung
 
 - ✅ Automatische Tank-Synchronisation- ✅ QR-Code-Generierung für ausgewählte Tanks
 
-- ✅ OneDrive-Synchronisation für lokale Backups- ✅ Mobile Tank-Detail-Seiten 
+**Features:**
 
-- ✅ Direktbearbeitung von Füllstand und Inhalt via Smartphone
+- Checkbox-Auswahl in Chargen-Tabelle- ✅ OneDrive-Synchronisation für lokale Backups- ✅ Mobile Tank-Detail-Seiten 
 
-### Phase 3: System-Stabilisierung (Abgeschlossen - Oktober 2025)- ✅ Automatische Tank-Synchronisation aus Lagerbestand
+- Multi-Select für QR-Code Generierung
 
-- ✅ Hybrid Storage System (localStorage + Electron)- ✅ Print-optimierte QR-Code-Ausgabe
+- PDF-Export mit mehreren QR-Codes- ✅ Direktbearbeitung von Füllstand und Inhalt via Smartphone
 
-- ✅ Kritische Produktionsfehler behoben- ✅ Tank-Content-Manager mit dynamischer Chargen-Verwaltung
+- Print-optimiertes Etiketten-Layout
 
-  - Datenpersistenz vollständig funktionsfähig- ✅ OneDrive-Synchronisation für lokale Backups ohne Azure-Registrierung
+- "Alle auswählen/aufheben" Funktionalität### Phase 3: System-Stabilisierung (Abgeschlossen - Oktober 2025)- ✅ Automatische Tank-Synchronisation aus Lagerbestand
 
-  - Lagerbewegungen aktualisieren UI korrekt
+
+
+### **Phase 9: Performance-Optimierung** (Niedrige Priorität)- ✅ Hybrid Storage System (localStorage + Electron)- ✅ Print-optimierte QR-Code-Ausgabe
+
+
+
+#### **App-Größe reduzieren**- ✅ Kritische Produktionsfehler behoben- ✅ Tank-Content-Manager mit dynamischer Chargen-Verwaltung
+
+- Aktuell: ~6GB portable EXE
+
+- Ziel: <1GB  - Datenpersistenz vollständig funktionsfähig- ✅ OneDrive-Synchronisation für lokale Backups ohne Azure-Registrierung
+
+- Webpack Tree-shaking implementieren
+
+- node_modules Cleanup  - Lagerbewegungen aktualisieren UI korrekt
+
+- Asset-Optimierung
 
   - Chargen-Übersicht UX optimiert (Sticky Actions)#### System-Bereinigung ✅
 
-- ✅ GitHub Pages Integration (`pages-clean` Branch)- ✅ **Entfernung veralteter Implementierungen:** 
+#### **Build-Performance**
 
-- ✅ Build-System stabilisiert (Portable EXE funktioniert)  - Ngrok-Integration entfernt
+- Build-Zeit von 83s auf <30s reduzieren- ✅ GitHub Pages Integration (`pages-clean` Branch)- ✅ **Entfernung veralteter Implementierungen:** 
 
-  - Cloud-Services-Integration vereinfacht
+- Incremental Builds
 
-### Phase 4: QR-System Perfektionierung (Abgeschlossen - 05.10.2025)  - Azure-Abhängigkeiten entfernt
-
-- ✅ **Master-QR & Container-Übersicht**  - Komplexe Sync-Mechanismen reduziert
-
-  - Master-QR-Code für Gesamtübersicht aller Container- ✅ **Fokus auf lokale OneDrive-Synchronisation:**
-
-  - Grid-Layout mit intelligenter Sortierung  - Automatische Backup-Erstellung
-
-  - Container-Indexierung (Fass-1, B-2, etc.)  - Keine Azure-Registrierung erforderlich
-
-    - Vereinfachte Daten-Synchronisation
-
-- ✅ **QR-Album Verbesserungen**
-
-  - Eindeutige Container-Labels### Phase 3: KRITISCHE SYSTEM-BEREINIGUNG 🔴 DRINGEND
-
-  - Produktnamen statt Container-Typ
-
-  - Kategorie-Integration (Mazerat/Destillat)#### Identifizierte Probleme (September 2025)
-
-  - Präzise Volumenangaben (1 Nachkommastelle)1. **Inkonsistente Tank-IDs:** 
-
-     - QR-Code generiert "tank-fwdgp3bqt" 
-
-- ✅ **Datenstruktur-Fixes**   - System erwartet "T341"
-
-  - Container-Gruppierung nach `container.id`   - tank-offline.html kann Tank nicht finden
-
-  - Index-basierte Inventory-Zuordnung
-
-  - Füllstandsbalken mit Farbcodierung2. **Doppelte Token-Verwaltung:**
-
-  - "Auto-erkannt:" Prefix entfernt   - Einstellungen → QR-Codes → Token-Eingabe
-
-   - Einstellungen → GitHub Integration → Token-Eingabe
-
----   - Verwirrende UX, keine Synchronisation
+- Cache-Strategien- ✅ Build-System stabilisiert (Portable EXE funktioniert)  - Ngrok-Integration entfernt
 
 
 
-## 🚀 Aktuelle Entwicklungsphase3. **Mehrfache QR-Code Implementierungen:**
+### **Phase 10: Erweiterte Features** (Niedrige Priorität)  - Cloud-Services-Integration vereinfacht
 
-   - Tank-Verwaltung (unter QR-Codes) → localhost URLs
 
-### Phase 5: Production Deployment & Optimierung (In Arbeit)   - Tank-Inhalte → GitHub Pages URLs
+
+#### **Single-File Auto-Sync zwischen Rechnern**### Phase 4: QR-System Perfektionierung (Abgeschlossen - 05.10.2025)  - Azure-Abhängigkeiten entfernt
+
+- `docs/app-data.json` für alle App-Daten
+
+- GitHub Auto-Sync (60 Min. Intervall)- ✅ **Master-QR & Container-Übersicht**  - Komplexe Sync-Mechanismen reduziert
+
+- Conflict-Resolution UI
+
+- Multi-Rechner Workflow  - Master-QR-Code für Gesamtübersicht aller Container- ✅ **Fokus auf lokale OneDrive-Synchronisation:**
+
+
+
+#### **Google Calendar Integration**  - Grid-Layout mit intelligenter Sortierung  - Automatische Backup-Erstellung
+
+- Automatische Kalender-Erinnerungen
+
+- Mazerat-Fertigstellung Notifications  - Container-Indexierung (Fass-1, B-2, etc.)  - Keine Azure-Registrierung erforderlich
+
+- Event-Titel mit Tank-ID & Produkt
+
+- Push/E-Mail Benachrichtigungen    - Vereinfachte Daten-Synchronisation
+
+
+
+#### **Analytics Dashboard**- ✅ **QR-Album Verbesserungen**
+
+- Füllstand-Historie und Trends
+
+- Verbrauchsanalysen pro Tank  - Eindeutige Container-Labels### Phase 3: KRITISCHE SYSTEM-BEREINIGUNG 🔴 DRINGEND
+
+- Optimierungsvorschläge
+
+- Bestandsberichte nach Kategorien  - Produktnamen statt Container-Typ
+
+
+
+#### **Progressive Web App (PWA)**  - Kategorie-Integration (Mazerat/Destillat)#### Identifizierte Probleme (September 2025)
+
+- Installierbar auf Smartphone
+
+- Offline-First Funktionalität  - Präzise Volumenangaben (1 Nachkommastelle)1. **Inkonsistente Tank-IDs:** 
+
+- Push-Notifications für Tank-Updates
+
+- Touch-optimierte UI-Elemente     - QR-Code generiert "tank-fwdgp3bqt" 
+
+
+
+---- ✅ **Datenstruktur-Fixes**   - System erwartet "T341"
+
+
+
+## 📊 Changelog  - Container-Gruppierung nach `container.id`   - tank-offline.html kann Tank nicht finden
+
+
+
+### **v1.1.0 (11. Oktober 2025) - Rezeptur-Meilenstein** 🎉  - Index-basierte Inventory-Zuordnung
+
+
+
+**Major Features:**  - Füllstandsbalken mit Farbcodierung2. **Doppelte Token-Verwaltung:**
+
+- Rezeptur-System komplett implementiert (1439 Zeilen)
+
+- Excel-Style Editor mit Inventory-Integration  - "Auto-erkannt:" Prefix entfernt   - Einstellungen → QR-Codes → Token-Eingabe
+
+- Intelligente ml/L Anzeige (≤2L=ml, >2L=L)
+
+- Alkohol-Korrektur (Wasser/Sprit 60%vol)   - Einstellungen → GitHub Integration → Token-Eingabe
+
+- Workflow-Status Checkboxen
+
+- Druckbares Produktions-Protokoll (A4, dt. Format)---   - Verwirrende UX, keine Synchronisation
+
+- IST-Werte Übernahme
+
+- Sensorik-Bereich (karierte Notiz-Box)
+
+
+
+**Fixes:**## 🚀 Aktuelle Entwicklungsphase3. **Mehrfache QR-Code Implementierungen:**
+
+- Storage-Problem (Editor → hybridStorage, Liste gefixet)
+
+- %vol Summenzeile (×100 fehlte)   - Tank-Verwaltung (unter QR-Codes) → localhost URLs
+
+- Alkohol-Button disabled Prop
+
+- TypeScript Errors (5×)### Phase 5: Production Deployment & Optimierung (In Arbeit)   - Tank-Inhalte → GitHub Pages URLs
+
+- Protokoll deutsche Formatierung
 
    - Verschiedene Parameter-Schemas
 
-#### 5.1 Performance-Optimierungen (Niedrige Priorität)
+**Build:**
 
-- [ ] **App-Größe reduzieren**4. **Navigations-Inkonsistenz:**
+- Erfolgreiche Kompilierung (10.0s)#### 5.1 Performance-Optimierungen (Niedrige Priorität)
 
-  - Ziel: Von ~6GB auf <1GB   - Kein direkter "Inventory" Menüpunkt
+- EXE Build: 230.19 MB (83.6% Größen-Reduktion)
 
-  - Webpack Tree-shaking implementieren   - Tank-Management unter "Einstellungen" versteckt
+- Alle Features funktionsfähig- [ ] **App-Größe reduzieren**4. **Navigations-Inkonsistenz:**
 
-  - node_modules Cleanup   - Benutzer findet Funktionen nicht
 
-  - Asset-Optimierung
 
-  #### BEREINIGUNGSSTRATEGIE (Priorität: KRITISCH)
+**Commits:**  - Ziel: Von ~6GB auf <1GB   - Kein direkter "Inventory" Menüpunkt
 
-- [ ] **Build-Performance**
+- `ab99e68` - Meilenstein: Rezeptur-System Komplett
 
-  - Build-Zeit von 83s auf <30s##### Schritt 1: Tank-ID Normalisierung ⚡ SOFORT
+- `909138b` - Version 1.1.0  - Webpack Tree-shaking implementieren   - Tank-Management unter "Einstellungen" versteckt
 
-  - Incremental Builds- [ ] Alle Tank-IDs auf einheitliches Format (T341, T349, etc.)
 
-  - Cache-Strategien- [ ] QR-Code Parameter-Mapping korrigieren
 
-- [ ] tank-offline.html Tank-Lookup reparieren
+---  - node_modules Cleanup   - Benutzer findet Funktionen nicht
+
+
+
+### **v1.0.x (September - Oktober 2025)**  - Asset-Optimierung
+
+
+
+#### **v1.5.0 (05.10.2025) - QR-System Perfektionierung**  #### BEREINIGUNGSSTRATEGIE (Priorität: KRITISCH)
+
+- Master-QR & Container-Übersicht
+
+- QR-Album Verbesserungen (Labels, Kategorien)- [ ] **Build-Performance**
+
+- Container-Indexierung (Fass-1, B-2, etc.)
+
+- Intelligente Container-Sortierung  - Build-Zeit von 83s auf <30s##### Schritt 1: Tank-ID Normalisierung ⚡ SOFORT
+
+- 904L Summations-Bug behoben
+
+- GitHub Pages Integration stabilisiert  - Incremental Builds- [ ] Alle Tank-IDs auf einheitliches Format (T341, T349, etc.)
+
+
+
+#### **v1.4.0 (01.10.2025) - Kritische Produktionsfehler behoben**  - Cache-Strategien- [ ] QR-Code Parameter-Mapping korrigieren
+
+- Datenpersistenz vollständig repariert
+
+- Lagerbewegungen aktualisieren UI korrekt- [ ] tank-offline.html Tank-Lookup reparieren
+
+- Chargen-Übersicht UX optimiert (Sticky Actions)
 
 #### 5.2 Feature-Enhancements (Mittlere Priorität)- [ ] Konsistenz zwischen allen Komponenten sicherstellen
 
-- [ ] **QR-Code Batch-Druck für Chargen**
+#### **v1.3.0 (24.09.2025) - Hybrid Storage & Build-System**
 
-  - Checkbox-Auswahl in Chargen-Tabelle##### Schritt 2: Token-Management Vereinheitlichung ⚡ SOFORT  
+- Hybrid Storage System implementiert- [ ] **QR-Code Batch-Druck für Chargen**
+
+- Tank Auto-Sync modernisiert
+
+- QR-Code Druckfunktion  - Checkbox-Auswahl in Chargen-Tabelle##### Schritt 2: Token-Management Vereinheitlichung ⚡ SOFORT  
+
+- Portable Build erfolgreich (83s)
 
   - Multi-Select für QR-Code Generierung- [ ] Single-Point-of-Truth für GitHub Token
 
-  - PDF-Export mit mehreren QR-Codes- [ ] Automatische Synchronisation zwischen Komponenten
+#### **v1.2.0 (September 2025) - System-Bereinigung**
 
-  - Print-optimiertes Etiketten-Layout- [ ] Entfernung redundanter Token-Eingabefelder
+- OneDrive-Integration ohne Azure  - PDF-Export mit mehreren QR-Codes- [ ] Automatische Synchronisation zwischen Komponenten
 
-  - [ ] Event-basierte Token-Updates
+- Veraltete Cloud-Services entfernt
 
-- [ ] **Erweiterte Storage-Verwaltung**
+- Code-Cleanup und Vereinfachung  - Print-optimiertes Etiketten-Layout- [ ] Entfernung redundanter Token-Eingabefelder
 
-  - Automatische Backup-Erstellung (täglich/wöchentlich)##### Schritt 3: QR-Code Konsolidierung ⚡ HEUTE
 
-  - Import/Export von kompletten Datensets- [ ] Eine einzige QR-Code Komponente
+
+---  - [ ] Event-basierte Token-Updates
+
+
+
+## 🎯 Nächste Schritte (Priorisiert)- [ ] **Erweiterte Storage-Verwaltung**
+
+
+
+### **Sofort (nach v1.1.0)**  - Automatische Backup-Erstellung (täglich/wöchentlich)##### Schritt 3: QR-Code Konsolidierung ⚡ HEUTE
+
+1. ✅ ~~Dokumentation aktualisieren~~ (Diese Roadmap!)
+
+2. ⏳ XLSX Export für Rezepturen implementieren  - Import/Export von kompletten Datensets- [ ] Eine einzige QR-Code Komponente
+
+3. ⏳ Container-ID System planen
 
   - Storage-Verwendungs-Analytics- [ ] Einheitliche URL-Generierung (GitHub Pages)
 
-- [ ] Entfernung localhost-basierter QR-Codes  
+### **Diese Woche**
 
----- [ ] Konsistente Parameter-Übertragung
+1. Rezeptur-System in Produktion testen- [ ] Entfernung localhost-basierter QR-Codes  
+
+2. User-Feedback sammeln
+
+3. Bug-Fixes falls nötig---- [ ] Konsistente Parameter-Übertragung
 
 
 
-## 📋 Geplante Features##### Schritt 4: Navigation Restrukturierung ⚡ HEUTE
+### **Nächster Monat**
+
+1. Container-ID System implementieren
+
+2. QR-Code Batch-Druck für Chargen## 📋 Geplante Features##### Schritt 4: Navigation Restrukturierung ⚡ HEUTE
+
+3. Performance-Optimierung starten
 
 - [ ] "Inventory" als Haupt-Menüpunkt
 
+---
+
 ### Phase 6: Container-Management Erweitert (Hohe Priorität)- [ ] Tank-Management direkt zugänglich  
+
+## 📝 Technische Hinweise
 
 - [ ] Logische Gruppierung der Funktionen
 
-#### 6.1 Eindeutige Container-IDs- [ ] Benutzerfreundliche Struktur
+### **Branch-Strategie**
+
+- **`pages-clean`**: Production Branch für GitHub Pages#### 6.1 Eindeutige Container-IDs- [ ] Benutzerfreundliche Struktur
+
+- Alle QR-Codes zeigen auf GitHub Pages URLs
 
 **Problem:** Mehrere Produkte pro Behälter-Typ (z.B. 4 verschiedene Produkte in "B"-Containern)  
 
-**Lösung:** Dynamische Container-Nummerierung##### Schritt 5: Testing & Validation ⚡ HEUTE
+### **Build-Prozess**
 
-- [ ] Ende-zu-Ende QR-Code Test
+```bash**Lösung:** Dynamische Container-Nummerierung##### Schritt 5: Testing & Validation ⚡ HEUTE
 
-- [ ] **Automatische Container-Nummerierung**- [ ] Mobile Offline-Funktionalität validieren
+# Development Build
 
-  - Schema: `{Typ}-{3-stellige Nummer}` (z.B. "B-001", "Fl-012")- [ ] Token-Synchronisation testen
+npm run build- [ ] Ende-zu-Ende QR-Code Test
 
-  - Migration bestehender Container- [ ] Alle Tank-IDs durchprüfen
 
-  - Flexible Erweiterung für neue Container
+
+# Portable EXE Build- [ ] **Automatische Container-Nummerierung**- [ ] Mobile Offline-Funktionalität validieren
+
+node scripts/build-ultra-minimal.js
+
+```  - Schema: `{Typ}-{3-stellige Nummer}` (z.B. "B-001", "Fl-012")- [ ] Token-Synchronisation testen
+
+
+
+### **Storage-System**  - Migration bestehender Container- [ ] Alle Tank-IDs durchprüfen
+
+- Desktop: Electron Persistent Storage (IPC-basiert)
+
+- Browser: localStorage als Fallback  - Flexible Erweiterung für neue Container
+
+- Auto-Migration zwischen Systemen
 
   ### Phase 4: QR-CODE SYSTEM REDESIGN 🔄 STRATEGISCHE NEUAUSRICHTUNG
 
-- [ ] **Container-Status-Management**
+### **Debugging**
 
-  - Status: "Belegt", "Leer", "Außer Haus", "Leihgabe", "Defekt"#### PROBLEM-ANALYSE: Aktueller QR-Code Ansatz
+- Storage Debug Tools in: Einstellungen → "Storage Debug"- [ ] **Container-Status-Management**
 
-  - Farbcodierung in Übersichten**Aktuelles System (fehlerhaft):**
+- Tank Debug Utility für Sync-Probleme
 
-  - Filter-Funktionen (z.B. "Zeige alle leeren Fässer")- ❌ Dynamische QR-Codes mit komplexen URL-Parametern (dataUrl, backupUrl, fallbackUrl)
+- DevTools Console für Branch-Validation  - Status: "Belegt", "Leer", "Außer Haus", "Leihgabe", "Defekt"#### PROBLEM-ANALYSE: Aktueller QR-Code Ansatz
 
-  - ❌ QR-Codes müssen bei jeder Synchronisation neu generiert werden
 
-- [ ] **Erweiterte Behälter-Verwaltung**- ❌ Backup-URL-Logik führt zu 404-Fehlern bei GitHub Pages Deployment-Verzögerungen
 
-  - Bemerkungsfeld (z.B. "Leihgabe von Brennerei X")- ❌ Komplexe Fehlerbehandlung mit mehreren Datenquellen
+---  - Farbcodierung in Übersichten**Aktuelles System (fehlerhaft):**
 
-  - Außer-Haus-Tracking für Transport- ❌ Unpraktisch: QR-Codes können nicht dauerhaft an Tanks befestigt werden
 
-  - Bulk-Container-Registrierung
 
-  - QR-Code Bulk-Generierung (Fass-001 bis Fass-010)**Erkannte Schwachstellen:**
+## 📊 Erfolgsmetriken  - Filter-Funktionen (z.B. "Zeige alle leeren Fässer")- ❌ Dynamische QR-Codes mit komplexen URL-Parametern (dataUrl, backupUrl, fallbackUrl)
 
-- Tank T 341 QR-Code bringt "nicht gefunden" obwohl Daten korrekt synchronisiert
 
-#### 6.2 Container-Übernahme-Workflow- GitHub Pages Deployment-Verzögerungen brechen das Backup-URL System
 
-- [ ] **Integration entleerter Container**- Unterschiedliche Datenquellen (universalStorage vs localStorage) führen zu Inkonsistenzen
+### **Systemstabilität**  - ❌ QR-Codes müssen bei jeder Synchronisation neu generiert werden
 
-  - Container nach Rohstoff-Entleerung übernehmen
+- ✅ 0 kritische Bugs in Production (v1.1.0)
 
-  - Automatische ID-Vergabe#### LÖSUNG: Statisches QR-Code System 🎯
+- ✅ Datenpersistenz 100% zuverlässig- [ ] **Erweiterte Behälter-Verwaltung**- ❌ Backup-URL-Logik führt zu 404-Fehlern bei GitHub Pages Deployment-Verzögerungen
+
+- ✅ QR-Code System vollständig funktionsfähig
+
+- ✅ Build-Prozess fehlerfrei  - Bemerkungsfeld (z.B. "Leihgabe von Brennerei X")- ❌ Komplexe Fehlerbehandlung mit mehreren Datenquellen
+
+
+
+### **Benutzerfreundlichkeit**  - Außer-Haus-Tracking für Transport- ❌ Unpraktisch: QR-Codes können nicht dauerhaft an Tanks befestigt werden
+
+- ✅ Rezeptur-Editor intuitiv bedienbar
+
+- ✅ QR-Album optimiert für Tablet/Smartphone  - Bulk-Container-Registrierung
+
+- ✅ Master-View übersichtlich und sortiert
+
+- ✅ Container eindeutig identifizierbar  - QR-Code Bulk-Generierung (Fass-001 bis Fass-010)**Erkannte Schwachstellen:**
+
+
+
+### **Performance**- Tank T 341 QR-Code bringt "nicht gefunden" obwohl Daten korrekt synchronisiert
+
+- ✅ Build-Zeit: 83 Sekunden (akzeptabel)
+
+- ⚠️ App-Größe: ~6GB (Optimierung geplant)#### 6.2 Container-Übernahme-Workflow- GitHub Pages Deployment-Verzögerungen brechen das Backup-URL System
+
+- ✅ Ladezeit: <2 Sekunden für alle Views
+
+- ✅ QR-Code Generierung: <1 Sekunde- [ ] **Integration entleerter Container**- Unterschiedliche Datenquellen (universalStorage vs localStorage) führen zu Inkonsistenzen
+
+
+
+---  - Container nach Rohstoff-Entleerung übernehmen
+
+
+
+**Ende der Roadmap** - Letzte Aktualisierung: 11. Oktober 2025  - Automatische ID-Vergabe#### LÖSUNG: Statisches QR-Code System 🎯
+
 
   - QR-Code Druck für neue Container
 
@@ -1025,6 +1422,59 @@ Behälter-Status-Beispiele:
 - ✅ **OneDrive-Integration:** Lokale Synchronisation ohne Azure-Registrierung
 - ✅ **System-Bereinigung:** Entfernung veralteter Cloud-Integration-Ansätze (ngrok, Azure-Services)
 - ✅ **Code-Cleanup:** Vereinfachung der Einstellungen-Seite, Reduzierung der Komplexität
+
+#### Single-File Auto-Sync - Vollständige Daten-Synchronisation (05.10.2025) 🔄 GEPLANT
+- 🔄 **FEATURE-REQUEST**: Erweiterte Auto-Sync für ALLE App-Daten zwischen mehreren Rechnern
+- 🎯 **USE CASE**: 
+  - Rechner 1 (Büro): Arbeiten, Mazerationsprotokolle erstellen, Kalender/TODOs pflegen
+  - Rechner 2 (Home-Office): Automatisch alle aktuellen Daten verfügbar
+  - Kein manuelles Backup mehr nötig
+- 📦 **SINGLE-FILE SYNC** - Eine Datei für alles:
+  - `docs/app-data.json` auf GitHub (statt nur `tank-data.json`)
+  - Struktur: `{ tanks, inventory, calendar, todos, mazerationProtocols }`
+  - Nutzt bestehende GitHub Auto-Sync Infrastruktur
+- 🔧 **TECHNISCHE UMSETZUNG**:
+  - Erweitere `tank-auto-sync.ts` → `app-auto-sync.ts`
+  - Sammelt ALLE Daten: `hybridStorage.get('tankDefinitions', 'inventoryItems', 'calendarEvents', 'todos', 'mazerationProtocols')`
+  - Upload als Single JSON File zu GitHub Pages
+  - Download beim App-Start (Rechner 2)
+  - Conflict-Detection: Last-Write-Wins (Timestamp-basiert)
+- 🎨 **UI-INTEGRATION**:
+  - Einstellungen → Speicher-Sync (erweitert aus "Speicherpfade")
+  - Erste Synchronisation: "📤 Hochladen" (Rechner 1) oder "📥 Herunterladen" (Rechner 2)
+  - Auto-Sync Einstellung: EINE zentrale Einstellung für alle Daten (60 Min. Intervall)
+  - Status-Anzeige: ✅ Synced / 🔄 Syncing / ⚠️ Conflict
+  - Manuelle Sync: Button für sofortige Synchronisation
+  - Conflict-Resolution UI: "Lokale Version" vs "Cloud-Version" wählen
+- 📋 **VORTEILE**:
+  - ✅ Keine parallele Arbeit nötig → 60 Min. Intervall ausreichend
+  - ✅ Manuelle Sync vor Rechner-Wechsel möglich
+  - ✅ Basiert auf bewährter Tank-Sync Infrastruktur
+  - ✅ Single Source of Truth (GitHub)
+  - ✅ OneDrive-Speicherpfade optional (nur als Backup-Fallback)
+- ⚠️ **ENTSCHEIDUNG OFFEN**: 
+  - **Variante A (Hybrid)**: GitHub = Primär-Sync, OneDrive = Backup-Fallback
+  - **Variante B (Pure GitHub)**: Nur GitHub, OneDrive-Speicherpfade entfernen
+- ⏰ **PRIORITÄT**: Mittel-Hoch (Multi-Rechner Workflow wichtig, aber nicht dringend)
+- 📝 **STATUS**: In ROADMAP aufgenommen, Design dokumentiert in `STORAGE_SYNC_ANALYSE.md`
+
+#### Google Calendar Integration - Mazerat-Erinnerungen (05.10.2025) 📅 GEPLANT
+- 📅 **FEATURE-REQUEST**: Automatische Kalender-Erinnerungen für Mazerations-Fertigstellung
+- 🎯 **USE CASE**: 
+  - Mazeration starten → Ersten Vorgang abschließen
+  - Mazerationsdauer eingeben (z.B. 4 Tage)
+  - Automatischer Google Calendar Eintrag
+  - Erinnerung via Push/E-Mail wenn Mazerat fertig
+- 🔧 **TECHNISCHE UMSETZUNG**:
+  - Google Calendar API Integration (Dashboard bereits verbunden)
+  - Event beim Abschluss ersten Mazerationsvorgangs
+  - Event-Titel: "🍃 [Produktname]-Mazerat fertig (Tank [ID])"
+  - Event-Beschreibung: Link zu Tank-Detail-Seite + Füllstand-Info
+  - Reminder: 1 Tag vorher + am Tag selbst
+  - Optional: Manuelle Verlängerung aus Kalender heraus
+- 📋 **INTEGRATION**: Erweiterung des bestehenden CalendarWidget
+- ⏰ **PRIORITÄT**: Hoch (User-Request, hoher praktischer Nutzen)
+- 📝 **STATUS**: In ROADMAP aufgenommen, noch nicht implementiert
 
 #### Kritisches Design-Problem identifiziert (25.09.2025) 🔴
 - 🔴 **PROBLEM**: Mehrere Produkte pro Behälter-Typ ohne eindeutige IDs
