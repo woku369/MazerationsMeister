@@ -16,13 +16,16 @@
 
 ##  Offene Punkte (Q4 2025)
 
-### **1. Feinschliff nach Tests** (Höchste Priorität)
+**Strategie:** Erst stabilisieren & testen, dann neue Features!
+
+### **1. Feinschliff nach Tests** (Höchste Priorität - JETZT!)
 - Stress-Tests (500+ Gebinde, 1000+ Einträge)
 - Browser-Kompatibilität (Safari, Firefox, Mobile)
 - Offline-Szenarien testen
 - Performance-Profiling
 - Beta-Test mit Brennereien
-- Bug-Fixes aus User-Feedback
+- **Alle Bugs finden & dokumentieren**
+- **Bug-Fixes komplett abschließen**
 
 ### **2. Impressum erstellen** (Rechtlich erforderlich!)
 - Betreiber/Kontakt gemäß §5 TMG
@@ -35,18 +38,20 @@
 - Alle Features seit Projektbeginn
 - Breaking Changes dokumentieren
 
-### **4. XLSX Export für Rezepturen** (Niedrig)
+### **4. Gebindeverwaltung erweitern** (nach Bugfixes!)
+- Behälter-Status: Leer, Belegt, Außer Haus, Leihgabe
+- Bemerkungsfeld für Leihgaben
+- Tracking von Außer-Haus-Gebinden
+- Historie pro Gebinde
+- **Backend ~60% fertig** (Status-Schema, Historie-Tracking vorhanden)
+- **UI fehlt komplett** (Detail-Ansicht, Status-Dropdown, Filter)
+
+### **5. XLSX Export für Rezepturen** (Niedrig)
 - Export von Rezepturen
 - Import-Funktion für Bulk-Updates
 - User-Request aus ursprünglicher Roadmap
 
 ##  Q1 2026 - Erweiterte Features
-
-### **5. Gebindeverwaltung erweitern**
-- Behälter-Status: Leer, Belegt, Außer Haus, Leihgabe
-- Bemerkungsfeld für Leihgaben
-- Tracking von Außer-Haus-Gebinden
-- Historie pro Gebinde
 
 ### **6. Benachrichtigungssystem**
 - Mazerat-Fertigstellung Erinnerungen
