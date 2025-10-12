@@ -1,48 +1,40 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-10-12T12:22:51.405Z",
+  "lastUpdate": "2025-10-12T17:28:14.620Z",
   "computerName": "unknown",
   "userName": "unknown",
   "tanks": [
     {
-      "id": "T 341",
       "tankNr": "T 341",
       "bezeichnung": "T 341",
-      "volumenLiter": 5000,
+      "volumenLiter": 5350,
       "containerType": "tank",
       "hasUniqueNumber": true,
-      "status": "filled",
-      "currentContent": "Sprit"
+      "id": "T 341"
     },
     {
-      "id": "T 349",
       "tankNr": "T 349",
       "bezeichnung": "T 349",
-      "volumenLiter": 7776,
+      "volumenLiter": 6500,
       "containerType": "tank",
       "hasUniqueNumber": true,
-      "status": "filled",
-      "currentContent": "GFKC - M"
+      "id": "T 349"
     },
     {
-      "id": "T 342",
       "tankNr": "T 342",
       "bezeichnung": "T 342",
-      "volumenLiter": 5000,
+      "volumenLiter": 5340,
       "containerType": "tank",
       "hasUniqueNumber": true,
-      "status": "filled",
-      "currentContent": "GFKC - M"
+      "id": "T 342"
     },
     {
-      "id": "T 1536",
       "tankNr": "T 1536",
       "bezeichnung": "T 1536",
-      "volumenLiter": 5000,
+      "volumenLiter": 1000,
       "containerType": "tank",
       "hasUniqueNumber": true,
-      "status": "filled",
-      "currentContent": "Königskerze"
+      "id": "T 1536"
     },
     {
       "id": "Fass-1",
@@ -405,34 +397,28 @@
       "status": "filled"
     },
     {
-      "id": "T 343",
       "tankNr": "T 343",
       "bezeichnung": "T 343",
-      "volumenLiter": 5000,
+      "volumenLiter": 5280,
       "containerType": "tank",
       "hasUniqueNumber": true,
-      "status": "filled",
-      "currentContent": "Pfefferminze"
+      "id": "T 343"
     },
     {
-      "id": "IBC-1",
       "tankNr": "IBC",
       "bezeichnung": "IBC-1",
-      "volumenLiter": 591.6239999999999,
+      "volumenLiter": 1000,
       "containerType": "other",
       "hasUniqueNumber": false,
-      "currentContent": "Pfefferminze",
-      "status": "filled"
+      "id": "IBC-1"
     },
     {
-      "id": "T 345",
       "tankNr": "T 345",
       "bezeichnung": "T 345",
-      "volumenLiter": 5000,
+      "volumenLiter": 5300,
       "containerType": "tank",
       "hasUniqueNumber": true,
-      "status": "filled",
-      "currentContent": "Zitronenmelisse"
+      "id": "T 345"
     },
     {
       "id": "T 346",
@@ -445,24 +431,20 @@
       "currentContent": "Zitronenmelisse"
     },
     {
-      "id": "T 348",
       "tankNr": "T 348",
       "bezeichnung": "T 348",
-      "volumenLiter": 5000,
+      "volumenLiter": 5300,
       "containerType": "tank",
       "hasUniqueNumber": true,
-      "status": "filled",
-      "currentContent": "Thymian"
+      "id": "T 348"
     },
     {
-      "id": "T 338",
       "tankNr": "T 338",
       "bezeichnung": "T 338",
-      "volumenLiter": 5000,
+      "volumenLiter": 2300,
       "containerType": "tank",
       "hasUniqueNumber": true,
-      "status": "filled",
-      "currentContent": "Salbei"
+      "id": "T 338"
     },
     {
       "id": "K-1",
@@ -495,14 +477,52 @@
       "status": "filled"
     },
     {
-      "id": "Cont-1",
-      "tankNr": "Cont",
+      "tankNr": "C 07",
       "bezeichnung": "Cont-1",
-      "volumenLiter": 166.68,
+      "volumenLiter": 1000,
       "containerType": "other",
       "hasUniqueNumber": false,
-      "currentContent": "GFKC-K",
-      "status": "filled"
+      "id": "Cont-1"
+    },
+    {
+      "tankNr": "T 347",
+      "bezeichnung": "T 347",
+      "volumenLiter": 5500,
+      "containerType": "tank",
+      "hasUniqueNumber": true,
+      "id": "T 347"
+    },
+    {
+      "tankNr": "T 1544",
+      "bezeichnung": "T 1544",
+      "volumenLiter": 1000,
+      "containerType": "tank",
+      "hasUniqueNumber": true,
+      "id": "T 1544"
+    },
+    {
+      "tankNr": "T 350",
+      "bezeichnung": "T 350",
+      "volumenLiter": 6420,
+      "containerType": "tank",
+      "hasUniqueNumber": true,
+      "id": "T 350"
+    },
+    {
+      "tankNr": "T 1564",
+      "bezeichnung": "T 1564",
+      "volumenLiter": 1000,
+      "containerType": "tank",
+      "hasUniqueNumber": true,
+      "id": "T 1564"
+    },
+    {
+      "tankNr": "T 344",
+      "bezeichnung": "T 344",
+      "volumenLiter": 5000,
+      "containerType": "tank",
+      "hasUniqueNumber": true,
+      "id": "T 344"
     }
   ],
   "inventory": [
@@ -1263,7 +1283,7 @@
   "rezepturen": [],
   "settings": {
     "autoSync": {
-      "enabled": true,
+      "enabled": false,
       "interval": 60
     }
   }
