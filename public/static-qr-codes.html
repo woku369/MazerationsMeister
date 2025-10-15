@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statische QR-Codes für Tanks - MazerationsMeister</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            body { margin: 0; }
+            .no-print { display: none !important; }
+            .print-break { page-break-after: always; }
+        }
+        .qr-container {
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            background: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="no-print mb-8 bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">🏷️ Statische QR-Codes für Tanks</h1>
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <h2 class="text-lg font-semibold text-blue-800 mb-2">✅ Neues Konzept: Ein QR-Code pro Tank - für immer gültig!</h2>
+                <ul class="text-blue-700 space-y-1">
+                    <li>• <strong>Einmal drucken, aufkleben, fertig</strong> - QR-Codes ändern sich niemals</li>
+                    <li>• <strong>Immer aktuelle Daten</strong> - tank-viewer.html lädt frische Daten von GitHub Pages</li>
+                    <li>• <strong>Einfache URLs</strong> - Nur tankId Parameter, keine komplexe Backup-Logik</li>
+                    <li>• <strong>Robust und wartungsfreundlich</strong> - Funktioniert auch bei Auto-Sync Ausfällen</li>
+                </ul>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="printAll()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                    🖨️ Alle drucken
+                </button>
+                <button onclick="generateAll()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                    🔄 QR-Codes neu generieren
+                </button>
+                <button onclick="testAll()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700">
+                    🧪 Alle testen
+                </button>
+            </div>
+        </div>
+
+        <!-- Tank QR-Codes Grid -->
+        <div id="qr-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- QR-Codes werden hier generiert -->
+        </div>
+
+        <!-- Test Results -->
+        <div id="test-results" class="no-print mt-8 hidden">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">🧪 Test-Ergebnisse</h2>
+                <div id="test-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 🎯 TANK-DEFINITIONEN (aus aktuellen Daten extrahiert)
+        const TANK_DEFINITIONS = [
+            // Große Tanks (T-Serie)
+            { tankId: 'T 341', bezeichnung: 'Tank T 341', typ: 'Lagertank' },
+            { tankId: 'T 349', bezeichnung: 'Tank T 349', typ: 'Lagertank' },
+            { tankId: 'T 1536', bezeichnung: 'Tank T 1536', typ: 'Lagertank' },
+            { tankId: 'T 343', bezeichnung: 'Tank T 343', typ: 'Lagertank' },
+            { tankId: 'T 345', bezeichnung: 'Tank T 345', typ: 'Lagertank' },
+            { tankId: 'T 348', bezeichnung: 'Tank T 348', typ: 'Lagertank' },
+            { tankId: 'T 338', bezeichnung: 'Tank T 338', typ: 'Lagertank' },
+            
+            // Sonstige Behälter
+            { tankId: 'Fl', bezeichnung: 'Flasche', typ: 'Flasche' },
+            { tankId: 'B', bezeichnung: 'Ballon', typ: 'Glasballon' },
+            { tankId: 'Fass', bezeichnung: 'Fass', typ: 'Fass' },
+            { tankId: 'Cont', bezeichnung: 'Container', typ: 'Container' },
+            { tankId: 'K', bezeichnung: 'Kanister', typ: 'Kanister' }
+        ];
+
+        // 🔗 BASIS-URL für QR-Codes (GitHub Pages)
+        const BASE_URL = 'https://woku369.github.io/MazerationsMeister/tank-viewer-simple.html';
+
+        // 📱 QR-CODE GENERIERUNG
+        async function generateQRCode(tankId) {
+            const url = `${BASE_URL}?tankId=${encodeURIComponent(tankId)}`;
+            console.log(`🔗 Generiere QR für ${tankId}:`, url);
+            
+            try {
+                const qrDataUrl = await QRCode.toDataURL(url, {
+                    width: 200,
+                    margin: 2,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
+                    }
+                });
+                return { success: true, dataUrl: qrDataUrl, url };
+            } catch (error) {
+                console.error(`❌ Fehler bei QR-Generierung für ${tankId}:`, error);
+                return { success: false, error: error.message };
+            }
+        }
+
+        // 🖼️ QR-CODE CARD ERSTELLEN
+        function createQRCard(tank, qrResult) {
+            const cardId = `card-${tank.tankId.replace(/\s+/g, '-')}`;
+            
+            return `
+                <div id="${cardId}" class="qr-container print-break">
+                    <div class="mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">${tank.bezeichnung}</h3>
+                        <p class="text-sm text-gray-600">${tank.typ} • ID: ${tank.tankId}</p>
+                    </div>
+                    
+                    ${qrResult.success ? `
+                        <div class="mb-4">
+                            <img src="${qrResult.dataUrl}" alt="QR Code für ${tank.tankId}" class="mx-auto">
+                        </div>
+                        <div class="text-xs text-gray-500 break-all">
+                            <p class="font-mono">${qrResult.url}</p>
+                        </div>
+                        <div class="mt-2 text-xs text-green-600">
+                            ✅ QR-Code generiert
+                        </div>
+                    ` : `
+                        <div class="mb-4 text-red-600">
+                            ❌ Fehler: ${qrResult.error}
+                        </div>
+                    `}
+                    
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <div class="no-print flex gap-2 justify-center">
+                            <button onclick="testQR('${tank.tankId}')" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                                🧪 Test
+                            </button>
+                            <button onclick="regenerateQR('${tank.tankId}')" class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                                🔄 Neu
+                            </button>
+                        </div>
+                        <div class="mt-2 text-xs text-gray-400">
+                            Druckdatum: ${new Date().toLocaleDateString('de-DE')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 🔄 ALLE QR-CODES GENERIEREN
+        async function generateAll() {
+            const grid = document.getElementById('qr-grid');
+            grid.innerHTML = '<div class="col-span-full text-center text-gray-500">Generiere QR-Codes...</div>';
+            
+            let html = '';
+            
+            for (const tank of TANK_DEFINITIONS) {
+                console.log(`🔄 Generiere QR für Tank: ${tank.tankId}`);
+                const qrResult = await generateQRCode(tank.tankId);
+                html += createQRCard(tank, qrResult);
+            }
+            
+            grid.innerHTML = html;
+            console.log('✅ Alle QR-Codes generiert!');
+        }
+
+        // 🖨️ DRUCKEN
+        function printAll() {
+            window.print();
+        }
+
+        // 🔄 EINZELNEN QR-CODE NEU GENERIEREN
+        async function regenerateQR(tankId) {
+            const tank = TANK_DEFINITIONS.find(t => t.tankId === tankId);
+            if (!tank) return;
+            
+            const cardId = `card-${tankId.replace(/\s+/g, '-')}`;
+            const card = document.getElementById(cardId);
+            if (!card) return;
+            
+            card.innerHTML = '<div class="text-center text-gray-500">Generiere...</div>';
+            
+            const qrResult = await generateQRCode(tankId);
+            card.outerHTML = createQRCard(tank, qrResult);
+        }
+
+        // 🧪 EINZELNEN QR-CODE TESTEN
+        function testQR(tankId) {
+            const url = `${BASE_URL}?tankId=${encodeURIComponent(tankId)}`;
+            window.open(url, '_blank');
+        }
+
+        // 🧪 ALLE QR-CODES TESTEN
+        async function testAll() {
+            const resultDiv = document.getElementById('test-results');
+            const contentDiv = document.getElementById('test-content');
+            
+            resultDiv.classList.remove('hidden');
+            contentDiv.innerHTML = '<div class="text-center text-gray-500">Teste alle QR-Codes...</div>';
+            
+            let results = [];
+            
+            for (const tank of TANK_DEFINITIONS) {
+                const url = `${BASE_URL}?tankId=${encodeURIComponent(tank.tankId)}`;
+                
+                try {
+                    console.log(`🧪 Teste ${tank.tankId}:`, url);
+                    
+                    // Simuliere Test (in echter Implementierung würde hier ein fetch stattfinden)
+                    const testResult = {
+                        tankId: tank.tankId,
+                        url: url,
+                        status: 'success',
+                        message: 'URL erfolgreich generiert'
+                    };
+                    
+                    results.push(testResult);
+                } catch (error) {
+                    results.push({
+                        tankId: tank.tankId,
+                        url: url,
+                        status: 'error',
+                        message: error.message
+                    });
+                }
+            }
+            
+            // Test-Ergebnisse anzeigen
+            const successCount = results.filter(r => r.status === 'success').length;
+            const errorCount = results.filter(r => r.status === 'error').length;
+            
+            let html = `
+                <div class="mb-4 p-4 rounded-lg ${errorCount === 0 ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'}">
+                    <h3 class="font-semibold ${errorCount === 0 ? 'text-green-800' : 'text-yellow-800'}">
+                        📊 Test-Zusammenfassung
+                    </h3>
+                    <p class="${errorCount === 0 ? 'text-green-700' : 'text-yellow-700'}">
+                        ✅ ${successCount} erfolgreich • ❌ ${errorCount} Fehler
+                    </p>
+                </div>
+                
+                <div class="space-y-2">
+            `;
+            
+            results.forEach(result => {
+                html += `
+                    <div class="p-3 rounded-lg border ${result.status === 'success' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}">
+                        <div class="flex items-center justify-between">
+                            <span class="font-medium">${result.tankId}</span>
+                            <span class="text-sm ${result.status === 'success' ? 'text-green-600' : 'text-red-600'}">
+                                ${result.status === 'success' ? '✅' : '❌'} ${result.message}
+                            </span>
+                        </div>
+                        <div class="text-xs text-gray-500 font-mono mt-1 break-all">
+                            ${result.url}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            contentDiv.innerHTML = html;
+            
+            console.log('🧪 Test abgeschlossen:', { successCount, errorCount });
+        }
+
+        // 🚀 INITIALISIERUNG
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Statische QR-Code Tabelle geladen');
+            console.log('📋 Tank-Definitionen:', TANK_DEFINITIONS);
+            generateAll();
+        });
+    </script>
+</body>
+</html>

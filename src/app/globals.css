@@ -1,0 +1,130 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif; /* Updated font variable */
+}
+
+@layer base {
+  :root {
+    --background: 50 50% 92%; /* Light Parchment */
+    --foreground: 40 25% 25%; /* Dark Sepia Ink */
+    --card: 50 50% 95%; /* Lighter Parchment for cards */
+    --card-foreground: 40 25% 25%; /* Dark Sepia Ink */
+    --popover: 50 50% 95%; /* Lighter Parchment */
+    --popover-foreground: 40 25% 25%; /* Dark Sepia Ink */
+    --primary: 85 30% 50%; /* Muted Garden Green */
+    --primary-foreground: 50 50% 96%; /* Very Light Parchment/Cream for text on primary */
+    --secondary: 50 30% 88%; /* Greyer Parchment */
+    --secondary-foreground: 40 25% 25%; /* Dark Sepia Ink */
+    --muted: 50 30% 88%; /* Greyer Parchment */
+    --muted-foreground: 40 25% 45%; /* Medium Sepia Ink */
+    --accent: 30 60% 60%; /* Warm Copper/Amber */
+    --accent-foreground: 40 25% 15%; /* Darker Sepia for text on accent */
+    --destructive: 0 70% 55%; /* Muted Red for destructive actions */
+    --destructive-foreground: 0 0% 98%;
+    --border: 50 20% 82%; /* Parchment Border */
+    --input: 50 50% 95%; /* Lighter Parchment for inputs */
+    --ring: 85 30% 50%; /* Muted Garden Green for focus rings */
+    --chart-1: 85 30% 50%; /* Muted Garden Green */
+    --chart-2: 30 60% 60%; /* Warm Copper/Amber */
+    --chart-3: 100 25% 60%; /* Another shade of green */
+    --chart-4: 40 40% 65%; /* Desaturated earthy tone */
+    --chart-5: 25 35% 50%; /* Darker brown/copper */
+    --radius: 0.5rem;
+    --sidebar-background: 50 50% 94%; /* Slightly darker Parchment for Sidebar */
+    --sidebar-foreground: 40 25% 25%; /* Dark Sepia Ink */
+    --sidebar-primary: 85 30% 50%; /* Muted Garden Green */
+    --sidebar-primary-foreground: 50 50% 96%; /* Very Light Parchment/Cream */
+    --sidebar-accent: 30 60% 60%; /* Warm Copper/Amber */
+    --sidebar-accent-foreground: 40 25% 15%; /* Darker Sepia */
+    --sidebar-border: 50 20% 82%; /* Parchment Border */
+    --sidebar-ring: 85 30% 50%; /* Muted Garden Green */
+  }
+  .dark {
+    --background: 40 15% 15%; /* Dark Wood/Inkwell */
+    --foreground: 50 40% 88%; /* Light Parchment text */
+    --card: 40 15% 18%; /* Slightly Lighter Dark Wood */
+    --card-foreground: 50 40% 88%;
+    --popover: 40 15% 18%;
+    --popover-foreground: 50 40% 88%;
+    --primary: 85 25% 40%; /* Darker Muted Garden Green */
+    --primary-foreground: 50 40% 92%;
+    --secondary: 40 15% 22%; /* Darker Greyer Wood */
+    --secondary-foreground: 50 40% 88%;
+    --muted: 40 15% 22%;
+    --muted-foreground: 50 30% 65%;
+    --accent: 30 50% 50%; /* Muted Copper/Amber Dark */
+    --accent-foreground: 50 40% 92%;
+    --destructive: 0 50% 45%; /* Muted Red for dark destructive */
+    --destructive-foreground: 0 0% 98%;
+    --border: 40 15% 25%; /* Dark Border */
+    --input: 40 15% 18%;
+    --ring: 85 25% 40%;
+    --chart-1: 85 25% 45%;
+    --chart-2: 30 50% 55%;
+    --chart-3: 100 20% 50%;
+    --chart-4: 40 30% 55%;
+    --chart-5: 25 30% 40%;
+    --sidebar-background: 40 15% 12%; /* Very Dark for Sidebar */
+    --sidebar-foreground: 50 40% 88%; /* Light Parchment */
+    --sidebar-primary: 85 25% 40%; /* Darker Muted Garden Green */
+    --sidebar-primary-foreground: 50 40% 92%;
+    --sidebar-accent: 30 50% 50%; /* Muted Copper/Amber Dark */
+    --sidebar-accent-foreground: 50 40% 92%;
+    --sidebar-border: 40 15% 25%; /* Dark Border */
+    --sidebar-ring: 85 25% 40%; /* Darker Muted Garden Green */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Print Styles für Produktions-Protokoll */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 1cm;
+  }
+
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .protokoll-content {
+    max-width: 100%;
+    font-size: 11pt;
+  }
+
+  .protokoll-content h3 {
+    page-break-after: avoid;
+  }
+
+  .protokoll-content table {
+    page-break-inside: avoid;
+  }
+
+  /* Input-Felder als Linien darstellen */
+  .protokoll-content input {
+    border: none;
+    border-bottom: 1px solid #000;
+    background: transparent;
+    padding: 0;
+  }
+
+  /* Dialog-Overlay und Buttons verstecken */
+  [role="dialog"]::before,
+  [role="dialog"]::after,
+  button.print\\:hidden {
+    display: none !important;
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "MazerationsMeister",
+  "main": "electron/main.js",
+  "pkg": {
+    "scripts": [
+      ".next/**/*.js",
+      "electron/**/*.js",
+      "node_modules/**/*.js"
+    ],
+    "assets": [
+      ".next/**/*",
+      "public/**/*",
+      "package.json",
+      "next.config.ts"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "dist"
+  }
+}

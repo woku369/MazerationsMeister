@@ -1,6 +1,7 @@
 /**
  * Daten-Synchronisation UI-Komponente
  * Verwaltet Single-File Auto-Sync (app-data.json) zu GitHub
+ * VERWENDET ZENTRALE GITHUB-CONFIG aus github-config.ts
  */
 
 "use client";
@@ -25,6 +26,7 @@ import {
   Info
 } from "lucide-react";
 import { getAppAutoSync } from "@/lib/app-auto-sync";
+import { githubConfigManager } from "@/lib/github-config";
 import type { SyncStatus, SyncConflict } from "@/types/app-data";
 
 export function DataSyncSettings() {
@@ -42,10 +44,8 @@ export function DataSyncSettings() {
     text: string;
   } | null>(null);
 
-  // GitHub Config
-  const [githubToken, setGithubToken] = useState('');
-  const [githubUsername, setGithubUsername] = useState('woku369');
-  const [githubRepository, setGithubRepository] = useState('MazerationsMeister');
+  // GitHub Config kommt jetzt zentral aus githubConfigManager
+  const [isGitHubConfigured, setIsGitHubConfigured] = useState(false);
 
   // Hydration-Fix
   useEffect(() => {
@@ -56,8 +56,21 @@ export function DataSyncSettings() {
   useEffect(() => {
     if (hydrated) {
       loadSyncInfo();
+      checkGitHubConfig();
     }
+
+    // Höre auf GitHub-Config-Updates
+    const handleConfigUpdate = () => {
+      checkGitHubConfig();
+    };
+    window.addEventListener('githubConfigUpdated', handleConfigUpdate);
+    return () => window.removeEventListener('githubConfigUpdated', handleConfigUpdate);
   }, [hydrated]);
+
+  const checkGitHubConfig = () => {
+    const config = githubConfigManager.getConfig();
+    setIsGitHubConfigured(!!config?.token && !!config?.username && !!config?.repository);
+  };
 
   const loadSyncInfo = async () => {
     try {
@@ -72,17 +85,6 @@ export function DataSyncSettings() {
       setSyncInterval(info.interval);
       setConflicts(conflictList);
       setIsSynced(info.lastSync !== null);
-
-      // Load GitHub Config aus localStorage (Token nicht in GitHub synced!)
-      if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('github-token') || '';
-        const username = localStorage.getItem('github-username') || 'woku369';
-        const repo = localStorage.getItem('github-repository') || 'MazerationsMeister';
-        
-        setGithubToken(token);
-        setGithubUsername(username);
-        setGithubRepository(repo);
-      }
     } catch (error) {
       console.error('[DataSyncSettings] Fehler beim Laden:', error);
       setMessage({
@@ -94,10 +96,13 @@ export function DataSyncSettings() {
 
   // Erste Synchronisation (Upload/Download)
   const handleInitialSync = async (direction: 'upload' | 'download') => {
-    if (!githubToken || !githubUsername || !githubRepository) {
+    // Hole GitHub-Config zentral
+    const githubConfig = githubConfigManager.getConfig();
+    
+    if (!githubConfig?.token || !githubConfig?.username || !githubConfig?.repository) {
       setMessage({
         type: 'error',
-        text: 'Bitte GitHub-Konfiguration vervollständigen'
+        text: 'Bitte GitHub-Konfiguration im Tab "🔐 GitHub-Verbindung" vervollständigen'
       });
       return;
     }
@@ -112,10 +117,10 @@ export function DataSyncSettings() {
       const initialized = await appSync.initialize({
         enabled: false, // ← WICHTIG: Bei Initial-Sync KEIN Auto-Start!
         interval: syncInterval,
-        githubToken,
-        githubUsername,
-        githubRepository,
-        branch: 'pages-clean'
+        githubToken: githubConfig.token,
+        githubUsername: githubConfig.username,
+        githubRepository: githubConfig.repository,
+        branch: githubConfig.branch || 'pages-clean'
       });
 
       if (!initialized) {
@@ -156,10 +161,13 @@ export function DataSyncSettings() {
 
   // Auto-Sync aktivieren/deaktivieren
   const handleToggleAutoSync = async () => {
-    if (!githubToken || !githubUsername || !githubRepository) {
+    // Hole GitHub-Config zentral
+    const githubConfig = githubConfigManager.getConfig();
+    
+    if (!githubConfig?.token || !githubConfig?.username || !githubConfig?.repository) {
       setMessage({
         type: 'error',
-        text: 'Bitte GitHub-Konfiguration vervollständigen'
+        text: 'Bitte GitHub-Konfiguration im Tab "🔐 GitHub-Verbindung" vervollständigen'
       });
       return;
     }
@@ -176,10 +184,10 @@ export function DataSyncSettings() {
         const initialized = await appSync.initialize({
           enabled: true,
           interval: syncInterval,
-          githubToken,
-          githubUsername,
-          githubRepository,
-          branch: 'pages-clean'
+          githubToken: githubConfig.token,
+          githubUsername: githubConfig.username,
+          githubRepository: githubConfig.repository,
+          branch: githubConfig.branch || 'pages-clean'
         });
 
         if (initialized) {
@@ -244,20 +252,6 @@ export function DataSyncSettings() {
     }
   };
 
-  // GitHub Config speichern
-  const handleSaveGitHubConfig = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('github-token', githubToken);
-      localStorage.setItem('github-username', githubUsername);
-      localStorage.setItem('github-repository', githubRepository);
-      
-      setMessage({
-        type: 'success',
-        text: 'GitHub-Konfiguration gespeichert'
-      });
-    }
-  };
-
   // Status Badge
   const getStatusBadge = () => {
     switch (syncStatus) {
@@ -296,67 +290,16 @@ export function DataSyncSettings() {
         </Alert>
       )}
 
-      {/* GitHub Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Cloud className="w-5 h-5" />
-            GitHub-Konfiguration
-          </CardTitle>
-          <CardDescription>
-            Verbindung zu GitHub Repository für Daten-Synchronisation
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="github-token">GitHub Personal Access Token</Label>
-            <Input
-              id="github-token"
-              type="password"
-              value={githubToken}
-              onChange={(e) => setGithubToken(e.target.value)}
-              placeholder="ghp_..."
-            />
-            <p className="text-xs text-muted-foreground">
-              Benötigt: <code>repo</code> Berechtigung. 
-              <a 
-                href="https://github.com/settings/tokens" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-primary hover:underline ml-1"
-              >
-                Token erstellen →
-              </a>
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="github-username">Username</Label>
-              <Input
-                id="github-username"
-                value={githubUsername}
-                onChange={(e) => setGithubUsername(e.target.value)}
-                placeholder="woku369"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="github-repository">Repository</Label>
-              <Input
-                id="github-repository"
-                value={githubRepository}
-                onChange={(e) => setGithubRepository(e.target.value)}
-                placeholder="MazerationsMeister"
-              />
-            </div>
-          </div>
-
-          <Button onClick={handleSaveGitHubConfig} variant="outline" className="w-full">
-            Konfiguration speichern
-          </Button>
-        </CardContent>
-      </Card>
+      {/* GitHub Config Hinweis - Config erfolgt zentral im Tab "🔐 GitHub-Verbindung" */}
+      {!isGitHubConfigured && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>GitHub-Konfiguration fehlt!</strong><br />
+            Bitte konfigurieren Sie Ihre GitHub-Verbindung im Tab <strong>"🔐 GitHub-Verbindung"</strong>.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Initial Sync - IMMER sichtbar für manuelle Sync */}
       <Card>
@@ -382,7 +325,7 @@ export function DataSyncSettings() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Button
               onClick={() => handleInitialSync('upload')}
-              disabled={isLoading}
+              disabled={isLoading || !isGitHubConfigured}
               className="h-24 flex flex-col gap-2"
             >
               <Upload className="w-8 h-8" />
@@ -395,7 +338,7 @@ export function DataSyncSettings() {
 
             <Button
               onClick={() => handleInitialSync('download')}
-              disabled={isLoading}
+              disabled={isLoading || !isGitHubConfigured}
               variant="outline"
               className="h-24 flex flex-col gap-2"
             >
@@ -463,7 +406,7 @@ export function DataSyncSettings() {
               <div className="flex gap-2">
                 <Button
                   onClick={handleToggleAutoSync}
-                  disabled={isLoading}
+                  disabled={isLoading || !isGitHubConfigured}
                   className="flex-1"
                   variant={autoSyncEnabled ? 'destructive' : 'default'}
                 >
@@ -472,7 +415,7 @@ export function DataSyncSettings() {
 
                 <Button
                   onClick={handleSyncNow}
-                  disabled={isLoading || !autoSyncEnabled}
+                  disabled={isLoading || !autoSyncEnabled || !isGitHubConfigured}
                   variant="outline"
                 >
                   <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />

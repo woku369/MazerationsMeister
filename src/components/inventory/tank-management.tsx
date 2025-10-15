@@ -56,7 +56,7 @@ function TankForm({
   onCancel 
 }: {
   initialData?: Tank;
-  onSubmit: (tank: Omit<Tank, "id">) => void;
+  onSubmit: (tank: Omit<Tank, "id">) => void | Promise<void>; // ✅ Support async
   onCancel: () => void;
 }) {
   const [tankNr, setTankNr] = useState(initialData?.tankNr || "");
@@ -65,10 +65,10 @@ function TankForm({
   const [containerType, setContainerType] = useState<ContainerType>(initialData?.containerType || 'tank');
   const [hasUniqueNumber, setHasUniqueNumber] = useState(initialData?.hasUniqueNumber ?? true);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => { // ✅ Make async
     e.preventDefault();
     if (tankNr.trim() && bezeichnung.trim() && volumenLiter > 0) {
-      onSubmit({
+      await onSubmit({ // ✅ Await the async function
         tankNr: tankNr.trim(),
         bezeichnung: bezeichnung.trim(),
         volumenLiter,
@@ -213,17 +213,9 @@ export default function TankManagement() {
     const handleTankUpdate = () => {
       loadTankData();
     };
-    const handleGitHubUpdate = (event: any) => {
-      if (event.detail) {
-        setGithubToken(event.detail.token || '');
-        setGithubEnabled(event.detail.enabled || false);
-      }
-    };
     window.addEventListener('tankDefinitionsUpdated', handleTankUpdate);
-    window.addEventListener('githubConfigUpdated', handleGitHubUpdate);
     return () => {
       window.removeEventListener('tankDefinitionsUpdated', handleTankUpdate);
-      window.removeEventListener('githubConfigUpdated', handleGitHubUpdate);
     };
   }, []);
 
@@ -257,22 +249,6 @@ export default function TankManagement() {
   const [allSelected, setAllSelected] = useState(false);
   const [filterType, setFilterType] = useState<ContainerType | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'empty' | 'filled' | 'shipped' | 'returned'>('all');
-  
-  // GitHub Integration State - Von Einstellungen laden
-  const [githubEnabled, setGithubEnabled] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('github-enabled') === 'true';
-    }
-    return false;
-  });
-  const [githubToken, setGithubToken] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('github-token') || '';
-    }
-    return '';
-  });
-  const [showGithubSetup, setShowGithubSetup] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
@@ -291,61 +267,6 @@ export default function TankManagement() {
   });
 
   // Einfache GitHub Funktionen
-  const handleGitHubConnect = () => {
-    setShowGithubSetup(true);
-  };
-
-  // Statisches QR-System Upload Handler
-  const handleUploadStaticQR = async () => {
-    if (!githubToken) {
-      setShowGithubSetup(true);
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const autoSync = getTankAutoSync();
-      await autoSync.initialize({
-        enabled: true,
-        interval: 60,
-        githubToken: githubToken.trim(),
-        githubUsername: 'woku369',
-        githubRepository: 'MazerationsMeister'
-      });
-      
-      // Verwende den GitHub Service direkt über uploadStaticFiles Methode
-      const result = await autoSync.uploadStaticFiles();
-      
-      if (result?.success) {
-        alert('✅ Statisches QR-System erfolgreich hochgeladen!\n\nNeue URL:\n• tank-viewer-simple.html - Einfache QR-Codes ohne Backup-URLs');
-      } else {
-        throw new Error(result?.message || 'Upload fehlgeschlagen');
-      }
-    } catch (error: any) {
-      console.error('Fehler beim Upload des statischen QR-Systems:', error);
-      alert('❌ Fehler beim Upload: ' + (error?.message || 'Unbekannter Fehler'));
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleGitHubSetup = async () => {
-    if (githubToken.trim()) {
-      setGithubEnabled(true);
-      setShowGithubSetup(false);
-      // In localStorage speichern UND Einstellungen synchronisieren
-      if (typeof window !== "undefined") {
-        localStorage.setItem("github-token", githubToken);
-        localStorage.setItem("github-enabled", "true");
-      }
-      
-      // Event für Synchronisation mit anderen Komponenten aussenden
-      window.dispatchEvent(new CustomEvent('githubConfigUpdated', {
-        detail: { token: githubToken, enabled: true }
-      }));
-    }
-  };
-
   const getTankFillLevel = (tank: Tank) => {
     // WICHTIG: Für Container mit Suffix (z.B. "Fass-1", "B-2") müssen wir den Index finden!
     // Format: "Fass-1" → tankNr="Fass", index=1
@@ -388,8 +309,8 @@ export default function TankManagement() {
 
   const generateQRCode = async (tank: Tank) => {
     try {
-      // IMMER GitHub Pages URLs verwenden für Produktion
-      const url = `https://woku369.github.io/MazerationsMeister/tank-viewer-secure.html?tank=${encodeURIComponent(tank.tankNr)}`;
+      // ✅ FIX: Verwende tank.id (eindeutig) statt tank.tankNr (nicht eindeutig!)
+      const url = `https://woku369.github.io/MazerationsMeister/tank-viewer-secure.html?tank=${encodeURIComponent(tank.id)}`;
       
       const qrCodeUrl = await QRCode.toDataURL(url);
       setQrCodeDataUrl(qrCodeUrl);
@@ -408,13 +329,13 @@ export default function TankManagement() {
       if (!tank) continue;
       
       try {
-        // IMMER GitHub Pages URLs verwenden
-        const url = `https://woku369.github.io/MazerationsMeister/tank-viewer-secure.html?tank=${encodeURIComponent(tank.tankNr)}`;
+        // ✅ FIX: Verwende tank.id (eindeutig) statt tank.tankNr (nicht eindeutig!)
+        const url = `https://woku369.github.io/MazerationsMeister/tank-viewer-secure.html?tank=${encodeURIComponent(tank.id)}`;
         
         const qrCodeUrl = await QRCode.toDataURL(url, { width: 512, margin: 1 });
         newQRCodes.set(tankId, qrCodeUrl);
       } catch (error) {
-        console.error(`Fehler beim Generieren des QR-Codes für ${tank.tankNr}:`, error);
+        console.error(`Fehler beim Generieren des QR-Codes für ${tank.id}:`, error);
       }
     }
     
@@ -436,7 +357,7 @@ export default function TankManagement() {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Tank QR-Code - ${qrCodeTank.tankNr}</title>
+          <title>Tank QR-Code - ${qrCodeTank.id}</title>
           <style>
             body { 
               font-family: Arial, sans-serif; 
@@ -471,7 +392,7 @@ export default function TankManagement() {
         </head>
         <body>
           <div class="qr-container">
-            <h1>Tank ${qrCodeTank.tankNr}</h1>
+            <h1>Tank ${qrCodeTank.id}</h1>
             <img src="${qrCodeDataUrl}" alt="QR Code" class="qr-image" style="width: 200px; height: 200px;" />
             <div class="tank-info">Typ: ${qrCodeTank.containerType}</div>
             <div class="tank-info">Kapazität: ${qrCodeTank.volumenLiter}L</div>
@@ -518,7 +439,7 @@ export default function TankManagement() {
         ctx.fillStyle = 'black';
         ctx.font = 'bold 20px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(`Tank ${qrCodeTank.tankNr}`, 200, 30);
+        ctx.fillText(`Tank ${qrCodeTank.id}`, 200, 30);
         
         ctx.font = '16px Arial';
         ctx.fillText(`Typ: ${qrCodeTank.containerType}`, 200, 280);
@@ -527,7 +448,7 @@ export default function TankManagement() {
         
         // Download als Bild (da wir keine PDF-Library haben)
         const link = document.createElement('a');
-        link.download = `Tank-${qrCodeTank.tankNr}-QR.png`;
+        link.download = `Tank-${qrCodeTank.id}-QR.png`;
         link.href = canvas.toDataURL();
         link.click();
       };
@@ -562,7 +483,7 @@ export default function TankManagement() {
   };
 
   // Standard Tank-Management Funktionen
-  const addTank = (newTank: Omit<Tank, "id">) => {
+  const addTank = async (newTank: Omit<Tank, "id">) => {
     const tank: Tank = {
       ...newTank,
       id: newTank.tankNr, // Verwende tankNr als ID für Konsistenz
@@ -574,41 +495,40 @@ export default function TankManagement() {
     const updatedTanks = [...tanks, tank];
     setTanks(updatedTanks);
     
-    // Speichere in localStorage als tankDefinitions
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('tankDefinitions', JSON.stringify(updatedTanks));
-    }
+    // ✅ FIX 1.7: Speichere in hybridStorage (persistent in Electron)
+    await hybridStorage.set('tankDefinitions', updatedTanks);
+    console.log('✅ Tank hinzugefügt und gespeichert:', tank.id);
     
     setIsAddDialogOpen(false);
   };
 
-  const updateTank = (tankData: Omit<Tank, "id">) => {
+  const updateTank = async (tankData: Omit<Tank, "id">) => {
     if (!editingTank) return;
     
+    // ✅ FIX 1.1: Behalte ALLE bestehenden Felder, überschreibe nur die geänderten
     const updatedTank: Tank = {
-      ...tankData,
+      ...editingTank,  // ✅ Zuerst bestehende Felder (inkl. currentContent, currentFill, status)
+      ...tankData,     // ✅ Dann überschreibe nur die vom Formular geänderten Felder
       id: editingTank.id // Behalte die bestehende ID
     };
     
     const updatedTanks = tanks.map((tank) => (tank.id === updatedTank.id ? updatedTank : tank));
     setTanks(updatedTanks);
     
-    // Speichere in localStorage als tankDefinitions  
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('tankDefinitions', JSON.stringify(updatedTanks));
-    }
+    // ✅ FIX 1.7: Speichere in hybridStorage (persistent in Electron)
+    await hybridStorage.set('tankDefinitions', updatedTanks);
+    console.log('✅ Tank aktualisiert und gespeichert:', updatedTank.id, 'Kapazität:', updatedTank.volumenLiter, 'L');
     
     setEditingTank(null);
   };
 
-  const deleteTank = (id: string) => {
+  const deleteTank = async (id: string) => {
     const updatedTanks = tanks.filter((tank) => tank.id !== id);
     setTanks(updatedTanks);
     
-    // Speichere in localStorage als tankDefinitions
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('tankDefinitions', JSON.stringify(updatedTanks));
-    }
+    // ✅ FIX 1.7: Speichere in hybridStorage (persistent in Electron)
+    await hybridStorage.set('tankDefinitions', updatedTanks);
+    console.log('✅ Tank gelöscht und gespeichert:', id);
   };
 
   const exportTanks = () => {
@@ -799,87 +719,6 @@ export default function TankManagement() {
             </select>
           </div>
 
-          {/* GitHub Integration Sektion */}
-          <Card className="w-full mt-4">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Github className="h-5 w-5" />
-                GitHub Integration
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!githubEnabled ? (
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Verbinde dich mit GitHub für automatische QR-Code Generation
-                  </p>
-                  <Button onClick={handleGitHubConnect} variant="outline">
-                    <Github className="mr-2 h-4 w-4" />
-                    GitHub verbinden
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">GitHub verbunden</span>
-                  </div>
-                  <Button variant="outline" onClick={() => setGithubEnabled(false)}>
-                    Trennen
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Statisches QR-System Upload */}
-          <div className="mt-4">
-            <Button 
-              onClick={handleUploadStaticQR}
-              disabled={!githubEnabled || isUploading}
-              className="bg-purple-600 hover:bg-purple-700 text-white w-full"
-            >
-              {isUploading ? (
-                <>🔄 Uploading...</>
-              ) : (
-                <>📤 Statisches QR-System hochladen</>
-              )}
-            </Button>
-            {!githubEnabled && (
-              <p className="text-xs text-muted-foreground mt-1">
-                GitHub-Verbindung erforderlich für Upload
-              </p>
-            )}
-          </div>
-
-          {/* GitHub Setup Dialog */}
-          <Dialog open={showGithubSetup} onOpenChange={setShowGithubSetup}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>GitHub Personal Access Token</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Gib deinen GitHub Personal Access Token ein:
-                </p>
-                <Input
-                  type="password"
-                  placeholder="ghp_..."
-                  value={githubToken}
-                  onChange={(e) => setGithubToken(e.target.value)}
-                />
-                <div className="flex gap-2">
-                  <Button onClick={handleGitHubSetup} disabled={!githubToken.trim()}>
-                    Verbinden
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowGithubSetup(false)}>
-                    Abbrechen
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-
           {/* Add Tank Dialog */}
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogContent>
@@ -949,8 +788,13 @@ export default function TankManagement() {
                           
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-3">
-                            {/* Container-ID als Hauptbezeichnung */}
-                            <h3 className="font-bold text-xl">{tank.bezeichnung}</h3>
+                            {/* ✅ FIX: Eindeutige Container-ID als Hauptbezeichnung (Fass-4, B-3, T 341) */}
+                            <h3 className="font-bold text-xl">{tank.id}</h3>
+                            
+                            {/* Beschreibung als Zusatzinfo (falls vom User customized) */}
+                            {tank.bezeichnung && tank.bezeichnung !== tank.id && tank.bezeichnung !== tank.tankNr && (
+                              <span className="text-sm text-muted-foreground">({tank.bezeichnung})</span>
+                            )}
                             
                             {/* Container-Typ Badge */}
                             <span className={`text-sm px-2 py-1 rounded font-medium ${
@@ -1026,12 +870,27 @@ export default function TankManagement() {
                             </div>
                           </div>
                           
-                          {fillInfo.contents !== 'Leer' && fillInfo.contents !== tank.currentContent && (
-                            <div className="text-sm">
-                              <span className="text-muted-foreground">Details:</span>
-                              <div className="mt-1 p-2 bg-gray-50 rounded text-xs">
-                                {fillInfo.contents}
-                              </div>
+                          {/* Details: Alkoholgehalt & Lagerdauer aus Inventar-Items */}
+                          {fillInfo.items && fillInfo.items.length > 0 && (
+                            <div className="text-sm mt-2 space-y-1">
+                              {fillInfo.items.map((item, idx) => (
+                                <div key={idx} className="p-2 bg-gray-50 rounded text-xs">
+                                  <div className="font-medium">{item.produktName}</div>
+                                  <div className="text-muted-foreground mt-1">
+                                    {item.alcoholVolProzent && (
+                                      <span>🌡️ {item.alcoholVolProzent.toFixed(1)}% vol</span>
+                                    )}
+                                    {item.alcoholVolProzent && item.literAbsolutalkohol && <span className="mx-1">•</span>}
+                                    {item.literAbsolutalkohol && (
+                                      <span>📊 {item.literAbsolutalkohol.toFixed(2)}L LA</span>
+                                    )}
+                                    {(item.alcoholVolProzent || item.literAbsolutalkohol) && item.currentQuantityLiters && <span className="mx-1">•</span>}
+                                    {item.currentQuantityLiters && (
+                                      <span>📦 {item.currentQuantityLiters.toFixed(1)}L</span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           )}
                           
@@ -1055,10 +914,9 @@ export default function TankManagement() {
                               setSelectedTankForFill(tank);
                               setShowContainerFillDialog(true);
                             }}
-                            disabled={fillInfo.totalVolume === 0}
                             className="w-full"
                           >
-                            📦 Container befüllen
+                            📦 Umfüllen & Verschicken
                           </Button>
                           <Button
                             variant="outline"
@@ -1114,10 +972,10 @@ export default function TankManagement() {
                   <img src={qrCodeDataUrl} alt="QR Code" className="w-64 h-64" />
                 )}
                 <p className="text-sm text-muted-foreground text-center">
-                  {githubEnabled ? "GitHub Pages URL" : "OneDrive/Offline URL"}
+                  Tank QR-Code
                 </p>
                 <div className="text-xs text-muted-foreground text-center">
-                  <p><strong>Tank:</strong> {qrCodeTank?.tankNr}</p>
+                  <p><strong>Tank:</strong> {qrCodeTank?.id}</p>
                   <p><strong>Typ:</strong> {qrCodeTank?.containerType}</p>
                   <p><strong>Kapazität:</strong> {qrCodeTank?.volumenLiter}L</p>
                 </div>
@@ -1241,13 +1099,13 @@ export default function TankManagement() {
                       <div key={tankId} className="border rounded p-4 bg-white print:break-inside-avoid">
                         <div className="flex flex-col items-center gap-3">
                           <h3 className="font-bold text-xl">
-                            {tank.hasUniqueNumber ? tank.tankNr : `${tank.tankNr}-${tanks.filter(t => t.tankNr === tank.tankNr).indexOf(tank) + 1}`}
+                            {tank.id}
                           </h3>
                           <div className={`border-4 border-black ${sizeClass} overflow-hidden`}>
                             {batchQRCodes.has(tankId) ? (
                               <img 
                                 src={batchQRCodes.get(tankId)} 
-                                alt={`QR-Code ${tank.tankNr}`}
+                                alt={`QR-Code ${tank.id}`}
                                 className="w-full h-full object-contain"
                               />
                             ) : (
@@ -1299,7 +1157,7 @@ export default function TankManagement() {
             <Dialog open={showContainerFillDialog} onOpenChange={setShowContainerFillDialog}>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Container aus {selectedTankForFill.bezeichnung} befüllen</DialogTitle>
+                  <DialogTitle>Umfüllen & Verschicken aus {selectedTankForFill?.bezeichnung}</DialogTitle>
                 </DialogHeader>
                 <ContainerFillDialog
                   container={selectedTankForFill}

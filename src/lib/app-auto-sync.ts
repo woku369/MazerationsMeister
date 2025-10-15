@@ -230,6 +230,7 @@ export class AppAutoSync {
       calendarRaw,
       todosRaw,
       protocolsRaw,
+      rezepturenRaw,
       settingsRaw
     ] = await Promise.all([
       hybridStorage.get('tankDefinitions'),
@@ -237,6 +238,7 @@ export class AppAutoSync {
       hybridStorage.get('calendarEvents'),
       hybridStorage.get('todos'),
       hybridStorage.get('mazerationProtocols'),
+      hybridStorage.get('rezepturen'),
       hybridStorage.get('appSettings')
     ]);
 
@@ -246,6 +248,7 @@ export class AppAutoSync {
     const calendar = calendarRaw || [];
     const todos = todosRaw || [];
     const protocols = protocolsRaw || [];
+    const rezepturen = rezepturenRaw || [];
     const settings = settingsRaw || {};
 
     const appData: AppData = {
@@ -258,6 +261,7 @@ export class AppAutoSync {
       calendar,
       todos,
       mazerationProtocols: protocols,
+      rezepturen,
       settings: {
         ...settings,
         autoSync: {
@@ -273,7 +277,8 @@ export class AppAutoSync {
       inventory: inventory.length,
       calendar: calendar.length,
       todos: todos.length,
-      protocols: protocols.length
+      protocols: protocols.length,
+      rezepturen: rezepturen.length
     });
 
     return appData;
@@ -374,6 +379,7 @@ export class AppAutoSync {
       hybridStorage.set('calendarEvents', appData.calendar || []),
       hybridStorage.set('todos', appData.todos || []),
       hybridStorage.set('mazerationProtocols', appData.mazerationProtocols || []),
+      hybridStorage.set('rezepturen', appData.rezepturen || []),
       hybridStorage.set('appSettings', appData.settings || {}),
       hybridStorage.set('lastSyncFrom', appData.computerName),
       hybridStorage.set('lastSyncTimestamp', appData.lastUpdate)
@@ -681,6 +687,24 @@ export class AppAutoSync {
       });
     }
   }
+
+  /**
+   * Public API für Rezepturen
+   */
+  
+  /**
+   * Lädt alle Daten (public wrapper)
+   */
+  public async getData(): Promise<AppData> {
+    return await this.collectLocalData();
+  }
+
+  /**
+   * Speichert alle Daten (public wrapper)
+   */
+  public async setData(data: AppData): Promise<void> {
+    await this.saveLocalData(data);
+  }
 }
 
 // Singleton-Instanz
@@ -695,3 +719,36 @@ export function getAppAutoSync(): AppAutoSync {
   }
   return appAutoSyncInstance;
 }
+
+/**
+ * Helper-Funktionen für Rezepturen
+ */
+
+/**
+ * Lädt alle Rezepturen
+ */
+export async function ladeRezepturen(): Promise<any[]> {
+  const sync = getAppAutoSync();
+  const data = await sync.getData();
+  return data.rezepturen || [];
+}
+
+/**
+ * Speichert Rezepturen
+ */
+export async function speichereRezepturen(rezepturen: any[]): Promise<void> {
+  const sync = getAppAutoSync();
+  const data = await sync.getData();
+  data.rezepturen = rezepturen;
+  await sync.setData(data);
+}
+
+/**
+ * Lädt alle Lagerbestände (Inventory Items)
+ */
+export async function ladeAlleLagerbestaende(): Promise<any[]> {
+  const sync = getAppAutoSync();
+  const data = await sync.getData();
+  return data.inventory || [];
+}
+

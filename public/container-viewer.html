@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Container-Status - MazerationsMeister</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
+        }
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .status-empty { background: #f3f4f6; color: #6b7280; }
+        .status-filled { background: #d1fae5; color: #065f46; }
+        .status-shipped { background: #dbeafe; color: #1e40af; }
+        .status-returned { background: #e9d5ff; color: #6b21a8; }
+        
+        .timeline-item {
+            position: relative;
+            padding-left: 40px;
+            padding-bottom: 20px;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 8px;
+            bottom: -12px;
+            width: 2px;
+            background: #e5e7eb;
+        }
+        .timeline-item:last-child::before {
+            display: none;
+        }
+        .timeline-icon {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            background: white;
+            border: 2px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="max-w-2xl mx-auto">
+        <!-- Loading State -->
+        <div id="loading" class="container-card p-8 text-center">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <h2 class="text-xl font-bold text-gray-800 mb-2">Container-Daten laden...</h2>
+            <p class="text-gray-600">Verbindung mit MazerationsMeister...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="container-card p-8 text-center hidden">
+            <div class="text-6xl mb-4">⚠️</div>
+            <h2 class="text-xl font-bold text-red-600 mb-2">Fehler beim Laden</h2>
+            <p class="text-gray-600 mb-4" id="error-message">Container-Daten konnten nicht geladen werden.</p>
+            <button onclick="location.reload()" class="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-2 rounded-lg font-medium">
+                🔄 Erneut versuchen
+            </button>
+        </div>
+
+        <!-- Container Data Display -->
+        <div id="container-data" class="container-card p-6 hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800" id="container-title">Container Unbekannt</h1>
+                    <p class="text-gray-600" id="container-subtitle">Behälter</p>
+                </div>
+                <div id="status-badge" class="status-badge status-empty">
+                    <span id="status-emoji">⚪</span>
+                    <span id="status-text">Leer</span>
+                </div>
+            </div>
+
+            <!-- Current Content -->
+            <div id="current-content" class="mb-6 p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl hidden">
+                <h3 class="text-sm font-semibold text-gray-700 mb-2">📦 Aktueller Inhalt</h3>
+                <p class="text-lg font-bold text-gray-800" id="product-name">-</p>
+                <div class="flex gap-4 mt-2 text-sm">
+                    <span class="text-gray-600">Menge: <b id="product-amount">0L</b></span>
+                    <span class="text-gray-600">Alkohol: <b id="product-alcohol">0%</b> Vol.</span>
+                </div>
+            </div>
+
+            <!-- Container Details -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-xs text-gray-500 mb-1">Typ</p>
+                    <p class="font-semibold text-gray-800" id="container-type">-</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-xs text-gray-500 mb-1">Kapazität</p>
+                    <p class="font-semibold text-gray-800" id="container-capacity">0 L</p>
+                </div>
+            </div>
+
+            <!-- Movement History -->
+            <div id="history-section" class="hidden">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">📜 Bewegungshistorie</h3>
+                <div id="history-timeline" class="space-y-2">
+                    <!-- Timeline items will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Last Updated -->
+            <div class="mt-6 pt-4 border-t border-gray-200 text-center">
+                <p class="text-xs text-gray-500">
+                    Letzte Aktualisierung: <span id="last-update">-</span>
+                </p>
+                <button onclick="loadContainerData()" class="mt-2 text-sm text-purple-600 hover:text-purple-700 font-medium">
+                    🔄 Aktualisieren
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let containerId = null;
+        const dataUrl = 'https://wolfgangmeyerundelbe.github.io/MazerationsMeister/tank-data.json';
+        
+        // Parse URL parameters
+        function parseUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            containerId = params.get('id') || params.get('container') || params.get('tank');
+            
+            console.log('📋 Container ID:', containerId);
+            return containerId;
+        }
+
+        // Load container data
+        async function loadContainerData() {
+            try {
+                console.log('🔄 Lade Container-Daten...');
+                
+                const response = await fetch(dataUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Daten geladen:', data);
+                
+                displayContainerData(data);
+                
+            } catch (error) {
+                console.error('❌ Fehler beim Laden:', error);
+                showError(`Container-Daten nicht verfügbar: ${error.message}`);
+            }
+        }
+
+        // Display container data
+        function displayContainerData(data) {
+            // Find container/tank definition
+            const container = data.tanks?.find(t => 
+                t.id === containerId || 
+                t.tankNr === containerId ||
+                t.tankNr?.replace(/\s+/g, '') === containerId?.replace(/\s+/g, '')
+            );
+
+            if (!container) {
+                showError(`Container "${containerId}" nicht gefunden`);
+                return;
+            }
+
+            console.log('📦 Container gefunden:', container);
+
+            // Find inventory item for this container
+            const inventoryItem = data.inventory?.find(item => 
+                item.tankNr === container.tankNr
+            );
+
+            // Update UI
+            document.getElementById('container-title').textContent = container.tankNr;
+            document.getElementById('container-subtitle').textContent = container.bezeichnung || 'Behälter';
+            document.getElementById('container-type').textContent = formatContainerType(container.containerType);
+            document.getElementById('container-capacity').textContent = `${container.volumenLiter} L`;
+
+            // Update status badge
+            updateStatusBadge(container.status || 'empty');
+
+            // Show current content if available
+            if (container.status === 'filled' || container.status === 'shipped') {
+                if (inventoryItem) {
+                    document.getElementById('current-content').classList.remove('hidden');
+                    document.getElementById('product-name').textContent = inventoryItem.produktName || 'Unbekannt';
+                    document.getElementById('product-amount').textContent = `${inventoryItem.currentQuantityLiters || 0}L`;
+                    document.getElementById('product-alcohol').textContent = `${inventoryItem.alcoholVolProzent || 0}%`;
+                }
+            }
+
+            // Show movement history
+            if (container.movements && container.movements.length > 0) {
+                document.getElementById('history-section').classList.remove('hidden');
+                displayMovementHistory(container.movements);
+            }
+
+            // Update timestamp
+            document.getElementById('last-update').textContent = new Date().toLocaleString('de-DE');
+
+            // Show container data, hide loading
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('container-data').classList.remove('hidden');
+        }
+
+        // Update status badge
+        function updateStatusBadge(status) {
+            const badge = document.getElementById('status-badge');
+            const emoji = document.getElementById('status-emoji');
+            const text = document.getElementById('status-text');
+
+            badge.className = 'status-badge';
+
+            switch(status) {
+                case 'empty':
+                    badge.classList.add('status-empty');
+                    emoji.textContent = '⚪';
+                    text.textContent = 'Leer';
+                    break;
+                case 'filled':
+                    badge.classList.add('status-filled');
+                    emoji.textContent = '✅';
+                    text.textContent = 'Befüllt';
+                    break;
+                case 'shipped':
+                    badge.classList.add('status-shipped');
+                    emoji.textContent = '🚚';
+                    text.textContent = 'Versandt';
+                    break;
+                case 'returned':
+                    badge.classList.add('status-returned');
+                    emoji.textContent = '🔙';
+                    text.textContent = 'Retour';
+                    break;
+                default:
+                    emoji.textContent = '❓';
+                    text.textContent = 'Unbekannt';
+            }
+        }
+
+        // Display movement history
+        function displayMovementHistory(movements) {
+            const timeline = document.getElementById('history-timeline');
+            timeline.innerHTML = '';
+
+            // Show last 5 movements, newest first
+            const recentMovements = movements.slice(-5).reverse();
+
+            recentMovements.forEach(movement => {
+                const item = document.createElement('div');
+                item.className = 'timeline-item';
+
+                const icon = getMovementIcon(movement.type);
+                const timestamp = new Date(movement.timestamp).toLocaleString('de-DE', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                item.innerHTML = `
+                    <div class="timeline-icon">${icon}</div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-800">${movement.note}</p>
+                        <p class="text-xs text-gray-500 mt-1">${timestamp}</p>
+                        ${movement.amount ? `<p class="text-xs text-gray-600 mt-1">Menge: ${movement.amount}L</p>` : ''}
+                    </div>
+                `;
+
+                timeline.appendChild(item);
+            });
+        }
+
+        // Get icon for movement type
+        function getMovementIcon(type) {
+            const icons = {
+                'fill': '📥',
+                'ship': '🚚',
+                'return': '🔙',
+                'empty': '🗑️',
+                'note': '📝'
+            };
+            return icons[type] || '📌';
+        }
+
+        // Format container type
+        function formatContainerType(type) {
+            const types = {
+                'tank': 'Tank',
+                'bottle': 'Flasche',
+                'barrel': 'Fass',
+                'ibc': 'IBC-Container',
+                'balloon': 'Ballon',
+                'other': 'Sonstiges'
+            };
+            return types[type] || type;
+        }
+
+        // Show error
+        function showError(message) {
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error').classList.remove('hidden');
+        }
+
+        // Initialize
+        parseUrlParams();
+        if (containerId) {
+            loadContainerData();
+            // Auto-refresh every 30 seconds
+            setInterval(loadContainerData, 30000);
+        } else {
+            showError('Keine Container-ID in der URL gefunden');
+        }
+    </script>
+</body>
+</html>

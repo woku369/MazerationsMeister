@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tank T 341 - Lokaler Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .tank-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+        }
+        .tank-title {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 0;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        .tank-subtitle {
+            font-size: 1.2em;
+            margin: 10px 0;
+            opacity: 0.9;
+        }
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-top: 30px;
+        }
+        .info-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .info-card h3 {
+            margin: 0 0 15px 0;
+            font-size: 1.4em;
+            color: #ffd700;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .data-label {
+            font-weight: 500;
+            opacity: 0.9;
+        }
+        .data-value {
+            font-weight: bold;
+            color: #ffd700;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4CAF50;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .last-update {
+            text-align: center;
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tank-header">
+            <h1 class="tank-title">🛢️ Tank T 341</h1>
+            <p class="tank-subtitle">
+                <span class="status-indicator"></span>
+                Live Tank-Daten
+            </p>
+        </div>
+
+        <div class="content-grid">
+            <!-- Tank-Informationen -->
+            <div class="info-card">
+                <h3>📊 Tank-Details</h3>
+                <div class="data-row">
+                    <span class="data-label">Tank-Nummer:</span>
+                    <span class="data-value">T 341</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Bezeichnung:</span>
+                    <span class="data-value">Auto-erkannt: T 341</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Kapazität:</span>
+                    <span class="data-value">5.000 L</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Container-Typ:</span>
+                    <span class="data-value">Tank</span>
+                </div>
+            </div>
+
+            <!-- Aktueller Inhalt -->
+            <div class="info-card">
+                <h3>🥃 Aktueller Inhalt</h3>
+                <div class="data-row">
+                    <span class="data-label">Produkt:</span>
+                    <span class="data-value">Sprit</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Charge:</span>
+                    <span class="data-value">P30000-60</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Menge:</span>
+                    <span class="data-value">3.330 L</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Kategorie:</span>
+                    <span class="data-value">Dest</span>
+                </div>
+            </div>
+
+            <!-- Alkohol-Details -->
+            <div class="info-card">
+                <h3>🌡️ Alkohol-Daten</h3>
+                <div class="data-row">
+                    <span class="data-label">Alkohol Vol%:</span>
+                    <span class="data-value">60,0%</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Dichte (20°C):</span>
+                    <span class="data-value">0,9112 g/ml</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Absolut-Alkohol:</span>
+                    <span class="data-value">1.998 L</span>
+                </div>
+            </div>
+
+            <!-- Tank-Auslastung -->
+            <div class="info-card">
+                <h3>📈 Auslastung</h3>
+                <div class="data-row">
+                    <span class="data-label">Befüllung:</span>
+                    <span class="data-value">3.330 L / 5.000 L</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Auslastung:</span>
+                    <span class="data-value">66,6%</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Freie Kapazität:</span>
+                    <span class="data-value">1.670 L</span>
+                </div>
+                <div style="margin-top: 15px; background: rgba(255, 255, 255, 0.2); height: 20px; border-radius: 10px; overflow: hidden;">
+                    <div style="width: 66.6%; height: 100%; background: linear-gradient(90deg, #4CAF50, #8BC34A); border-radius: 10px; transition: width 0.5s ease;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="last-update">
+            📅 Letztes Inventar: 22. September 2025, 10:19 Uhr
+        </div>
+    </div>
+
+    <script>
+        // Simuliere Live-Datenupdate (Demo)
+        console.log('✅ Tank T 341 Daten erfolgreich geladen');
+        console.log('📊 Aktuelle Daten:', {
+            tank: 'T 341',
+            product: 'Sprit',
+            amount: '3.330 L',
+            alcohol: '60%',
+            status: 'Live'
+        });
+    </script>
+</body>
+</html>

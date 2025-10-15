@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage Debug - MazerationsMeister</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            background: #f5f5f5;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+        h2 {
+            margin-top: 0;
+        }
+        pre {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Storage Debug Tool</h1>
+    
+    <div class="section">
+        <h2>localStorage Inhalt:</h2>
+        <pre id="storage-content">Lade...</pre>
+    </div>
+
+    <div class="section">
+        <h2>Tank-Definitionen:</h2>
+        <pre id="tank-definitions">Lade...</pre>
+    </div>
+
+    <div class="section">
+        <h2>Inventar-Items:</h2>
+        <pre id="inventory-items">Lade...</pre>
+    </div>
+
+    <div class="section">
+        <h2>Aktionen:</h2>
+        <button onclick="syncTanks()">🔄 Tanks synchronisieren</button>
+        <button onclick="fixIds()">🔧 Tank-IDs reparieren</button>
+        <button onclick="location.reload()">🔄 Seite neu laden</button>
+    </div>
+
+    <div id="result" class="warning" style="display:none;"></div>
+
+    <script>
+        function showStorage() {
+            const storageContent = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key) {
+                    storageContent[key] = localStorage.getItem(key);
+                }
+            }
+            document.getElementById('storage-content').textContent = JSON.stringify(storageContent, null, 2);
+        }
+
+        function showTankDefinitions() {
+            const tanks = localStorage.getItem('tankDefinitions');
+            if (tanks) {
+                const parsed = JSON.parse(tanks);
+                document.getElementById('tank-definitions').textContent = 
+                    `Anzahl: ${parsed.length}\n\n` + JSON.stringify(parsed, null, 2);
+            } else {
+                document.getElementById('tank-definitions').textContent = '❌ Keine Tank-Definitionen gefunden!';
+            }
+        }
+
+        function showInventoryItems() {
+            const inventory = localStorage.getItem('inventoryItems');
+            if (inventory) {
+                const parsed = JSON.parse(inventory);
+                const tankNumbers = [...new Set(parsed.map(item => item.tankNr).filter(Boolean))];
+                document.getElementById('inventory-items').textContent = 
+                    `Anzahl Items: ${parsed.length}\n` +
+                    `Tank-Nummern gefunden: ${tankNumbers.join(', ')}\n\n` +
+                    JSON.stringify(parsed.slice(0, 5), null, 2) + '\n\n... (erste 5 von ' + parsed.length + ')';
+            } else {
+                document.getElementById('inventory-items').textContent = '❌ Keine Inventar-Items gefunden!';
+            }
+        }
+
+        function showResult(message, isError = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.style.display = 'block';
+            resultDiv.style.background = isError ? '#f8d7da' : '#d4edda';
+            resultDiv.style.borderLeftColor = isError ? '#dc3545' : '#28a745';
+        }
+
+        function syncTanks() {
+            try {
+                // Manuelle Synchronisation
+                const inventory = localStorage.getItem('inventoryItems');
+                if (!inventory) {
+                    showResult('❌ Kein Inventar gefunden! Gehe zur Lagerverwaltung und füge Produkte hinzu.', true);
+                    return;
+                }
+
+                const items = JSON.parse(inventory);
+                const tankNumbers = [...new Set(items.map(item => item.tankNr).filter(Boolean))];
+                
+                const tanks = tankNumbers.map(tankNr => ({
+                    id: tankNr,
+                    tankNr: tankNr,
+                    bezeichnung: `Auto-erkannt: ${tankNr}`,
+                    volumenLiter: 5000,
+                    containerType: tankNr.match(/^T\s?\d+/i) ? 'tank' : 'other',
+                    hasUniqueNumber: tankNr.match(/^T\s?\d+/i) ? true : false
+                }));
+
+                localStorage.setItem('tankDefinitions', JSON.stringify(tanks));
+                showResult(`✅ Tanks synchronisiert! ${tanks.length} Tanks erstellt: ${tankNumbers.join(', ')}`);
+                
+                setTimeout(() => {
+                    showStorage();
+                    showTankDefinitions();
+                }, 500);
+            } catch (error) {
+                showResult('❌ Fehler: ' + error.message, true);
+            }
+        }
+
+        function fixIds() {
+            try {
+                const tanks = localStorage.getItem('tankDefinitions');
+                if (!tanks) {
+                    showResult('❌ Keine Tanks zum Reparieren!', true);
+                    return;
+                }
+
+                const parsed = JSON.parse(tanks);
+                const fixed = parsed.map(tank => ({
+                    ...tank,
+                    id: tank.tankNr // ID = tankNr setzen
+                }));
+
+                localStorage.setItem('tankDefinitions', JSON.stringify(fixed));
+                showResult(`✅ ${fixed.length} Tank-IDs repariert!`);
+                
+                setTimeout(() => {
+                    showTankDefinitions();
+                }, 500);
+            } catch (error) {
+                showResult('❌ Fehler: ' + error.message, true);
+            }
+        }
+
+        // Initial laden
+        showStorage();
+        showTankDefinitions();
+        showInventoryItems();
+    </script>
+</body>
+</html>

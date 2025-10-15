@@ -1,0 +1,609 @@
+/**
+ * Script zum Wiederherstellen fehlender Container aus alter tanks.json
+ * 
+ * Vergleicht alte JSON mit aktuellen Electron-Daten und fügt fehlende Container hinzu
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+// Alte tanks.json (aus OneDrive)
+const oldTanks = [
+  {
+    "tankNr": "C 07",
+    "bezeichnung": "C 07",
+    "volumenLiter": 1000,
+    "containerType": "other",
+    "hasUniqueNumber": false,
+    "id": "C 07"
+  },
+  {
+    "tankNr": "T 347",
+    "bezeichnung": "T 347",
+    "volumenLiter": 5500,
+    "containerType": "tank",
+    "hasUniqueNumber": true,
+    "id": "T 347"
+  },
+  {
+    "tankNr": "T 1544",
+    "bezeichnung": "T 1544",
+    "volumenLiter": 1000,
+    "containerType": "tank",
+    "hasUniqueNumber": true,
+    "id": "T 1544"
+  },
+  {
+    "tankNr": "T 350",
+    "bezeichnung": "T 350",
+    "volumenLiter": 6420,
+    "containerType": "tank",
+    "hasUniqueNumber": true,
+    "id": "T 350"
+  },
+  {
+    "tankNr": "T 1564",
+    "bezeichnung": "T 1564",
+    "volumenLiter": 1000,
+    "containerType": "tank",
+    "hasUniqueNumber": true,
+    "id": "T 1564"
+  },
+  {
+    "tankNr": "T 344",
+    "bezeichnung": "T 344",
+    "volumenLiter": 5000,
+    "containerType": "tank",
+    "hasUniqueNumber": true,
+    "id": "T 344"
+  },
+  {
+    "id": "T 341",
+    "tankNr": "T 341",
+    "bezeichnung": "T 341",
+    "volumenLiter": 5000,
+    "containerType": "tank",
+    "hasUniqueNumber": true,
+    "status": "filled",
+    "currentContent": "Sprit"
+  },
+  {
+    "id": "T 349",
+    "tankNr": "T 349",
+    "bezeichnung": "T 349",
+    "volumenLiter": 7776,
+    "containerType": "tank",
+    "hasUniqueNumber": true,
+    "status": "filled",
+    "currentContent": "GFKC - M"
+  },
+  {
+    "id": "T 342",
+    "tankNr": "T 342",
+    "bezeichnung": "T 342",
+    "volumenLiter": 5000,
+    "containerType": "tank",
+    "hasUniqueNumber": true,
+    "status": "filled",
+    "currentContent": "GFKC - M"
+  },
+  {
+    "id": "T 1536",
+    "tankNr": "T 1536",
+    "bezeichnung": "T 1536",
+    "volumenLiter": 5000,
+    "containerType": "tank",
+    "hasUniqueNumber": true,
+    "status": "filled",
+    "currentContent": "Königskerze"
+  },
+  {
+    "id": "Fass-1",
+    "tankNr": "Fass",
+    "bezeichnung": "Fass-1",
+    "volumenLiter": 106.8,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Königskerze",
+    "status": "filled"
+  },
+  {
+    "id": "Fass-2",
+    "tankNr": "Fass",
+    "bezeichnung": "Fass-2",
+    "volumenLiter": 321.6,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Zitronenmelisse",
+    "status": "filled"
+  },
+  {
+    "id": "Fass-3",
+    "tankNr": "Fass",
+    "bezeichnung": "Fass-3",
+    "volumenLiter": 289.32,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Salbei",
+    "status": "filled"
+  },
+  {
+    "id": "Fass-4",
+    "tankNr": "Fass",
+    "bezeichnung": "Fass-4",
+    "volumenLiter": 185.52,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Mariendistel",
+    "status": "filled"
+  },
+  {
+    "id": "Fass-5",
+    "tankNr": "Fass",
+    "bezeichnung": "Fass-5",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Benedikten",
+    "status": "filled"
+  },
+  {
+    "id": "Fass-6",
+    "tankNr": "Fass",
+    "bezeichnung": "Fass-6",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Baldrian",
+    "status": "filled"
+  },
+  {
+    "id": "Fl-1",
+    "tankNr": "Fl",
+    "bezeichnung": "Fl-1",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Königskerze",
+    "status": "filled"
+  },
+  {
+    "id": "Fl-2",
+    "tankNr": "Fl",
+    "bezeichnung": "Fl-2",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Mariendistel",
+    "status": "filled"
+  },
+  {
+    "id": "Fl-3",
+    "tankNr": "Fl",
+    "bezeichnung": "Fl-3",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Benedikten",
+    "status": "filled"
+  },
+  {
+    "id": "Fl-4",
+    "tankNr": "Fl",
+    "bezeichnung": "Fl-4",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Baldrian",
+    "status": "filled"
+  },
+  {
+    "id": "Fl-5",
+    "tankNr": "Fl",
+    "bezeichnung": "Fl-5",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Zirbe",
+    "status": "filled"
+  },
+  {
+    "id": "B-1",
+    "tankNr": "B",
+    "bezeichnung": "B-1",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Königskerze",
+    "status": "filled"
+  },
+  {
+    "id": "B-2",
+    "tankNr": "B",
+    "bezeichnung": "B-2",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Pfefferminze",
+    "status": "filled"
+  },
+  {
+    "id": "B-3",
+    "tankNr": "B",
+    "bezeichnung": "B-3",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Pfefferminze",
+    "status": "filled"
+  },
+  {
+    "id": "B-4",
+    "tankNr": "B",
+    "bezeichnung": "B-4",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Pfefferminze",
+    "status": "filled"
+  },
+  {
+    "id": "B-5",
+    "tankNr": "B",
+    "bezeichnung": "B-5",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Zitronenmelisse",
+    "status": "filled"
+  },
+  {
+    "id": "B-6",
+    "tankNr": "B",
+    "bezeichnung": "B-6",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Zitronenmelisse",
+    "status": "filled"
+  },
+  {
+    "id": "B-7",
+    "tankNr": "B",
+    "bezeichnung": "B-7",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Zitronenmelisse",
+    "status": "filled"
+  },
+  {
+    "id": "B-8",
+    "tankNr": "B",
+    "bezeichnung": "B-8",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Zitronenmelisse",
+    "status": "filled"
+  },
+  {
+    "id": "B-9",
+    "tankNr": "B",
+    "bezeichnung": "B-9",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Zitronenmelisse",
+    "status": "filled"
+  },
+  {
+    "id": "B-10",
+    "tankNr": "B",
+    "bezeichnung": "B-10",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Thymian",
+    "status": "filled"
+  },
+  {
+    "id": "B-11",
+    "tankNr": "B",
+    "bezeichnung": "B-11",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Thymian",
+    "status": "filled"
+  },
+  {
+    "id": "B-12",
+    "tankNr": "B",
+    "bezeichnung": "B-12",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Salbei",
+    "status": "filled"
+  },
+  {
+    "id": "B-13",
+    "tankNr": "B",
+    "bezeichnung": "B-13",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Salbei",
+    "status": "filled"
+  },
+  {
+    "id": "B-14",
+    "tankNr": "B",
+    "bezeichnung": "B-14",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Salbei",
+    "status": "filled"
+  },
+  {
+    "id": "B-15",
+    "tankNr": "B",
+    "bezeichnung": "B-15",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Oregano",
+    "status": "filled"
+  },
+  {
+    "id": "B-16",
+    "tankNr": "B",
+    "bezeichnung": "B-16",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Zirbe",
+    "status": "filled"
+  },
+  {
+    "id": "B-17",
+    "tankNr": "B",
+    "bezeichnung": "B-17",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "GFKC-A",
+    "status": "filled"
+  },
+  {
+    "id": "B-18",
+    "tankNr": "B",
+    "bezeichnung": "B-18",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Sauvignon Bl",
+    "status": "filled"
+  },
+  {
+    "id": "B-19",
+    "tankNr": "B",
+    "bezeichnung": "B-19",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Sauvignon Bl",
+    "status": "filled"
+  },
+  {
+    "id": "B-20",
+    "tankNr": "B",
+    "bezeichnung": "B-20",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Sauvignon Bl",
+    "status": "filled"
+  },
+  {
+    "id": "B-21",
+    "tankNr": "B",
+    "bezeichnung": "B-21",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Marc d SWS",
+    "status": "filled"
+  },
+  {
+    "id": "B-22",
+    "tankNr": "B",
+    "bezeichnung": "B-22",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Marc d SWS",
+    "status": "filled"
+  },
+  {
+    "id": "B-23",
+    "tankNr": "B",
+    "bezeichnung": "B-23",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Marc d SWS",
+    "status": "filled"
+  },
+  {
+    "id": "B-24",
+    "tankNr": "B",
+    "bezeichnung": "B-24",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Marc d SWS",
+    "status": "filled"
+  },
+  {
+    "id": "B-25",
+    "tankNr": "B",
+    "bezeichnung": "B-25",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Marc d SWS",
+    "status": "filled"
+  },
+  {
+    "id": "T 343",
+    "tankNr": "T 343",
+    "bezeichnung": "T 343",
+    "volumenLiter": 5000,
+    "containerType": "tank",
+    "hasUniqueNumber": true,
+    "status": "filled",
+    "currentContent": "Pfefferminze"
+  },
+  {
+    "id": "IBC-1",
+    "tankNr": "IBC",
+    "bezeichnung": "IBC-1",
+    "volumenLiter": 591.62,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Pfefferminze",
+    "status": "filled"
+  },
+  {
+    "id": "T 345",
+    "tankNr": "T 345",
+    "bezeichnung": "T 345",
+    "volumenLiter": 5000,
+    "containerType": "tank",
+    "hasUniqueNumber": true,
+    "status": "filled",
+    "currentContent": "Zitronenmelisse"
+  },
+  {
+    "id": "T 346",
+    "tankNr": "T 346",
+    "bezeichnung": "T 346",
+    "volumenLiter": 5000,
+    "containerType": "tank",
+    "hasUniqueNumber": true,
+    "status": "filled",
+    "currentContent": "Zitronenmelisse"
+  },
+  {
+    "id": "T 348",
+    "tankNr": "T 348",
+    "bezeichnung": "T 348",
+    "volumenLiter": 5000,
+    "containerType": "tank",
+    "hasUniqueNumber": true,
+    "status": "filled",
+    "currentContent": "Thymian"
+  },
+  {
+    "id": "T 338",
+    "tankNr": "T 338",
+    "bezeichnung": "T 338",
+    "volumenLiter": 5000,
+    "containerType": "tank",
+    "hasUniqueNumber": true,
+    "status": "filled",
+    "currentContent": "Salbei"
+  },
+  {
+    "id": "K-1",
+    "tankNr": "K",
+    "bezeichnung": "K-1",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "Zirbe",
+    "status": "filled"
+  },
+  {
+    "id": "K-2",
+    "tankNr": "K",
+    "bezeichnung": "K-2",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "VL Zirbe",
+    "status": "filled"
+  },
+  {
+    "id": "K-3",
+    "tankNr": "K",
+    "bezeichnung": "K-3",
+    "volumenLiter": 100,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "VL Zirbe",
+    "status": "filled"
+  },
+  {
+    "id": "Cont-1",
+    "tankNr": "Cont",
+    "bezeichnung": "Cont-1",
+    "volumenLiter": 166.68,
+    "containerType": "other",
+    "hasUniqueNumber": true,
+    "currentContent": "GFKC-K",
+    "status": "filled"
+  }
+];
+
+async function restoreMissingTanks() {
+  const appDataPath = path.join(process.env.APPDATA, 'mazerationsmeister', 'mazerations-storage.json');
+  
+  console.log('📂 Lade aktuelle Electron-Daten...');
+  console.log('   Pfad:', appDataPath);
+  
+  if (!fs.existsSync(appDataPath)) {
+    console.error('❌ Electron-Daten nicht gefunden!');
+    console.log('   Bitte App einmal starten, damit die Daten erstellt werden.');
+    return;
+  }
+  
+  const currentData = JSON.parse(fs.readFileSync(appDataPath, 'utf-8'));
+  const currentTanks = currentData.tankDefinitions || [];
+  
+  console.log(`✅ Aktuelle Container: ${currentTanks.length}`);
+  
+  // Finde fehlende Container
+  const currentIds = new Set(currentTanks.map(t => t.id));
+  const missingTanks = oldTanks.filter(tank => !currentIds.has(tank.id));
+  
+  console.log(`\n🔍 Gefundene fehlende Container: ${missingTanks.length}`);
+  missingTanks.forEach(tank => {
+    console.log(`   - ${tank.id} (${tank.currentContent || 'leer'})`);
+  });
+  
+  if (missingTanks.length === 0) {
+    console.log('\n✅ Alle Container bereits vorhanden!');
+    return;
+  }
+  
+  // Backup erstellen
+  const backupPath = appDataPath.replace('.json', `_backup_${Date.now()}.json`);
+  fs.writeFileSync(backupPath, JSON.stringify(currentData, null, 2));
+  console.log(`\n💾 Backup erstellt: ${backupPath}`);
+  
+  // Container hinzufügen
+  const updatedTanks = [...currentTanks, ...missingTanks];
+  currentData.tankDefinitions = updatedTanks;
+  
+  fs.writeFileSync(appDataPath, JSON.stringify(currentData, null, 2));
+  
+  console.log(`\n✅ ${missingTanks.length} Container ergänzt!`);
+  console.log(`📊 Neue Gesamt-Anzahl: ${updatedTanks.length}`);
+  console.log('\n🔄 Bitte App neu starten!');
+}
+
+restoreMissingTanks().catch(console.error);
