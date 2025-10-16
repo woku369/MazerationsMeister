@@ -9,6 +9,7 @@ import { CalendarIcon, PencilIcon, Trash2Icon, SaveIcon, XIcon, DownloadIcon, Fi
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
+import { hybridStorage } from '@/lib/hybrid-storage';
 
 const STATUS_OPTIONS = [
   { value: "offen", label: "Offen" },
@@ -61,39 +62,51 @@ export default function TaskWidget() {
   const [date, setDate] = useState("");
   const [sortBy, setSortBy] = useState("dateAsc");
 
+  // ✅ TODO-Liste LADEN (hybridStorage - persistent in %APPDATA%)
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("dashboardTasks");
-      if (stored) {
-        try {
-          setTasks(JSON.parse(stored));
-        } catch (error) {
-          console.error("Fehler beim Laden der Tasks:", error);
-          setTasks([]);
+    (async () => {
+      try {
+        const hybridData = await hybridStorage.get("dashboardTasks");
+        const stored = hybridData || (typeof window !== "undefined" ? JSON.parse(localStorage.getItem("dashboardTasks") || "null") : null);
+        
+        if (stored && Array.isArray(stored) && stored.length > 0) {
+          setTasks(stored);
         }
+      } catch (error) {
+        console.error("Fehler beim Laden der Tasks:", error);
+        setTasks([]);
       }
-    }
+    })();
   }, []);
 
+  // ✅ TODO-Liste SPEICHERN (hybridStorage - persistent + GitHub Sync)
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("dashboardTasks", JSON.stringify(tasks));
-    }
+    (async () => {
+      try {
+        await hybridStorage.set("dashboardTasks", tasks);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("dashboardTasks", JSON.stringify(tasks));
+        }
+      } catch (error) {
+        console.error('Fehler beim Speichern der Tasks:', error);
+      }
+    })();
   }, [tasks]);
 
   const handleAddTask = () => {
     if (!name.trim()) return;
-    setTasks([
-      ...tasks,
-      {
-        id: Date.now().toString(),
-        name: name.trim(),
-        description: description.trim(),
-        notes: notes.trim(),
-        status,
-        date: date || new Date().toISOString().slice(0, 10),
-      },
-    ]);
+    
+    const newTask = {
+      id: Date.now().toString(),
+      name: name.trim(),
+      description: description.trim(),
+      notes: notes.trim(),
+      status,
+      date: date || new Date().toISOString().slice(0, 10),
+    };
+    
+    setTasks([...tasks, newTask]);
+    
     setName("");
     setDescription("");
     setNotes("");

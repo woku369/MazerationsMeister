@@ -60,6 +60,8 @@ export interface DashboardTask {
 }
 
 export default function DashboardTasksWidget() {
+  console.log('🔵 DashboardTasksWidget RENDER gestartet');
+  
   const [tasks, setTasks] = useState<DashboardTask[]>([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -74,64 +76,150 @@ export default function DashboardTasksWidget() {
   const [date, setDate] = useState("");
   const [sortBy, setSortBy] = useState("dateAsc");
   const [isLoading, setIsLoading] = useState(true);
+  
+  console.log('🔵 State initialisiert, tasks.length:', tasks.length, 'isLoading:', isLoading);
 
-  // ✅ TODO-Liste LADEN (hybridStorage - synchronisiert über GitHub!)
+  // 🔍 DEBUG: TODO-Liste LADEN mit ausführlichem Logging
   useEffect(() => {
     let mounted = true;
     
+    console.log('🔄 Dashboard Tasks Widget: Lade gespeicherte Aufgaben...');
+    
     (async () => {
       try {
-        const stored = await hybridStorage.get("dashboardTasks");
+        // STRATEGIE 1: hybridStorage (Electron)
+        console.log('📦 Versuche hybridStorage.get("dashboardTasks")...');
+        const hybridData = await hybridStorage.get("dashboardTasks");
+        console.log('📦 hybridStorage Ergebnis:', hybridData);
+        
+        // STRATEGIE 2: localStorage (Fallback)
+        let localData = null;
+        try {
+          const localStr = localStorage.getItem("dashboardTasks");
+          console.log('💾 localStorage Ergebnis (raw):', localStr?.substring(0, 100));
+          if (localStr) {
+            localData = JSON.parse(localStr);
+            console.log('💾 localStorage Ergebnis (parsed):', localData);
+          }
+        } catch (e) {
+          console.error('❌ localStorage Fehler:', e);
+        }
+        
+        // Verwende hybridData wenn vorhanden, sonst localData
+        const stored = hybridData || localData;
+        
         if (mounted && stored && Array.isArray(stored)) {
-          console.log('✅ Dashboard Tasks geladen (hybridStorage → GitHub):', stored.length, 'Aufgaben');
+          console.log('✅ Dashboard Tasks erfolgreich geladen:', stored.length, 'Aufgaben');
+          console.log('✅ Erste Aufgabe:', stored[0]);
           setTasks(stored);
+        } else {
+          console.warn('⚠️ Keine gespeicherten Dashboard Tasks gefunden!');
+          console.log('⚠️ hybridData:', hybridData);
+          console.log('⚠️ localData:', localData);
         }
       } catch (error) {
-        console.error('❌ Fehler beim Laden der Dashboard Tasks:', error);
+        console.error('❌ KRITISCHER FEHLER beim Laden der Dashboard Tasks:', error);
       } finally {
         if (mounted) {
+          console.log('✅ Lade-Prozess abgeschlossen, isLoading = false');
           setIsLoading(false);
         }
       }
     })();
     
     return () => {
+      console.log('🧹 Dashboard Tasks Widget wird unmounted');
       mounted = false;
     };
   }, []);
 
-  // ✅ TODO-Liste SPEICHERN (hybridStorage → automatisch zu GitHub via app-auto-sync)
+  // 🔍 DEBUG: TODO-Liste SPEICHERN mit ausführlichem Logging
   useEffect(() => {
-    if (isLoading) return; // Nicht speichern während des Ladens
+    console.log('🔄 Save-Effect triggered, isLoading:', isLoading, 'tasks.length:', tasks.length);
+    
+    if (isLoading) {
+      console.log('⏸️ Speichern übersprungen (isLoading = true)');
+      return;
+    }
+    
+    console.log('💾 Starte Speicher-Prozess für', tasks.length, 'Aufgaben...');
+    console.log('💾 Tasks:', JSON.stringify(tasks).substring(0, 200));
     
     (async () => {
       try {
+        // STRATEGIE 1: localStorage (SOFORT, SYNCHRON, ZUVERLÄSSIG)
+        const tasksJson = JSON.stringify(tasks);
+        localStorage.setItem("dashboardTasks", tasksJson);
+        console.log('✅ localStorage.setItem erfolgreich:', tasksJson.length, 'Zeichen');
+        
+        // Verification: Sofort wieder lesen
+        const verification = localStorage.getItem("dashboardTasks");
+        if (verification === tasksJson) {
+          console.log('✅ localStorage VERIFICATION erfolgreich!');
+        } else {
+          console.error('❌ localStorage VERIFICATION FEHLGESCHLAGEN!');
+          console.log('Geschrieben:', tasksJson.substring(0, 100));
+          console.log('Gelesen:', verification?.substring(0, 100));
+        }
+        
+        // STRATEGIE 2: hybridStorage (für Electron + GitHub Sync)
+        console.log('☁️ Speichere zu hybridStorage...');
         await hybridStorage.set("dashboardTasks", tasks);
-        console.log('✅ Dashboard Tasks gespeichert (→ GitHub Sync):', tasks.length, 'Aufgaben');
+        console.log('✅ hybridStorage.set erfolgreich');
+        
+        // Verification: Sofort wieder lesen
+        const hybridVerification = await hybridStorage.get("dashboardTasks");
+        if (JSON.stringify(hybridVerification) === tasksJson) {
+          console.log('✅ hybridStorage VERIFICATION erfolgreich!');
+        } else {
+          console.error('❌ hybridStorage VERIFICATION FEHLGESCHLAGEN!');
+          console.log('Geschrieben:', tasksJson.substring(0, 100));
+          console.log('Gelesen:', JSON.stringify(hybridVerification)?.substring(0, 100));
+        }
+        
       } catch (error) {
-        console.error('❌ Fehler beim Speichern der Dashboard Tasks:', error);
+        console.error('❌ KRITISCHER FEHLER beim Speichern:', error);
+        console.error('Stack:', error instanceof Error ? error.stack : 'N/A');
       }
     })();
   }, [tasks, isLoading]);
 
   const handleAddTask = () => {
-    if (!name.trim()) return;
-    setTasks([
-      ...tasks,
-      {
-        id: Date.now().toString(),
-        name: name.trim(),
-        description: description.trim(),
-        notes: notes.trim(),
-        status,
-        date: date || new Date().toISOString().slice(0,10),
-      },
-    ]);
+    console.log('🎯 handleAddTask aufgerufen!');
+    console.log('🎯 name:', name);
+    console.log('🎯 tasks.length vorher:', tasks.length);
+    
+    if (!name.trim()) {
+      console.log('⚠️ Name ist leer, abbruch!');
+      return;
+    }
+    
+    const newTask = {
+      id: Date.now().toString(),
+      name: name.trim(),
+      description: description.trim(),
+      notes: notes.trim(),
+      status,
+      date: date || new Date().toISOString().slice(0,10),
+    };
+    
+    console.log('➕ Neue Task:', newTask);
+    
+    const newTasks = [...tasks, newTask];
+    console.log('🎯 tasks.length nachher:', newTasks.length);
+    console.log('🎯 Rufe setTasks auf...');
+    
+    setTasks(newTasks);
+    
+    console.log('✅ setTasks aufgerufen!');
+    
     setName("");
     setDescription("");
     setNotes("");
     setStatus("offen");
     setDate("");
+    
+    console.log('✅ Form zurückgesetzt');
   };
 
   const handleStatusChange = (id: string, newStatus: string) => {
