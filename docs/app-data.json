@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdate": "2025-10-16T06:10:48.817Z",
+  "lastUpdate": "2025-10-17T05:45:36.853Z",
   "computerName": "unknown",
   "userName": "unknown",
   "tanks": [
@@ -1319,9 +1319,8 @@
   "rezepturen": [],
   "settings": {
     "autoSync": {
-      "enabled": true,
-      "interval": 60,
-      "lastSync": "2025-10-16T06:10:35.437Z"
+      "enabled": false,
+      "interval": 60
     }
   }
 }
