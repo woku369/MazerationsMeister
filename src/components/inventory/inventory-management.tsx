@@ -22,8 +22,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { StoredInventoryItem, InventoryTransaction, InventoryTransactionCoreData } from '@/schemas/inventorySchema';
 import type { ArtikelDefinition, ArtikelDefinitionFormInput } from '@/schemas/artikelDefinitionSchema';
+import type { TankDefinition } from '@/schemas/tankSchema';
 import { format } from 'date-fns';
-import { syncTankDefinitionsWithInventory } from '@/lib/tank-sync';
+import { syncTankDefinitionsWithInventory, getTankDefinitions } from '@/lib/tank-sync';
 import { hybridStorage } from '@/lib/hybrid-storage';
 
 export default function InventoryManagement() {
@@ -121,14 +122,110 @@ export default function InventoryManagement() {
     }
   }, [inventoryTransactions]);
 
+  // ===============================================
+  // AUTOMATISCHE TANK-ID MIGRATION
+  // ===============================================
+  const autoMigrateTankIds = async (items: StoredInventoryItem[]): Promise<StoredInventoryItem[]> => {
+    try {
+      console.log('[AutoMigration] 🔄 Starte automatische Migration...');
+      const tanks = await getTankDefinitions();
+      const updatedItems = [...items];
+      
+      // Identifiziere Items mit generischen IDs (keine eindeutige ID wie "Fass-1" oder "T 341")
+      const itemsToMigrate = updatedItems.filter(item => {
+        const hasUniqueId = /^(.+)-(\d+)$/.test(item.tankNr) || /^[T]\s?\d+/.test(item.tankNr);
+        return !hasUniqueId && item.tankNr.trim() !== '';
+      });
+      
+      if (itemsToMigrate.length === 0) {
+        console.log('[AutoMigration] ✅ Keine Migration erforderlich - alle IDs bereits eindeutig');
+        return updatedItems;
+      }
+      
+      console.log(`[AutoMigration] ⚠️ ${itemsToMigrate.length} Items mit generischen Tank-IDs gefunden`);
+      
+      // Gruppiere nach Basis-TankNr (z.B. "Fass" → ["Fass-1", "Fass-2", ...])
+      const groups: Record<string, StoredInventoryItem[]> = {};
+      itemsToMigrate.forEach(item => {
+        const base = item.tankNr;
+        if (!groups[base]) groups[base] = [];
+        groups[base].push(item);
+      });
+      
+      console.log(`[AutoMigration] 📊 Gruppen: ${Object.keys(groups).join(', ')}`);
+      
+      // Migriere jede Gruppe einzeln
+      for (const [baseTankNr, groupItems] of Object.entries(groups)) {
+        console.log(`[AutoMigration] 🔍 Verarbeite Gruppe "${baseTankNr}" (${groupItems.length} Items)`);
+        
+        // Finde verfügbare Tanks für diese Basis-Nummer
+        const availableTanks = tanks.filter((t: TankDefinition) => 
+          t.tankNr === baseTankNr || 
+          t.id?.startsWith(baseTankNr + '-') ||
+          (t.id && t.tankNr === baseTankNr)
+        );
+        
+        if (availableTanks.length === 0) {
+          console.warn(`[AutoMigration] ⚠️ Keine Tanks gefunden für "${baseTankNr}" - Items werden übersprungen`);
+          continue;
+        }
+        
+        console.log(`[AutoMigration] 📦 ${availableTanks.length} verfügbare Tanks für "${baseTankNr}"`);
+        
+        // Berechne aktuelle Füllstände für intelligente Verteilung
+        const tankFills = availableTanks.map((tank: TankDefinition) => {
+          const tankItems = items.filter(i => 
+            i.tankNr === tank.id || 
+            i.tankNr === tank.tankNr
+          );
+          const fill = tankItems.reduce((sum, i) => 
+            sum + (parseFloat(String(i.currentQuantityLiters)) || 0), 0
+          );
+          const capacity = parseFloat(String(tank.volumenLiter)) || 1000;
+          const fillPercent = (fill / capacity) * 100;
+          return { tank, fill, fillPercent };
+        });
+        
+        // Sortiere nach Füllstand (am wenigsten gefüllt zuerst)
+        tankFills.sort((a: any, b: any) => a.fill - b.fill);
+        
+        console.log('[AutoMigration] 📊 Füllstände (sortiert):');
+        tankFills.forEach((tf: any) => {
+          console.log(`  - ${tf.tank.id}: ${tf.fill.toFixed(1)}L (${tf.fillPercent.toFixed(1)}%)`);
+        });
+        
+        // Verteile Items Round-Robin auf verfügbare Tanks (bevorzugt am wenigsten gefüllte)
+        groupItems.forEach((item, idx) => {
+          const targetTank = tankFills[idx % tankFills.length].tank;
+          const oldTankNr = item.tankNr;
+          item.tankNr = targetTank.id;
+          console.log(`[AutoMigration] ✅ ${item.produktName}: "${oldTankNr}" → "${targetTank.id}"`);
+        });
+      }
+      
+      console.log('[AutoMigration] ✅ Migration abgeschlossen');
+      return updatedItems;
+      
+    } catch (error) {
+      console.error('[AutoMigration] ❌ Fehler bei Migration:', error);
+      toast({ 
+        title: '⚠️ Migration fehlgeschlagen', 
+        description: `Fehler: ${error}`,
+        variant: 'destructive',
+        duration: 8000
+      });
+      return items; // Gebe unveränderte Items zurück bei Fehler
+    }
+  };
+
   // XLSX Import für Artikelstamm und Lagerbestand
-  const handleImportXLSX = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportXLSX = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
     setIsImporting(true);
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const data = new Uint8Array(ev.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
@@ -294,18 +391,25 @@ export default function InventoryManagement() {
           
           setInventoryItems(neueInventoryItems);
           
-          // Prüfe ob generische Tank-IDs vorhanden sind
+          // ✅ AUTOMATISCHE MIGRATION: Korrigiere generische Tank-IDs direkt nach Import
           const generischeTankNr = neueInventoryItems.filter(item => {
             const hasUniqueId = /^(.+)-(\d+)$/.test(item.tankNr) || /^[T]\s?\d+/.test(item.tankNr);
             return !hasUniqueId && item.tankNr.trim() !== '';
           });
           
           if (generischeTankNr.length > 0) {
+            console.log(`⚠️ ${generischeTankNr.length} Items mit generischen Tank-IDs gefunden`);
+            console.log('🔄 Starte automatische Migration...');
+            
+            // Automatische Migration durchführen
+            const migrierteItems = await autoMigrateTankIds(neueInventoryItems);
+            setInventoryItems(migrierteItems);  // ✅ Aktualisierte Items setzen (triggert hybridStorage)
+            
             toast({ 
-              title: '⚠️ Tank-IDs müssen korrigiert werden', 
-              description: `${generischeTankNr.length} Items haben generische Tank-Nr (z.B. "Fass", "B"). Bitte Migration-Script ausführen: node scripts/migrate-tank-ids.js`,
+              title: '✅ Tank-IDs automatisch korrigiert', 
+              description: `${generischeTankNr.length} Items wurden eindeutigen Tanks zugeordnet und synchronisiert.`,
               variant: 'default',
-              duration: 10000
+              duration: 5000
             });
           } else {
             toast({ 
