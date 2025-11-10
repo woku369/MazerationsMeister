@@ -20,6 +20,52 @@
 
 ## 🐛 Bug-Fixes (Oktober 2025)
 
+### **FIX 5.5: Automatische Tank-ID Migration** ✅ ERLEDIGT
+- **Problem**: XLSX-Import erforderte manuelle Terminal-Workflow (Scripts, Git-Commands)
+- **User-Szenario**: Jährlicher Inventur-Import (Zollamtliche Alkoholfeststellung) auf Remote-Computer ohne VS Code
+- **User-Quote**: "ich muss dann immer wieder zu vs code zurück? kann man das anders lösen?"
+- **Lösung**: Automatische Migration direkt in der App (inventory-management.tsx)
+- **Funktion**: `autoMigrateTankIds()` - 100 Zeilen TypeScript
+- **Strategie**: Least-filled-Tank-Verteilung (intelligente Zuordnung)
+- **Workflow NEU**:
+  1. XLSX importieren
+  2. App erkennt generische IDs ("Fass", "B", etc.)
+  3. Migration läuft automatisch
+  4. Toast: "✅ 41 Items automatisch korrigiert"
+- **Technisch**: Pattern Detection `/^(.+)-(\d+)$/`, Round-Robin-Assignment, hybridStorage auto-save
+- **Status**: Code implementiert, hybridStorage funktioniert, GitHub-Sync folgt
+
+### **FIX 5.4: Master QR GitHub-Sync** ✅ ERLEDIGT
+- **Problem**: Migrierte Tank-IDs nur lokal, Master QR zeigte alte Daten von GitHub Pages
+- **Lösung**: `scripts/sync-to-github.js` - Sync local storage → docs/app-data.json
+- **Workflow**: Node-Script → Git commit → Push → GitHub Pages Deployment
+- **Ergebnis**: Master QR zeigt korrekte individuelle Container (Fass-1, B-12, etc.)
+- **Nächster Schritt**: Automatisierung via app-auto-sync.ts (Teil von FIX 5.5)
+
+### **FIX 5.3: Master QR Sortierung** ✅ ERLEDIGT
+- **Anforderung**: Sortierung nach Kapazität (groß → klein), dann nach Produktname
+- **Lösung**: 2-stufige Sort-Funktion in `tank-viewer-secure.html`
+- **Primär**: Füllmenge DESC (T-Tanks 5000L → Ballons 25L)
+- **Sekundär**: Produktname ASC (Baldrian, Königskerze, Salbei, ...)
+- **Ergebnis**: Große Tanks erscheinen zuerst, alphabetisch bei gleicher Kapazität
+
+### **FIX 5.2: Container-Aggregation behoben** ✅ KRITISCH BEHOBEN
+- **Problem**: Fass-1, Fass-2, Fass-3 wurden als "Fass" aggregiert (847% Füllstand!)
+- **Ursache**: Inventory-Items hatten generische `tankNr: "Fass"` statt eindeutige IDs
+- **Filter-Bug**: `item.tankNr === tank.tankNr` (generic) statt `item.tankNr === tank.id` (unique)
+- **Lösung 1**: Migration-Script `scripts/migrate-tank-ids.js` (41 Items konvertiert)
+- **Lösung 2**: Filter-Logik korrigiert (tank.id hat Priorität)
+- **Lösung 3**: Backup erstellt (`mazerations-storage.backup-*.json`)
+- **Ergebnis**: Jeder Container zeigt nur seinen eigenen Inhalt
+- **Test**: PowerShell-Verifizierung → Königskerze in Fass-1, T 1536, Fl-1, B-1 ✅
+
+### **FIX 5.1: Master QR "Keine Tank-Nummer angegeben"** ✅ ERLEDIGT
+- **Problem**: Master QR (`?view=all`) zeigte Alert statt Container-Liste
+- **Ursache**: `if (!tankNr)` check VOR `if (viewMode === 'all')` check
+- **Lösung**: View-Mode-Check FIRST, tankNr nur für Einzelansicht erforderlich
+- **Code**: Early return bei `viewMode === 'all'` (kein tankNr nötig)
+- **Ergebnis**: Master QR lädt Container-Übersicht korrekt
+
 ### **FIX 4.1: QR-Code ID-Zuordnung** ✅ KRITISCH BEHOBEN
 - **Problem**: Alle 25 B-Tanks hatten gleiche URL "tank=B" → QR-Viewer zeigte 651.4L aggregiert
 - **Lösung**: QR-Codes verwenden jetzt `tank.id` (eindeutig) statt `tank.tankNr` (Kategorie)
