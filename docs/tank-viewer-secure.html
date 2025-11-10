@@ -541,53 +541,6 @@
 
         console.log(`✅ ${filledTanks.length} befüllte Tanks gefunden (Quelle: ${dataSource})`);
 
-        // Sortier-Funktion (wird von Buttons gesteuert)
-        function sortTanks(mode) {
-          // Update Button-Styles
-          const capacityBtn = document.getElementById('sortCapacity');
-          const productBtn = document.getElementById('sortProduct');
-          
-          if (mode === 'capacity') {
-            capacityBtn.style.background = '#2196f3';
-            productBtn.style.background = '#9e9e9e';
-          } else {
-            capacityBtn.style.background = '#9e9e9e';
-            productBtn.style.background = '#2196f3';
-          }
-          
-          filledTanks.sort((a, b) => {
-            // Hole Produkt für Sortierung
-            const aItems = inventory.filter(item => 
-              item.tankNr === a.id || item.tankNr === a.tankNr || item.tankNr === a.bezeichnung
-            );
-            const bItems = inventory.filter(item => 
-              item.tankNr === b.id || item.tankNr === b.tankNr || item.tankNr === b.bezeichnung
-            );
-            const aProdukt = aItems[0]?.produktName || '';
-            const bProdukt = bItems[0]?.produktName || '';
-
-            if (mode === 'capacity') {
-              // Primär: Kapazität (groß → klein)
-              const capacityDiff = (parseFloat(b.volumenLiter) || 0) - (parseFloat(a.volumenLiter) || 0);
-              if (Math.abs(capacityDiff) > 0.1) return capacityDiff;
-              // Sekundär: Produktname (alphabetisch)
-              return aProdukt.localeCompare(bProdukt, 'de');
-            } else if (mode === 'product') {
-              // Primär: Produktname (alphabetisch)
-              const nameCompare = aProdukt.localeCompare(bProdukt, 'de');
-              if (nameCompare !== 0) return nameCompare;
-              // Sekundär: Kapazität (groß → klein)
-              return (parseFloat(b.volumenLiter) || 0) - (parseFloat(a.volumenLiter) || 0);
-            }
-            return 0;
-          });
-          renderTanksGrid();
-        }
-
-        // Standard-Sortierung: Nach Kapazität
-        sortTanks('capacity');
-        console.log(`✅ Sortiert: ${filledTanks.length} Tanks (Standard: nach Kapazität & Sorte)`);
-        
         // Render-Funktion für Grid (wird bei Sortierung neu aufgerufen)
         function renderTanksGrid() {
           const tanksGridHTML = filledTanks.map(tank => {
@@ -656,6 +609,68 @@
             </div>
           `;
         }
+
+        // Sortier-Funktion (wird von Buttons gesteuert) - MUSS GLOBALE FUNKTION SEIN!
+        window.sortTanks = function(mode) {
+          // Update Button-Styles
+          const capacityBtn = document.getElementById('sortCapacity');
+          const productBtn = document.getElementById('sortProduct');
+          
+          if (capacityBtn && productBtn) {
+            if (mode === 'capacity') {
+              capacityBtn.style.background = '#2196f3';
+              productBtn.style.background = '#9e9e9e';
+            } else {
+              capacityBtn.style.background = '#9e9e9e';
+              productBtn.style.background = '#2196f3';
+            }
+          }
+          
+          filledTanks.sort((a, b) => {
+            // Hole Produkt für Sortierung
+            const aItems = inventory.filter(item => 
+              item.tankNr === a.id || item.tankNr === a.tankNr || item.tankNr === a.bezeichnung
+            );
+            const bItems = inventory.filter(item => 
+              item.tankNr === b.id || item.tankNr === b.tankNr || item.tankNr === b.bezeichnung
+            );
+            const aProdukt = aItems[0]?.produktName || '';
+            const bProdukt = bItems[0]?.produktName || '';
+
+            if (mode === 'capacity') {
+              // Primär: Kapazität (groß → klein)
+              const capacityDiff = (parseFloat(b.volumenLiter) || 0) - (parseFloat(a.volumenLiter) || 0);
+              if (Math.abs(capacityDiff) > 0.1) return capacityDiff;
+              // Sekundär: Produktname (alphabetisch)
+              return aProdukt.localeCompare(bProdukt, 'de');
+            } else if (mode === 'product') {
+              // Primär: Produktname (alphabetisch)
+              const nameCompare = aProdukt.localeCompare(bProdukt, 'de');
+              if (nameCompare !== 0) return nameCompare;
+              // Sekundär: Kapazität (groß → klein)
+              return (parseFloat(b.volumenLiter) || 0) - (parseFloat(a.volumenLiter) || 0);
+            }
+            return 0;
+          });
+          renderTanksGrid();
+        };
+
+        // Standard-Sortierung: Nach Kapazität (initial, ohne Button-Update)
+        filledTanks.sort((a, b) => {
+          const aItems = inventory.filter(item => 
+            item.tankNr === a.id || item.tankNr === a.tankNr || item.tankNr === a.bezeichnung
+          );
+          const bItems = inventory.filter(item => 
+            item.tankNr === b.id || item.tankNr === b.tankNr || item.tankNr === b.bezeichnung
+          );
+          const aProdukt = aItems[0]?.produktName || '';
+          const bProdukt = bItems[0]?.produktName || '';
+          
+          const capacityDiff = (parseFloat(b.volumenLiter) || 0) - (parseFloat(a.volumenLiter) || 0);
+          if (Math.abs(capacityDiff) > 0.1) return capacityDiff;
+          return aProdukt.localeCompare(bProdukt, 'de');
+        });
+        console.log(`✅ Sortiert: ${filledTanks.length} Tanks (Standard: nach Kapazität & Sorte)`);
         
         // UI anpassen für Master-View
         document.getElementById('loadingScreen').style.display = 'none';
