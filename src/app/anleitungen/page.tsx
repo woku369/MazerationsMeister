@@ -15,11 +15,33 @@ import {
   ExternalLink,
   CheckCircle,
   AlertCircle,
-  Info
+  Info,
+  Github,
+  Eye,
+  EyeOff
 } from 'lucide-react';
+import { useEffect } from 'react';
+import { hybridStorage } from '@/lib/hybrid-storage';
 
 export default function AnleitungenPage() {
   const [expandedSection, setExpandedSection] = useState<string | null>('qr-auth');
+  const [githubToken, setGithubToken] = useState<string>('');
+  const [showToken, setShowToken] = useState(false);
+
+  // GitHub-Token aus hybridStorage laden
+  useEffect(() => {
+    const loadGitHubToken = async () => {
+      try {
+        const token = await hybridStorage.get('github-token');
+        if (token) {
+          setGithubToken(token);
+        }
+      } catch (error) {
+        console.error('Failed to load GitHub token:', error);
+      }
+    };
+    loadGitHubToken();
+  }, []);
 
   const toggleSection = (section: string) => {
     setExpandedSection(expandedSection === section ? null : section);
@@ -302,6 +324,73 @@ export default function AnleitungenPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* GitHub Token Anzeige */}
+            <Card className="bg-green-50 border-green-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-green-800 flex items-center gap-2">
+                  <Github className="h-5 w-5" />
+                  🔐 GitHub Personal Access Token
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-blue-500 mt-0.5" />
+                    <div>
+                      <strong>Aktuell konfigurierter Token:</strong>
+                      <p className="text-muted-foreground">Wird für GitHub Pages Sync verwendet (Einstellungen → GitHub-Verbindung)</p>
+                    </div>
+                  </div>
+                  
+                  {githubToken ? (
+                    <div className="bg-white rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-gray-600">Token:</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowToken(!showToken)}
+                          className="h-6 px-2"
+                        >
+                          {showToken ? (
+                            <>
+                              <EyeOff className="h-3 w-3 mr-1" />
+                              <span className="text-xs">Verbergen</span>
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="h-3 w-3 mr-1" />
+                              <span className="text-xs">Anzeigen</span>
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      <div className="font-mono text-sm break-all bg-gray-100 p-3 rounded">
+                        {showToken ? githubToken : '●'.repeat(40)}
+                      </div>
+                      <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        <div>✅ Format: ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</div>
+                        <div>✅ Berechtigungen: repo (für GitHub Pages Deployment)</div>
+                        <div>🔒 Niemals öffentlich teilen!</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+                        <div className="text-sm">
+                          <strong className="text-amber-800">Kein GitHub-Token konfiguriert</strong>
+                          <p className="text-amber-700 mt-1">
+                            Gehe zu <strong>Einstellungen → GitHub-Verbindung</strong> um einen Token zu erstellen und zu speichern.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Sicherheit & Datenschutz */}
             <Card className="border-l-4 border-l-red-500">

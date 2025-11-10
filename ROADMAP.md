@@ -1,7 +1,7 @@
 ﻿# MazerationsMeister - Roadmap
 
-**Stand:** 15. Oktober 2025  
-**Version:** 1.1.0 (Production Ready - Build läuft)
+**Stand:** 11. November 2025  
+**Version:** 1.2.0 (Master QR Fixes + Icon-System)
 
 ## ✅ Was ist fertig (v1.1.0)
 
@@ -18,7 +18,57 @@
 - **Hybrid Storage System** - GitHub als zentrales Sync-Werkzeug
 - **App-Größe optimiert** (294 MB portable)
 
-## 🐛 Bug-Fixes (Oktober 2025)
+## 🐛 Bug-Fixes (Oktober - November 2025)
+
+### **FIX 5.9: Master QR Icon-System + Mazerat/Destillat-Badges** ✅ ERLEDIGT
+- **Problem**: Icons zu generisch, Typ-Kennzeichnung (Mazerat/Destillat) fehlte
+- **User-Quote**: "passendere icons... als die einheitlichen Fabrik-icons"
+- **User-Quote**: "nun fehlt mir die vorher noch vorhandene unterscheidung Mazerat / Destillat"
+- **Lösung**: 
+  - **7 Icon-Kategorien** mit pattern-basierter Erkennung:
+    - 🏭 T-Tanks (Industrielle Edelstahl-Tanks 500-5000L)
+    - 🛢️ Fässer (Holz/Edelstahl-Fässer 100-300L)
+    - ⚗️ Ballons (Bauchige Glasgefäße 25-100L, Labor-Kolben)
+    - 🍶 Flaschen (Stehende schlanke Flaschen 1-10L)
+    - 🧴 Kanister (Kubische Kunststoff-Kanister 5-25L)
+    - 🧊 IBC/Container (Kubische Container 1000L)
+  - **Mazerat-Badge**: 🌿 Mazerat (grün, inline)
+  - **Destillat-Badge**: 💧 Destillat (orange, inline)
+- **Icon-Korrekturen**:
+  - v4: IBC/Container korrigiert (📦 → 🧊) - User: "falsch! IBC nutzen das kubische icon"
+  - v5: Flaschen repariert (� → 🍶) - Emoji-Encoding-Fehler
+- **Technisch**: Pattern Detection `/^T\s?\d+/`, `startsWith('Fass-')`, fallback auf containerType
+- **Ergebnis**: Jeder Container-Typ visuell eindeutig, Mazerat/Destillat inline erkennbar
+
+### **FIX 5.8: Alkoholgehalt & LA-Berechnung** ✅ ERLEDIGT
+- **Problem**: Endless loading loop, "Cannot read properties of null"
+- **Ursache**: Variable-Scope-Fehler (filledTanks/inventory nicht in sortTanks() erreichbar)
+- **Lösung**: 
+  - Scope-Fix mit `currentFilledTanks` und `currentInventory`
+  - **Alkoholgehalt**: Gewichtetes Mittel `Σ(vol_i × alk_i) / Σ(vol_i)`
+  - **L.A. (Liter Absolutalkohol)**: `Σ(vol_i × alk_i / 100)`
+- **Display**: 🌡️ Alkoholgehalt: 42.50% vol | 💧 L.A.: 127.85L
+- **Ergebnis**: Korrekte Durchschnittsberechnung, keine Scope-Fehler
+
+### **FIX 5.7: Intelligentes Icon-Mapping** ✅ ERLEDIGT
+- **Anforderung**: "wenn schon, dann ordentlich... passendere icons?"
+- **Lösung**: Pattern-basierte Icon-Auswahl statt statischer Fabrik-Icons
+- **Implementierung**: 
+  ```javascript
+  if (/^T\s?\d+/.test(tankId)) icon = '🏭';        // T-Tanks
+  else if (tankId.startsWith('Fass-')) icon = '🛢️'; // Fässer
+  else if (tankId.startsWith('B-')) icon = '⚗️';    // Ballons
+  // ... 4 weitere Kategorien
+  ```
+- **Fallback**: `typeIcons[tank.containerType]` wenn ID-Pattern nicht matcht
+- **Ergebnis**: 7 verschiedene Icons für 7 Container-Typen
+
+### **FIX 5.6: Wahlweise Sortierung** ✅ ERLEDIGT
+- **Anforderung**: "geht das auch noch wahlweise nach produkt?"
+- **Lösung**: 2 Buttons (📦 Nach Gebindegröße | 🏷️ Nach Produkt)
+- **Implementierung**: `window.sortTanks(mode)` + renderTanksGrid()
+- **Button-Verhalten**: Aktiver Button blau (#2196f3), inaktiv grau (#9e9e9e)
+- **Ergebnis**: User kann zwischen Kapazitäts- und Produkt-Sortierung wechseln
 
 ### **FIX 5.5: Automatische Tank-ID Migration** ✅ ERLEDIGT
 - **Problem**: XLSX-Import erforderte manuelle Terminal-Workflow (Scripts, Git-Commands)
@@ -176,5 +226,5 @@
 5. **Production Testing starten** - Alle Features im realen Einsatz prüfen
 
 ---
-**Quelle:** docs/ROADMAP.md (letzte Aktualisierung: 15.10.2025)  
-**Letzte Änderungen:** FIX 4.1 (QR-Codes), FIX 3.1 (TODO-Sync), FIX 2.1 (GitHub zentralisiert)
+**Quelle:** docs/ROADMAP.md (letzte Aktualisierung: 11.11.2025)  
+**Letzte Änderungen:** FIX 5.9 (Icon-System + Badges), FIX 5.8 (Alkoholgehalt/LA), FIX 5.7 (Icon-Mapping)
