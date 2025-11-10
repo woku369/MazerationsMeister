@@ -541,11 +541,15 @@
 
         console.log(`✅ ${filledTanks.length} befüllte Tanks gefunden (Quelle: ${dataSource})`);
 
+        // ✅ FIX: Variablen in höherem Scope für sortTanks() zugänglich machen
+        let currentFilledTanks = filledTanks;
+        let currentInventory = inventory;
+
         // Render-Funktion für Grid (wird bei Sortierung neu aufgerufen)
         function renderTanksGrid() {
-          const tanksGridHTML = filledTanks.map(tank => {
+          const tanksGridHTML = currentFilledTanks.map(tank => {
             // ✅ KRITISCH: Inventory-Items nach tank.id filtern, nicht nach tankNr!
-            const tankItems = inventory.filter(item => 
+            const tankItems = currentInventory.filter(item => 
               item.tankNr === tank.id || 
               item.tankNr === tank.tankNr ||
               item.tankNr === tank.bezeichnung
@@ -555,6 +559,28 @@
             );
             const capacity = parseFloat(tank.volumenLiter) || 0;
             const fillPercent = capacity > 0 ? Math.round((currentFill / capacity) * 100) : 0;
+            
+            // 📊 Alkoholgehalt und LA berechnen (gewichteter Durchschnitt)
+            let avgAlkohol = 0;
+            let totalLA = 0;
+            if (tankItems.length > 0) {
+              const totalVolume = tankItems.reduce((sum, item) => sum + (parseFloat(item.currentQuantityLiters) || 0), 0);
+              if (totalVolume > 0) {
+                // Gewichteter Durchschnitt für Alkoholgehalt
+                avgAlkohol = tankItems.reduce((sum, item) => {
+                  const vol = parseFloat(item.currentQuantityLiters) || 0;
+                  const alk = parseFloat(item.alcoholVolProzent) || 0;
+                  return sum + (vol * alk);
+                }, 0) / totalVolume;
+                
+                // Gesamte Liter Absolutalkohol
+                totalLA = tankItems.reduce((sum, item) => {
+                  const vol = parseFloat(item.currentQuantityLiters) || 0;
+                  const alk = parseFloat(item.alcoholVolProzent) || 0;
+                  return sum + (vol * alk / 100);
+                }, 0);
+              }
+            }
             
             // 🎨 Intelligente Icon-Auswahl basierend auf Gebinde-Typ
             let icon = '🏭'; // Fallback
@@ -616,9 +642,19 @@
                   <div style="font-size: 14px; color: #666; margin-bottom: 5px;">
                     <strong>Inhalt:</strong> ${tankItems.map(item => item.produktName).join(', ')}
                   </div>
-                  <div style="font-size: 14px; color: #666;">
+                  <div style="font-size: 14px; color: #666; margin-bottom: 5px;">
                     <strong>Füllstand:</strong> ${currentFill.toFixed(1)}L / ${capacity}L (${fillPercent}%)
                   </div>
+                  ${avgAlkohol > 0 ? `
+                    <div style="font-size: 14px; color: #666; margin-bottom: 5px;">
+                      <strong>🌡️ Alkoholgehalt:</strong> ${avgAlkohol.toFixed(2)}% vol
+                    </div>
+                  ` : ''}
+                  ${totalLA > 0 ? `
+                    <div style="font-size: 14px; color: #666;">
+                      <strong>💧 L.A.:</strong> ${totalLA.toFixed(2)}L
+                    </div>
+                  ` : ''}
                 </div>
                 
                 <div style="background: #f5f5f5; border-radius: 10px; height: 20px; overflow: hidden;">
@@ -657,12 +693,12 @@
             }
           }
           
-          filledTanks.sort((a, b) => {
+          currentFilledTanks.sort((a, b) => {
             // Hole Produkt für Sortierung
-            const aItems = inventory.filter(item => 
+            const aItems = currentInventory.filter(item => 
               item.tankNr === a.id || item.tankNr === a.tankNr || item.tankNr === a.bezeichnung
             );
-            const bItems = inventory.filter(item => 
+            const bItems = currentInventory.filter(item => 
               item.tankNr === b.id || item.tankNr === b.tankNr || item.tankNr === b.bezeichnung
             );
             const aProdukt = aItems[0]?.produktName || '';
@@ -687,11 +723,11 @@
         };
 
         // Standard-Sortierung: Nach Kapazität (initial, ohne Button-Update)
-        filledTanks.sort((a, b) => {
-          const aItems = inventory.filter(item => 
+        currentFilledTanks.sort((a, b) => {
+          const aItems = currentInventory.filter(item => 
             item.tankNr === a.id || item.tankNr === a.tankNr || item.tankNr === a.bezeichnung
           );
-          const bItems = inventory.filter(item => 
+          const bItems = currentInventory.filter(item => 
             item.tankNr === b.id || item.tankNr === b.tankNr || item.tankNr === b.bezeichnung
           );
           const aProdukt = aItems[0]?.produktName || '';
