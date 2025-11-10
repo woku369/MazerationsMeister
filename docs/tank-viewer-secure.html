@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tank-Viewer - MazerationsMeister</title>
-  <!-- Version: 2025-11-10-v2 - FIX 5.8 + TypeScript-Syntax removed -->
+  <!-- Version: 2025-11-10-v3 - Icons verbessert + Mazerat/Destillat Badges -->
   <style>
     * {
       margin: 0;
@@ -595,30 +595,30 @@
             else if (tankId.startsWith('Fass-')) {
               icon = '🛢️'; // Ölfass/Metallfass
             }
-            // Ballons (B-1 bis B-25, Glasballons 25-100L)
+            // Ballons (B-1 bis B-25, Glasballons 25-100L - große bauchige Glasflaschen)
             else if (tankId.startsWith('B-')) {
-              icon = '🎈'; // Ballon (rund, Glas)
+              icon = '⚗️'; // Kolben/Labor-Glasgefäß (bauchig)
             }
-            // Flaschen (Fl-1 bis Fl-5, kleine Glasflaschen)
+            // Flaschen (Fl-1 bis Fl-5, kleine stehende Glasflaschen)
             else if (tankId.startsWith('Fl-')) {
-              icon = '🍾'; // Champagner-Flasche (elegant)
+              icon = '�'; // Sake-Flasche (stehend, schlank)
             }
             // Kanister (K-X, kubische Kunststoff-Kanister)
             else if (tankId.startsWith('K-')) {
               icon = '🧴'; // Kanister/Behälter
             }
-            // IBC-Container (kubische 1000L Container)
-            else if (tankId.startsWith('IBC-') || tank.containerType === 'ibc') {
-              icon = '📦'; // Großer Würfel/Box
+            // IBC-Container (kubische 1000L Container - wie Container)
+            else if (tankId.startsWith('IBC-') || tankId.startsWith('Cont-') || tank.containerType === 'ibc') {
+              icon = '📦'; // Großer kubischer Container/Box
             }
             // Fallback auf containerType (falls vorhanden)
             else {
               const typeIcons = {
                 tank: '🏭',      // Industrielle Tanks
                 barrel: '🛢️',   // Fässer
-                bottle: '🍾',    // Flaschen
-                ibc: '📦',       // IBC-Container
-                balloon: '🎈',   // Ballons
+                bottle: '�',    // Flaschen (stehend)
+                ibc: '📦',       // IBC-Container (kubisch)
+                balloon: '⚗️',   // Ballons (Kolben, bauchig)
                 other: '🧊'      // Sonstige (neutraler Container)
               };
               icon = typeIcons[tank.containerType] || '🏭';
@@ -641,7 +641,16 @@
                 
                 <div style="margin-bottom: 15px;">
                   <div style="font-size: 14px; color: #666; margin-bottom: 5px;">
-                    <strong>Inhalt:</strong> ${tankItems.map(item => item.produktName).join(', ')}
+                    <strong>Inhalt:</strong> 
+                    ${tankItems.map(item => {
+                      let badge = '';
+                      if (item.category === 'M') {
+                        badge = ' <span style="background: #4caf50; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 600;">🌿 Mazerat</span>';
+                      } else if (item.category === 'Dest') {
+                        badge = ' <span style="background: #ff9800; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 600;">💧 Destillat</span>';
+                      }
+                      return item.produktName + badge;
+                    }).join(', ')}
                   </div>
                   <div style="font-size: 14px; color: #666; margin-bottom: 5px;">
                     <strong>Füllstand:</strong> ${currentFill.toFixed(1)}L / ${capacity}L (${fillPercent}%)
