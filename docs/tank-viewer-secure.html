@@ -541,27 +541,121 @@
 
         console.log(`✅ ${filledTanks.length} befüllte Tanks gefunden (Quelle: ${dataSource})`);
 
-        // Sortierung: 1) Nach Kapazität (groß → klein), 2) Nach Produktname
-        filledTanks.sort((a, b) => {
-          // Hole Produkt für Sortierung nach Sorte
-          const aItems = inventory.filter(item => 
-            item.tankNr === a.id || item.tankNr === a.tankNr || item.tankNr === a.bezeichnung
-          );
-          const bItems = inventory.filter(item => 
-            item.tankNr === b.id || item.tankNr === b.tankNr || item.tankNr === b.bezeichnung
-          );
-          const aProdukt = aItems[0]?.produktName || '';
-          const bProdukt = bItems[0]?.produktName || '';
+        // Sortier-Funktion (wird von Buttons gesteuert)
+        function sortTanks(mode) {
+          // Update Button-Styles
+          const capacityBtn = document.getElementById('sortCapacity');
+          const productBtn = document.getElementById('sortProduct');
+          
+          if (mode === 'capacity') {
+            capacityBtn.style.background = '#2196f3';
+            productBtn.style.background = '#9e9e9e';
+          } else {
+            capacityBtn.style.background = '#9e9e9e';
+            productBtn.style.background = '#2196f3';
+          }
+          
+          filledTanks.sort((a, b) => {
+            // Hole Produkt für Sortierung
+            const aItems = inventory.filter(item => 
+              item.tankNr === a.id || item.tankNr === a.tankNr || item.tankNr === a.bezeichnung
+            );
+            const bItems = inventory.filter(item => 
+              item.tankNr === b.id || item.tankNr === b.tankNr || item.tankNr === b.bezeichnung
+            );
+            const aProdukt = aItems[0]?.produktName || '';
+            const bProdukt = bItems[0]?.produktName || '';
 
-          // Primär: Kapazität (groß → klein)
-          const capacityDiff = (parseFloat(b.volumenLiter) || 0) - (parseFloat(a.volumenLiter) || 0);
-          if (Math.abs(capacityDiff) > 0.1) return capacityDiff;
+            if (mode === 'capacity') {
+              // Primär: Kapazität (groß → klein)
+              const capacityDiff = (parseFloat(b.volumenLiter) || 0) - (parseFloat(a.volumenLiter) || 0);
+              if (Math.abs(capacityDiff) > 0.1) return capacityDiff;
+              // Sekundär: Produktname (alphabetisch)
+              return aProdukt.localeCompare(bProdukt, 'de');
+            } else if (mode === 'product') {
+              // Primär: Produktname (alphabetisch)
+              const nameCompare = aProdukt.localeCompare(bProdukt, 'de');
+              if (nameCompare !== 0) return nameCompare;
+              // Sekundär: Kapazität (groß → klein)
+              return (parseFloat(b.volumenLiter) || 0) - (parseFloat(a.volumenLiter) || 0);
+            }
+            return 0;
+          });
+          renderTanksGrid();
+        }
 
-          // Sekundär: Produktname (alphabetisch)
-          return aProdukt.localeCompare(bProdukt, 'de');
-        });
-
-        console.log(`✅ Sortiert: ${filledTanks.length} Tanks (nach Kapazität & Sorte)`);
+        // Standard-Sortierung: Nach Kapazität
+        sortTanks('capacity');
+        console.log(`✅ Sortiert: ${filledTanks.length} Tanks (Standard: nach Kapazität & Sorte)`);
+        
+        // Render-Funktion für Grid (wird bei Sortierung neu aufgerufen)
+        function renderTanksGrid() {
+          const tanksGridHTML = filledTanks.map(tank => {
+            // ✅ KRITISCH: Inventory-Items nach tank.id filtern, nicht nach tankNr!
+            const tankItems = inventory.filter(item => 
+              item.tankNr === tank.id || 
+              item.tankNr === tank.tankNr ||
+              item.tankNr === tank.bezeichnung
+            );
+            const currentFill = tankItems.reduce((sum, item) => 
+              sum + (parseFloat(item.currentQuantityLiters) || 0), 0
+            );
+            const capacity = parseFloat(tank.volumenLiter) || 0;
+            const fillPercent = capacity > 0 ? Math.round((currentFill / capacity) * 100) : 0;
+            
+            // Icon basierend auf Typ
+            const icons = {
+              tank: '🏭',
+              barrel: '🛢️',
+              bottle: '🍾',
+              ibc: '📦',
+              balloon: '🎈'
+            };
+            const icon = icons[tank.containerType] || '🏭';
+            
+            // Status-Farbe basierend auf Füllstand
+            let fillColor = '#4caf50'; // grün
+            if (fillPercent < 30) fillColor = '#f44336'; // rot
+            else if (fillPercent < 70) fillColor = '#ff9800'; // orange
+            
+            return `
+              <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                  <span style="font-size: 32px;">${icon}</span>
+                  <div style="flex: 1;">
+                    <h3 style="margin: 0; font-size: 18px; color: #333;">${tank.id}</h3>
+                    ${tank.bezeichnung ? `<p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">${tank.bezeichnung}</p>` : ''}
+                  </div>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                  <div style="font-size: 14px; color: #666; margin-bottom: 5px;">
+                    <strong>Inhalt:</strong> ${tankItems.map(item => item.produktName).join(', ')}
+                  </div>
+                  <div style="font-size: 14px; color: #666;">
+                    <strong>Füllstand:</strong> ${currentFill.toFixed(1)}L / ${capacity}L (${fillPercent}%)
+                  </div>
+                </div>
+                
+                <div style="background: #f5f5f5; border-radius: 10px; height: 20px; overflow: hidden;">
+                  <div style="background: ${fillColor}; height: 100%; width: ${Math.min(fillPercent, 100)}%; transition: width 0.3s;"></div>
+                </div>
+                
+                <button onclick="window.location.href='?tank=' + encodeURIComponent('${tank.id}')" 
+                        style="margin-top: 15px; width: 100%; padding: 10px; background: #2196f3; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                  Details anzeigen →
+                </button>
+              </div>
+            `;
+          }).join('');
+          
+          document.getElementById('tanksGrid').innerHTML = tanksGridHTML || `
+            <div style="grid-column: 1 / -1; background: #fff3e0; border: 1px solid #ffb74d; color: #e65100; padding: 20px; border-radius: 10px; text-align: center;">
+              <strong>Keine befüllten Tanks gefunden.</strong><br/>
+              Bitte synchronisiere die Lagerbestände oder prüfe die Filtereinstellungen.
+            </div>
+          `;
+        }
         
         // UI anpassen für Master-View
         document.getElementById('loadingScreen').style.display = 'none';
@@ -570,78 +664,24 @@
             <div class="tank-icon">📋</div>
             <h1>Tank-Übersicht</h1>
             <p class="tank-subtitle">Alle befüllten Container (${filledTanks.length})</p>
+            
+            <!-- Sortier-Buttons -->
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+              <button id="sortCapacity" onclick="sortTanks('capacity')" 
+                      style="padding: 10px 20px; background: #2196f3; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: 600;">
+                📦 Nach Gebindegröße
+              </button>
+              <button id="sortProduct" onclick="sortTanks('product')" 
+                      style="padding: 10px 20px; background: #9e9e9e; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: 600;">
+                🏷️ Nach Produkt
+              </button>
+            </div>
           </div>
-          <div id="tanksGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 30px;">
-            ${filledTanks.length === 0 ? `
-              <div style="grid-column: 1 / -1; background: #fff3e0; border: 1px solid #ffb74d; color: #e65100; padding: 20px; border-radius: 10px; text-align: center;">
-                <strong>Keine befüllten Tanks gefunden.</strong><br/>
-                Bitte synchronisiere die Lagerbestände oder prüfe die Filtereinstellungen.
-              </div>
-            ` : ''}
-            ${filledTanks.map(tank => {
-              // ✅ KRITISCH: Inventory-Items nach tank.id filtern, nicht nach tankNr!
-              const tankItems = inventory.filter(item => 
-                item.tankNr === tank.id || 
-                item.tankNr === tank.tankNr ||
-                item.tankNr === tank.bezeichnung
-              );
-              const currentFill = tankItems.reduce((sum, item) => 
-                sum + (parseFloat(item.currentQuantityLiters) || 0), 0
-              );
-              const capacity = parseFloat(tank.volumenLiter) || 0;
-              const fillPercent = capacity > 0 ? Math.round((currentFill / capacity) * 100) : 0;
-              
-              // Icon basierend auf Typ
-              const icons = {
-                tank: '🏭',
-                barrel: '🛢️',
-                bottle: '🍾',
-                ibc: '📦',
-                balloon: '🎈'
-              };
-              const icon = icons[tank.containerType] || '🏭';
-              
-              // Status-Farbe basierend auf Füllstand
-              let fillColor = '#4caf50'; // grün
-              if (fillPercent < 30) fillColor = '#f44336'; // rot
-              else if (fillPercent < 70) fillColor = '#ff9800'; // orange
-              
-              return `
-                <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                  <div style="font-size: 40px; text-align: center; margin-bottom: 10px;">${icon}</div>
-                  <h3 style="margin: 0 0 5px 0; font-size: 18px; font-weight: 600; text-align: center;">${tank.id || tank.tankNr}</h3>
-                  <p style="margin: 0 0 15px 0; font-size: 14px; color: #666; text-align: center;">${tank.bezeichnung || ''}</p>
-                  
-                  <div style="background: #f5f5f5; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                      <span style="font-size: 12px; color: #666;">Füllstand:</span>
-                      <span style="font-size: 14px; font-weight: 600;">${currentFill.toFixed(1)}L / ${capacity.toFixed(1)}L</span>
-                    </div>
-                    <div style="background: #e0e0e0; height: 20px; border-radius: 10px; overflow: hidden;">
-                      <div style="background: ${fillColor}; width: ${fillPercent}%; height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600;">
-                        ${fillPercent}%
-                      </div>
-                    </div>
-                  </div>
-                  
-                  ${tankItems.length > 0 ? `
-                    <div style="margin-top: 15px;">
-                      <div style="font-size: 12px; color: #666; margin-bottom: 5px;">📦 Inhalt:</div>
-                      ${tankItems.map(item => `
-                        <div style="padding: 5px 0; border-bottom: 1px solid #eee; font-size: 13px;">
-                          <strong>${item.produktName}</strong>
-                          ${item.category === 'M' ? '<span style="background: #4caf50; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 5px;">🌿 Mazerat</span>' : ''}
-                          ${item.category === 'Dest' ? '<span style="background: #ff9800; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 5px;">💧 Destillat</span>' : ''}
-                          <div style="color: #666; font-size: 12px;">${parseFloat(item.currentQuantityLiters).toFixed(1)}L</div>
-                        </div>
-                      `).join('')}
-                    </div>
-                  ` : ''}
-                </div>
-              `;
-            }).join('')}
-          </div>
+          <div id="tanksGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 30px;"></div>
         `;
+        
+        // Initial render
+        renderTanksGrid();
         
         document.getElementById('tankContent').style.display = 'block';
         
