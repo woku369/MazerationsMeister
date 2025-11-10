@@ -540,6 +540,28 @@
         });
 
         console.log(`✅ ${filledTanks.length} befüllte Tanks gefunden (Quelle: ${dataSource})`);
+
+        // Sortierung: 1) Nach Kapazität (groß → klein), 2) Nach Produktname
+        filledTanks.sort((a, b) => {
+          // Hole Produkt für Sortierung nach Sorte
+          const aItems = inventory.filter(item => 
+            item.tankNr === a.id || item.tankNr === a.tankNr || item.tankNr === a.bezeichnung
+          );
+          const bItems = inventory.filter(item => 
+            item.tankNr === b.id || item.tankNr === b.tankNr || item.tankNr === b.bezeichnung
+          );
+          const aProdukt = aItems[0]?.produktName || '';
+          const bProdukt = bItems[0]?.produktName || '';
+
+          // Primär: Kapazität (groß → klein)
+          const capacityDiff = (parseFloat(b.volumenLiter) || 0) - (parseFloat(a.volumenLiter) || 0);
+          if (Math.abs(capacityDiff) > 0.1) return capacityDiff;
+
+          // Sekundär: Produktname (alphabetisch)
+          return aProdukt.localeCompare(bProdukt, 'de');
+        });
+
+        console.log(`✅ Sortiert: ${filledTanks.length} Tanks (nach Kapazität & Sorte)`);
         
         // UI anpassen für Master-View
         document.getElementById('loadingScreen').style.display = 'none';

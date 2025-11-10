@@ -252,6 +252,18 @@ export default function InventoryManagement() {
             const la = parseNumber(getByField('literAbsolutalkohol'));
             const lastInvRaw = getByField('lastInventoryDate');
             const lastInv = lastInvRaw ? new Date(lastInvRaw) : new Date();
+            
+            // ✅ FIX: Tank-Zuordnung - Verwende eindeutige Tank-ID statt generischer tankNr
+            let tankNrRaw = (getByField('tankNr') || '') + '';
+            tankNrRaw = tankNrRaw.trim();
+            
+            // Prüfe ob bereits eindeutige ID (z.B. "Fass-1", "B-12", "T 341")
+            const hasUniqueId = /^(.+)-(\d+)$/.test(tankNrRaw) || /^[T]\s?\d+/.test(tankNrRaw);
+            
+            // Wenn generisch (z.B. "Fass", "B", "Fl"), konvertiere NICHT automatisch
+            // → Migration-Script wird später eindeutige IDs zuweisen
+            // → Import behält generischen Wert, damit Migration ihn erkennen kann
+            
             return {
               id: uuidv4(),
               artikelNummer: (getByField('artikelNummer') || '') + '',
@@ -259,7 +271,7 @@ export default function InventoryManagement() {
               chargenNummer: (getByField('chargenNummer') || '') + '',
               produktName: lastProduktName,  // Verwende letzten bekannten Produktnamen
               category: lastCategory,          // Verwende letzte bekannte Kategorie
-              tankNr: (getByField('tankNr') || '') + '',
+              tankNr: tankNrRaw,  // ✅ Behalte Wert aus Excel (Migration-Script korrigiert später)
               currentQuantityLiters: menge,
               alcoholVolProzent: alcoholRaw,
               dichte20C: d20,
@@ -281,7 +293,26 @@ export default function InventoryManagement() {
           console.log('═══════════════════════════════════════════════════════════\n');
           
           setInventoryItems(neueInventoryItems);
-          toast({ title: 'Lagerbestand importiert', description: `${neueInventoryItems.length} Lagerartikel wurden hinzugefügt.` });
+          
+          // Prüfe ob generische Tank-IDs vorhanden sind
+          const generischeTankNr = neueInventoryItems.filter(item => {
+            const hasUniqueId = /^(.+)-(\d+)$/.test(item.tankNr) || /^[T]\s?\d+/.test(item.tankNr);
+            return !hasUniqueId && item.tankNr.trim() !== '';
+          });
+          
+          if (generischeTankNr.length > 0) {
+            toast({ 
+              title: '⚠️ Tank-IDs müssen korrigiert werden', 
+              description: `${generischeTankNr.length} Items haben generische Tank-Nr (z.B. "Fass", "B"). Bitte Migration-Script ausführen: node scripts/migrate-tank-ids.js`,
+              variant: 'default',
+              duration: 10000
+            });
+          } else {
+            toast({ 
+              title: 'Lagerbestand importiert', 
+              description: `${neueInventoryItems.length} Lagerartikel wurden hinzugefügt.` 
+            });
+          }
           
           // Tank-Definitionen automatisch synchronisieren nach dem Import
           syncTankDefinitionsWithInventory();
