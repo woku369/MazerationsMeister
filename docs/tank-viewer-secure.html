@@ -315,20 +315,26 @@
       }
     }
 
-    // ✅ FIX 1.3: Master-View Check hinzufügen
+    // ✅ FIX 1.3: Master-View Check verbessern
     async function loadTankData() {
       const urlParams = new URLSearchParams(window.location.search);
       const viewMode = urlParams.get('view');
       const tankNr = urlParams.get('tank');
-      
-      // ✅ Master-View: Alle befüllten Tanks anzeigen
+
+      // Master-View: Nur loadAllTanksView aufrufen, KEIN Fallback/Fehler!
       if (viewMode === 'all') {
         await loadAllTanksView();
         return;
       }
-      
+
+      // Einzelansicht: Tanknummer MUSS vorhanden sein
       if (!tankNr) {
-        alert('Keine Tank-Nummer angegeben');
+        document.getElementById('loadingScreen').innerHTML = `
+          <div style="text-align: center; padding: 40px;">
+            <h2 style="color: #f44336;">⚠️ Fehler</h2>
+            <p>Keine Tank-Nummer angegeben.<br>Bitte QR-Code eines spezifischen Gebindes scannen oder den Master-QR für die Übersicht verwenden.</p>
+          </div>
+        `;
         return;
       }
 
@@ -479,15 +485,46 @@
     async function loadAllTanksView() {
       try {
         console.log('🔍 Lade Master-View: Alle befüllten Tanks...');
-        
-        // Lade App-Daten von GitHub Pages
-        const response = await fetch('https://woku369.github.io/MazerationsMeister/app-data.json');
-        if (!response.ok) throw new Error('app-data.json konnte nicht geladen werden');
-        
-        const appData = await response.json();
-        const tanks = appData.tanks || [];
-        const inventory = appData.inventory || [];
-        
+
+        let tanks = [];
+        let inventory = [];
+        let dataSource = 'github';
+
+        // 1) Bevorzugt lokale Daten aus der Electron App nutzen (offline-fähig)
+        if (window.electron && window.electron.hybridStorage) {
+          try {
+            const localTanks = await window.electron.hybridStorage.getItem('tankDefinitions') || [];
+            const localInventory = await window.electron.hybridStorage.getItem('inventoryItems') || [];
+
+            if (Array.isArray(localTanks) && localTanks.length > 0) {
+              tanks = localTanks;
+              inventory = Array.isArray(localInventory) ? localInventory : [];
+              dataSource = 'electron';
+              console.log(`✅ Master-View nutzt lokale Electron-Daten (${tanks.length} Tanks)`);
+            } else {
+              console.warn('⚠️ Keine lokalen Tank-Daten gefunden, wechsle zu GitHub Pages');
+            }
+          } catch (electronError) {
+            console.warn('⚠️ Lokale Daten konnten nicht geladen werden:', electronError);
+          }
+        }
+
+        // 2) Fallback: GitHub Pages Daten laden
+        if (tanks.length === 0) {
+          const response = await fetch('https://woku369.github.io/MazerationsMeister/app-data.json');
+          if (!response.ok) throw new Error('app-data.json konnte nicht geladen werden');
+
+          const appData = await response.json();
+          tanks = appData.tanks || [];
+          inventory = appData.inventory || [];
+          dataSource = 'github';
+          console.log(`ℹ️ Master-View nutzt GitHub Pages Daten (${tanks.length} Tanks)`);
+        }
+
+        if (tanks.length === 0) {
+          throw new Error('Keine Tank-Daten verfügbar');
+        }
+
         // Filtere nur befüllte Tanks
         const filledTanks = tanks.filter(tank => {
           const tankItems = inventory.filter(item => 
@@ -500,8 +537,8 @@
           );
           return currentFill > 0;
         });
-        
-        console.log(`✅ ${filledTanks.length} befüllte Tanks gefunden`);
+
+        console.log(`✅ ${filledTanks.length} befüllte Tanks gefunden (Quelle: ${dataSource})`);
         
         // UI anpassen für Master-View
         document.getElementById('loadingScreen').style.display = 'none';
@@ -512,6 +549,12 @@
             <p class="tank-subtitle">Alle befüllten Container (${filledTanks.length})</p>
           </div>
           <div id="tanksGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 30px;">
+            ${filledTanks.length === 0 ? `
+              <div style="grid-column: 1 / -1; background: #fff3e0; border: 1px solid #ffb74d; color: #e65100; padding: 20px; border-radius: 10px; text-align: center;">
+                <strong>Keine befüllten Tanks gefunden.</strong><br/>
+                Bitte synchronisiere die Lagerbestände oder prüfe die Filtereinstellungen.
+              </div>
+            ` : ''}
             ${filledTanks.map(tank => {
               const tankItems = inventory.filter(item => 
                 item.tankNr === tank.tankNr || 
