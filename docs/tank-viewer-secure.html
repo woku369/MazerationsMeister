@@ -556,15 +556,46 @@
             const capacity = parseFloat(tank.volumenLiter) || 0;
             const fillPercent = capacity > 0 ? Math.round((currentFill / capacity) * 100) : 0;
             
-            // Icon basierend auf Typ
-            const icons = {
-              tank: '🏭',
-              barrel: '🛢️',
-              bottle: '🍾',
-              ibc: '📦',
-              balloon: '🎈'
-            };
-            const icon = icons[tank.containerType] || '🏭';
+            // 🎨 Intelligente Icon-Auswahl basierend auf Gebinde-Typ
+            let icon = '🏭'; // Fallback
+            const tankId = tank.id || '';
+            
+            // T-Tanks (große zylindrische Edelstahl-Tanks)
+            if (/^T\s?\d+/.test(tankId)) {
+              icon = '🏭'; // Fabrik-Icon für industrielle Tanks
+            }
+            // Fässer (Fass-1 bis Fass-6, 100-300L Holz/Edelstahl)
+            else if (tankId.startsWith('Fass-')) {
+              icon = '🛢️'; // Ölfass/Metallfass
+            }
+            // Ballons (B-1 bis B-25, Glasballons 25-100L)
+            else if (tankId.startsWith('B-')) {
+              icon = '🎈'; // Ballon (rund, Glas)
+            }
+            // Flaschen (Fl-1 bis Fl-5, kleine Glasflaschen)
+            else if (tankId.startsWith('Fl-')) {
+              icon = '🍾'; // Champagner-Flasche (elegant)
+            }
+            // Kanister (K-X, kubische Kunststoff-Kanister)
+            else if (tankId.startsWith('K-')) {
+              icon = '🧴'; // Kanister/Behälter
+            }
+            // IBC-Container (kubische 1000L Container)
+            else if (tankId.startsWith('IBC-') || tank.containerType === 'ibc') {
+              icon = '📦'; // Großer Würfel/Box
+            }
+            // Fallback auf containerType (falls vorhanden)
+            else {
+              const typeIcons: Record<string, string> = {
+                tank: '🏭',      // Industrielle Tanks
+                barrel: '🛢️',   // Fässer
+                bottle: '🍾',    // Flaschen
+                ibc: '📦',       // IBC-Container
+                balloon: '🎈',   // Ballons
+                other: '🧊'      // Sonstige (neutraler Container)
+              };
+              icon = typeIcons[tank.containerType] || '🏭';
+            }
             
             // Status-Farbe basierend auf Füllstand
             let fillColor = '#4caf50'; // grün
