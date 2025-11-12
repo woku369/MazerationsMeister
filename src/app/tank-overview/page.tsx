@@ -22,6 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import QRCode from 'qrcode';
+import { hybridStorage } from '@/lib/hybrid-storage';
 
 interface TankOverview {
   tankId: string;
@@ -55,54 +56,34 @@ export default function TankOverviewPage() {
     };
   }, []);
 
-  const loadTankData = () => {
+  const loadTankData = async () => {
     try {
       setLoading(true);
       
-      // Load from localStorage - simple and reliable
-      const storedData = localStorage.getItem('tank-data');
-      const storedInventory = localStorage.getItem('inventory-items');
+      // Load from hybridStorage (Electron + localStorage fallback)
+      const tankData = await hybridStorage.get('tank-data') || [];
+      const inventoryData = await hybridStorage.get('inventory-items') || [];
       
-      let tankData: any[] = [];
-      let inventoryData: any[] = [];
-      
-      if (storedData) {
-        try {
-          tankData = JSON.parse(storedData);
-          console.log('✅ Tank-Daten geladen:', tankData.length, 'Container');
-        } catch (error) {
-          console.error('❌ Fehler beim Parsen der Tank-Daten:', error);
-          tankData = [];
-        }
-      }
-      
-      if (storedInventory) {
-        try {
-          inventoryData = JSON.parse(storedInventory);
-          console.log('✅ Inventar geladen:', inventoryData.length, 'Items');
-        } catch (error) {
-          console.error('❌ Fehler beim Parsen des Inventars:', error);
-          inventoryData = [];
-        }
-      }
+      console.log('✅ Tank-Daten geladen:', tankData.length, 'Container');
+      console.log('✅ Inventar geladen:', inventoryData.length, 'Items');
 
       // Process stored data mit Inventar-Füllständen
-      tankData = tankData.map(tank => {
+      const processedTanks = tankData.map((tank: any) => {
         const capacity = tank.volumenLiter || tank.capacity || 0;
         
         // Berechne ECHTEN Füllstand aus Inventar
-        const tankInventory = inventoryData.filter(item => 
+        const tankInventory = inventoryData.filter((item: any) => 
           item.tankNr === tank.id || 
           item.tankNr === tank.tankNr ||
           item.tankNr === tank.bezeichnung
         );
-        const currentFill = tankInventory.reduce((sum, item) => 
+        const currentFill = tankInventory.reduce((sum: number, item: any) => 
           sum + (item.currentQuantityLiters || item.menge || 0), 0
         );
         
         // Hole aktuellen Inhalt (größte Position)
         const mainContent = tankInventory.length > 0 
-          ? tankInventory.sort((a, b) => 
+          ? tankInventory.sort((a: any, b: any) => 
               (b.currentQuantityLiters || 0) - (a.currentQuantityLiters || 0)
             )[0]
           : null;
@@ -124,7 +105,7 @@ export default function TankOverviewPage() {
         };
       });
 
-      setTanks(tankData);
+      setTanks(processedTanks);
       setLastUpdate(new Date());
     } catch (error) {
       console.error('Failed to load tank data:', error);
