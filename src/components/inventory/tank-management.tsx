@@ -1154,22 +1154,17 @@ export default function TankManagement() {
           
           {/* Container-Fill Dialog */}
           {selectedTankForFill && (
-            <Dialog open={showContainerFillDialog} onOpenChange={setShowContainerFillDialog}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Umfüllen & Verschicken aus {selectedTankForFill?.bezeichnung}</DialogTitle>
-                </DialogHeader>
-                <ContainerFillDialog
-                  container={selectedTankForFill}
-                  onSuccess={() => {
-                    setShowContainerFillDialog(false);
-                    setSelectedTankForFill(null);
-                    loadTankData(); // Tanks neu laden nach Befüllung
-                    loadInventoryData(); // Inventar neu laden
-                  }}
-                />
-              </DialogContent>
-            </Dialog>
+            <ContainerFillDialog
+              container={selectedTankForFill}
+              open={showContainerFillDialog}
+              onOpenChange={setShowContainerFillDialog}
+              onSuccess={() => {
+                setShowContainerFillDialog(false);
+                setSelectedTankForFill(null);
+                loadTankData(); // Tanks neu laden nach Befüllung
+                loadInventoryData(); // Inventar neu laden
+              }}
+            />
           )}
           
           {/* Container-History Dialog */}

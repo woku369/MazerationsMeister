@@ -28,16 +28,20 @@ import { Label } from '@/components/ui/label';
 import type { TankDefinition } from '@/schemas/tankSchema';
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 import { fillContainerFromTank } from '@/lib/container-management';
-import { getInventory, saveInventory } from '@/lib/universal-storage-simple';
+import { hybridStorage } from '@/lib/hybrid-storage';
 
 type ContainerFillDialogProps = {
   container: TankDefinition;
   onSuccess: (updatedContainer: TankDefinition) => void;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
-export function ContainerFillDialog({ container, onSuccess, trigger }: ContainerFillDialogProps) {
-  const [open, setOpen] = useState(false);
+export function ContainerFillDialog({ container, onSuccess, trigger, open: externalOpen, onOpenChange }: ContainerFillDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
   const [sourceTankNr, setSourceTankNr] = useState('');
   const [targetTankNr, setTargetTankNr] = useState('');
   const [amount, setAmount] = useState('');
@@ -54,7 +58,7 @@ export function ContainerFillDialog({ container, onSuccess, trigger }: Container
   }, [open]);
 
   async function loadAvailableTanks() {
-    const items = getInventory() as StoredInventoryItem[];
+    const items = await hybridStorage.get('inventory-items') || [];
     
     // Prüfe ob der aktuelle Container Inhalt hat
     const containerItems = items.filter((item: StoredInventoryItem) => 
@@ -68,8 +72,7 @@ export function ContainerFillDialog({ container, onSuccess, trigger }: Container
       setSourceTankNr(container.id); // Dieser Container ist die Quelle
       
       // Hole alle Tank-Definitionen
-      const { hybridStorage } = await import('@/lib/hybrid-storage');
-      const allTanks = await hybridStorage.get('tankDefinitions') || [];
+      const allTanks = await hybridStorage.get('tank-data') || [];
       
       // Finde LEERE Tanks (keine Inventar-Items zugeordnet)
       const emptyTanks = allTanks
@@ -113,8 +116,8 @@ export function ContainerFillDialog({ container, onSuccess, trigger }: Container
         throw new Error('Bitte gültige Menge eingeben');
       }
 
-      // Hole alle Inventar-Items
-      const allItems = getInventory() as StoredInventoryItem[];
+      // Hole alle Inventar-Items aus hybridStorage
+      const allItems = await hybridStorage.get('inventory-items') || [];
       
       let result: {
         updatedContainer: TankDefinition;
@@ -135,8 +138,7 @@ export function ContainerFillDialog({ container, onSuccess, trigger }: Container
         sourceId = sourceTankNr; // Der aktuelle Container
         
         // Hole Ziel-Container Definition
-        const { hybridStorage } = await import('@/lib/hybrid-storage');
-        const allTanks = await hybridStorage.get('tankDefinitions') || [];
+        const allTanks = await hybridStorage.get('tank-data') || [];
         targetContainer = allTanks.find((t: TankDefinition) => t.id === targetTankNr);
         
         if (!targetContainer) {
@@ -156,21 +158,21 @@ export function ContainerFillDialog({ container, onSuccess, trigger }: Container
           allItems
         );
         
-        // Aktualisiere Inventar
-        const updatedInventory = allItems.map(item => 
+        // Aktualisiere Inventar in hybridStorage
+        const updatedInventory = allItems.map((item: StoredInventoryItem) => 
           item.id === result.inventoryUpdates.source.id ? result.inventoryUpdates.source : item
         );
         updatedInventory.push(result.inventoryUpdates.target);
-        await saveInventory(updatedInventory);
+        await hybridStorage.set('inventory-items', updatedInventory);
         
         // Setze ZIEL-Container auf "shipped"
-        const tanks = await hybridStorage.get('tankDefinitions') || [];
+        const tanks = await hybridStorage.get('tank-data') || [];
         const updatedTanks = tanks.map((t: TankDefinition) => 
           t.id === targetContainer.id 
             ? { ...t, status: 'shipped' as const }
             : t
         );
-        await hybridStorage.set('tankDefinitions', updatedTanks);
+        await hybridStorage.set('tank-data', updatedTanks);
         console.log('✅ Ziel-Container als "Verschickt" markiert:', targetContainer.id);
         
         // Erfolg - gebe QUELL-Container zurück (für UI-Update)
@@ -197,22 +199,21 @@ export function ContainerFillDialog({ container, onSuccess, trigger }: Container
           allItems
         );
         
-        // Aktualisiere Inventar
-        const updatedInventory = allItems.map(item => 
+        // Aktualisiere Inventar in hybridStorage
+        const updatedInventory = allItems.map((item: StoredInventoryItem) => 
           item.id === result.inventoryUpdates.source.id ? result.inventoryUpdates.source : item
         );
         updatedInventory.push(result.inventoryUpdates.target);
-        await saveInventory(updatedInventory);
+        await hybridStorage.set('inventory-items', updatedInventory);
         
         // Setze diesen Container auf "shipped"
-        const { hybridStorage } = await import('@/lib/hybrid-storage');
-        const tanks = await hybridStorage.get('tankDefinitions') || [];
+        const tanks = await hybridStorage.get('tank-data') || [];
         const updatedTanks = tanks.map((t: TankDefinition) => 
           t.id === container.id 
             ? { ...t, status: 'shipped' as const }
             : t
         );
-        await hybridStorage.set('tankDefinitions', updatedTanks);
+        await hybridStorage.set('tank-data', updatedTanks);
         console.log('✅ Container als "Verschickt" markiert:', container.id);
         
         // Erfolg - gebe aktualisierten Container zurück
