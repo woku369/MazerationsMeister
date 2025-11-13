@@ -165,15 +165,7 @@ export function ContainerFillDialog({ container, onSuccess, trigger, open: exter
         updatedInventory.push(result.inventoryUpdates.target);
         await hybridStorage.set('inventory-items', updatedInventory);
         
-        // Setze ZIEL-Container auf "shipped"
-        const tanks = await hybridStorage.get('tank-data') || [];
-        const updatedTanks = tanks.map((t: TankDefinition) => 
-          t.id === targetContainer.id 
-            ? { ...t, status: 'shipped' as const }
-            : t
-        );
-        await hybridStorage.set('tank-data', updatedTanks);
-        console.log('✅ Ziel-Container als "Verschickt" markiert:', targetContainer.id);
+        console.log('✅ Umfüllen erfolgreich:', sourceId, '→', targetContainer.id);
         
         // Erfolg - gebe QUELL-Container zurück (für UI-Update)
         onSuccess(container);
@@ -206,15 +198,7 @@ export function ContainerFillDialog({ container, onSuccess, trigger, open: exter
         updatedInventory.push(result.inventoryUpdates.target);
         await hybridStorage.set('inventory-items', updatedInventory);
         
-        // Setze diesen Container auf "shipped"
-        const tanks = await hybridStorage.get('tank-data') || [];
-        const updatedTanks = tanks.map((t: TankDefinition) => 
-          t.id === container.id 
-            ? { ...t, status: 'shipped' as const }
-            : t
-        );
-        await hybridStorage.set('tank-data', updatedTanks);
-        console.log('✅ Container als "Verschickt" markiert:', container.id);
+        console.log('✅ Befüllen erfolgreich:', sourceTankNr, '→', container.id);
         
         // Erfolg - gebe aktualisierten Container zurück
         onSuccess(result.updatedContainer);
@@ -247,12 +231,12 @@ export function ContainerFillDialog({ container, onSuccess, trigger, open: exter
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'source' ? '📤 Umfüllen & Verschicken' : '📥 Container befüllen'}: {container.id}
+            {mode === 'source' ? '📤 Umfüllen' : '📥 Container befüllen'}: {container.id}
           </DialogTitle>
           <DialogDescription>
             {mode === 'source' 
-              ? `Füllen Sie den Inhalt von ${container.id} in einen leeren Container um. Der Ziel-Container wird als "Verschickt" markiert.`
-              : `Füllen Sie ${container.id} aus einem befüllten Tank. Der Container wird als "Verschickt" markiert.`
+              ? `Füllen Sie den Inhalt von ${container.id} in einen leeren Container um.`
+              : `Füllen Sie ${container.id} aus einem befüllten Tank.`
             }
           </DialogDescription>
         </DialogHeader>
