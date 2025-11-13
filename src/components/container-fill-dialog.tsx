@@ -59,12 +59,15 @@ export function ContainerFillDialog({ container, onSuccess, trigger, open: exter
 
   async function loadAvailableTanks() {
     const items = await hybridStorage.get('inventory-items') || [];
+    console.log('🔍 DEBUG: Geladene Inventar-Items:', items.length, items);
     
     // Prüfe ob der aktuelle Container Inhalt hat
     const containerItems = items.filter((item: StoredInventoryItem) => 
       item.tankNr === container.id || item.tankNr === container.tankNr
     );
+    console.log('🔍 DEBUG: Container-Items für', container.id, ':', containerItems);
     const hasContent = containerItems.reduce((sum: number, item: StoredInventoryItem) => sum + (item.currentQuantityLiters || 0), 0) > 0;
+    console.log('🔍 DEBUG: hasContent =', hasContent);
     
     if (hasContent) {
       // MODUS: Quelle → Ziel (Container hat Inhalt, suche LEERE Ziele)
@@ -73,6 +76,7 @@ export function ContainerFillDialog({ container, onSuccess, trigger, open: exter
       
       // Hole alle Tank-Definitionen
       const allTanks = await hybridStorage.get('tank-data') || [];
+      console.log('🔍 DEBUG: Alle Tanks:', allTanks.length);
       
       // Finde LEERE Tanks (keine Inventar-Items zugeordnet)
       const emptyTanks = allTanks
@@ -89,6 +93,7 @@ export function ContainerFillDialog({ container, onSuccess, trigger, open: exter
           category: tank.containerType,
         } as StoredInventoryItem));
       
+      console.log('🔍 DEBUG: Leere Tanks gefunden:', emptyTanks.length);
       setAvailableTanks(emptyTanks);
     } else {
       // MODUS: Ziel ← Quelle (Container ist leer, suche GEFÜLLTE Quellen)
@@ -96,12 +101,13 @@ export function ContainerFillDialog({ container, onSuccess, trigger, open: exter
       setTargetTankNr(container.id); // Dieser Container ist das Ziel
       
       // Filter: Nur Tanks mit Inhalt und genug Menge
-      const tanks = items.filter((item: StoredInventoryItem) => 
-        item.tankNr && 
-        item.currentQuantityLiters > 0 &&
-        item.tankNr !== container.id && 
-        item.tankNr !== container.tankNr
-      );
+      const tanks = items.filter((item: StoredInventoryItem) => {
+        const hasQuantity = item.tankNr && item.currentQuantityLiters > 0;
+        const notSameContainer = item.tankNr !== container.id && item.tankNr !== container.tankNr;
+        console.log('🔍 DEBUG: Prüfe Item:', item.tankNr, '| Menge:', item.currentQuantityLiters, '| hasQuantity:', hasQuantity, '| notSame:', notSameContainer);
+        return hasQuantity && notSameContainer;
+      });
+      console.log('🔍 DEBUG: Gefüllte Tanks gefunden:', tanks.length, tanks);
       setAvailableTanks(tanks);
     }
   }
