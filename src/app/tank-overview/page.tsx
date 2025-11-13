@@ -62,7 +62,7 @@ export default function TankOverviewPage() {
       
       // Load from hybridStorage (Electron + localStorage fallback)
       const tankData = await hybridStorage.get('tank-data') || [];
-      const inventoryData = await hybridStorage.get('inventory-items') || [];
+      const inventoryData = await hybridStorage.get('inventoryItems') || [];
       
       console.log('✅ Tank-Daten geladen:', tankData.length, 'Container');
       console.log('✅ Inventar geladen:', inventoryData.length, 'Items');

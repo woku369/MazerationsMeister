@@ -58,7 +58,7 @@ export function ContainerFillDialog({ container, onSuccess, trigger, open: exter
   }, [open]);
 
   async function loadAvailableTanks() {
-    const items = await hybridStorage.get('inventory-items') || [];
+    const items = await hybridStorage.get('inventoryItems') || [];
     console.log('🔍 DEBUG: Geladene Inventar-Items:', items.length, items);
     
     // Prüfe ob der aktuelle Container Inhalt hat
@@ -123,7 +123,9 @@ export function ContainerFillDialog({ container, onSuccess, trigger, open: exter
       }
 
       // Hole alle Inventar-Items aus hybridStorage
-      const allItems = await hybridStorage.get('inventory-items') || [];
+          try {
+      // Hole aktuelles Inventar
+      const allItems = await hybridStorage.get('inventoryItems') || [];
       
       let result: {
         updatedContainer: TankDefinition;
@@ -169,7 +171,7 @@ export function ContainerFillDialog({ container, onSuccess, trigger, open: exter
           item.id === result.inventoryUpdates.source.id ? result.inventoryUpdates.source : item
         );
         updatedInventory.push(result.inventoryUpdates.target);
-        await hybridStorage.set('inventory-items', updatedInventory);
+        await hybridStorage.set('inventoryItems', updatedInventory);
         
         console.log('✅ Umfüllen erfolgreich:', sourceId, '→', targetContainer.id);
         
@@ -202,7 +204,7 @@ export function ContainerFillDialog({ container, onSuccess, trigger, open: exter
           item.id === result.inventoryUpdates.source.id ? result.inventoryUpdates.source : item
         );
         updatedInventory.push(result.inventoryUpdates.target);
-        await hybridStorage.set('inventory-items', updatedInventory);
+        await hybridStorage.set('inventoryItems', updatedInventory);
         
         console.log('✅ Befüllen erfolgreich:', sourceTankNr, '→', container.id);
         
