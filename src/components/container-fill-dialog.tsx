@@ -64,7 +64,7 @@ export function ContainerFillDialog({ container, onSuccess, trigger, open: exter
     const containerItems = items.filter((item: StoredInventoryItem) => 
       item.tankNr === container.id || item.tankNr === container.tankNr
     );
-    const hasContent = containerItems.reduce((sum, item) => sum + (item.currentQuantityLiters || 0), 0) > 0;
+    const hasContent = containerItems.reduce((sum: number, item: StoredInventoryItem) => sum + (item.currentQuantityLiters || 0), 0) > 0;
     
     if (hasContent) {
       // MODUS: Quelle → Ziel (Container hat Inhalt, suche LEERE Ziele)
