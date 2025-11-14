@@ -122,8 +122,6 @@ export function ContainerFillDialog({ container, onSuccess, trigger, open: exter
         throw new Error('Bitte gültige Menge eingeben');
       }
 
-      // Hole alle Inventar-Items aus hybridStorage
-          try {
       // Hole aktuelles Inventar
       const allItems = await hybridStorage.get('inventoryItems') || [];
       
