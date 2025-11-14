@@ -40,7 +40,12 @@ export default function AssignContainerDialog({ isOpen, onClose, item, onAssign 
     onClose();
   };
 
-  if (!item) return null;
+  if (!item) {
+    console.log('🔍 DEBUG AssignDialog: Item ist null, Dialog wird nicht gerendert');
+    return null;
+  }
+
+  console.log('🔍 DEBUG AssignDialog: Dialog wird gerendert für:', item.produktName);
 
   // Gruppiere Container nach Kategorie
   const containersByCategory: Record<string, TankDefinition[]> = {};
