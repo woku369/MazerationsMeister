@@ -64,6 +64,7 @@ function TankForm({
   const [volumenLiter, setVolumenLiter] = useState(initialData?.volumenLiter || 5000);
   const [containerType, setContainerType] = useState<ContainerType>(initialData?.containerType || 'tank');
   const [hasUniqueNumber, setHasUniqueNumber] = useState(initialData?.hasUniqueNumber ?? true);
+  const [status, setStatus] = useState<'empty' | 'filled' | 'shipped' | 'returned'>(initialData?.status || 'empty');
 
   const handleSubmit = async (e: React.FormEvent) => { // ✅ Make async
     e.preventDefault();
@@ -73,7 +74,8 @@ function TankForm({
         bezeichnung: bezeichnung.trim(),
         volumenLiter,
         containerType,
-        hasUniqueNumber
+        hasUniqueNumber,
+        status
       });
     }
   };
@@ -175,6 +177,26 @@ function TankForm({
           Standard: {containerTypeOptions.find(opt => opt.value === containerType)?.defaultVolume} Liter für {containerTypeOptions.find(opt => opt.value === containerType)?.label}
         </p>
       </div>
+      
+      {/* ✅ Status Dropdown */}
+      {initialData && (
+        <div>
+          <label className="text-sm font-medium">Status</label>
+          <select 
+            value={status} 
+            onChange={(e) => setStatus(e.target.value as any)}
+            className="w-full mt-1 p-2 border border-gray-300 rounded-md"
+          >
+            <option value="empty">⚪ Leer</option>
+            <option value="filled">🔵 Befüllt</option>
+            <option value="shipped">🟡 Verschickt</option>
+            <option value="returned">🟣 Retour</option>
+          </select>
+          <p className="text-xs text-muted-foreground mt-1">
+            Manueller Status für Tracking (unabhängig vom Füllstand)
+          </p>
+        </div>
+      )}
       
       <div className="flex gap-2">
         <Button type="submit">

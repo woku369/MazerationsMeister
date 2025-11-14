@@ -459,8 +459,10 @@ export default function InventoryManagement() {
   };
 
   const handleOpenAssignContainerDialog = (item: StoredInventoryItem) => {
+    console.log('🔍 DEBUG: handleOpenAssignContainerDialog aufgerufen für:', item.produktName);
     setItemForContainerAssignment(item);
     setIsAssignContainerDialogOpen(true);
+    console.log('🔍 DEBUG: Dialog-State gesetzt auf true');
   };
 
   const handleAssignToContainer = async (tankId: string) => {

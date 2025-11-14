@@ -23,7 +23,9 @@ export default function AssignContainerDialog({ isOpen, onClose, item, onAssign 
 
   useEffect(() => {
     const loadContainers = async () => {
+      console.log('🔍 DEBUG AssignDialog: Lade Container...');
       const tanks = await getTankDefinitions();
+      console.log('🔍 DEBUG AssignDialog: Tanks gefunden:', tanks.length, tanks);
       setContainers(tanks);
     };
     if (isOpen) {
