@@ -18,6 +18,8 @@ type AssignContainerDialogProps = {
 };
 
 export default function AssignContainerDialog({ isOpen, onClose, item, onAssign }: AssignContainerDialogProps) {
+  console.log('🔍 DEBUG AssignDialog: Komponente gerendert, isOpen=', isOpen, ', item=', item?.produktName || 'null');
+  
   const [containers, setContainers] = useState<TankDefinition[]>([]);
   const [selectedContainer, setSelectedContainer] = useState<string>('');
 
