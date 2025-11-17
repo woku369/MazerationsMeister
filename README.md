@@ -1,7 +1,7 @@
 # MazerationsMeister
 
-**Version:** 1.1.0 (Production Ready)  
-**Stand:** 11. Oktober 2025
+**Version:** 1.2.1 (Container-Befüllung Fix)  
+**Stand:** 17. November 2025
 
 Eine professionelle Anwendung zur Verwaltung von Mazerationen, Lagerbeständen, Tank-Management und Rezepturen für Spirituosen-Produktion.
 
@@ -9,10 +9,20 @@ Eine professionelle Anwendung zur Verwaltung von Mazerationen, Lagerbeständen, 
 
 - **Mazeration-Protokolle** - Vollständige Dokumentation von Mazerationsprozessen
 - **Lagerverwaltung** - Tracking von Beständen, Chargen und Transaktionen
+  - **Container-Befüllung** ✨ *(FIX in v1.2.1)* - Direktes Zuordnen von Chargen zu Tanks via Dialog
 - **QR-Code Tank-Management** - Mobile Abfrage von Tank-Inhalten via QR-Codes
-- **Rezeptur-System** ✨ *(NEU in v1.1.0)* - Excel-Style Editor für Produkt-Rezepturen
+- **Rezeptur-System** - Excel-Style Editor für Produkt-Rezepturen
 - **PDF-Exporte** - Protokolle, Lagerdaten und Produktions-Checklisten
 - **Responsive Design** - Optimiert für Desktop und Mobile
+
+## ✨ Fix in Version 1.2.1 (17. November 2025)
+
+### **Container-Befüllung Dialog (FIX 5.10)**
+- **Problem behoben:** Violetter "In Container füllen" Button öffnet nun korrekt den Dialog
+- **Root Cause:** Komponente war in toter Code-Zone (nach 2. return-Statement)
+- **Lösung:** AssignContainerDialog verschoben, 338 Zeilen toten Code entfernt
+- **Ergebnis:** Dialog zeigt 62 Container zur Auswahl, Zuordnung funktioniert einwandfrei
+- 📖 Siehe [Container-Befüllung Anleitung](./docs/CONTAINER_BEFUELLUNG_ANLEITUNG.md)
 
 ## ✨ Neu in Version 1.1.0
 
