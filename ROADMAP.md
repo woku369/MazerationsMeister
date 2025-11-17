@@ -1,7 +1,7 @@
 ﻿# MazerationsMeister - Roadmap
 
-**Stand:** 11. November 2025  
-**Version:** 1.2.0 (Master QR Fixes + Icon-System)
+**Stand:** 17. November 2025  
+**Version:** 1.2.1 (Container-Befüllung Fix)
 
 ## ✅ Was ist fertig (v1.1.0)
 
@@ -19,6 +19,32 @@
 - **App-Größe optimiert** (294 MB portable)
 
 ## 🐛 Bug-Fixes (Oktober - November 2025)
+
+### **FIX 5.10: Container-Befüllung Dialog (Violetter Button)** ✅ ERLEDIGT (17.11.2025)
+- **Problem**: Violetter "In Container füllen" Button öffnete keinen Dialog
+- **Symptome**: 
+  - Handler wurde ausgeführt, State aktualisiert (isOpen=true, item gesetzt)
+  - AssignContainerDialog-Komponente wurde nie gerendert
+  - Keine Console-Logs aus der Dialog-Komponente
+- **Root Cause**: **Strukturfehler in inventory-management.tsx**
+  - Komponente hatte **zwei return-Statements** (Zeile 928 und 1173)
+  - Erstes return führte immer aus, zweites war **toter Code**
+  - AssignContainerDialog war **nach dem zweiten return** platziert (Zeile 1481+)
+  - **338 Zeilen toten Code** durch versehentliche Duplikation
+- **Debug-Prozess**:
+  - Console-Logs auf allen Ebenen: Handler ✓, Parent-Render ✓, Module-Load ✓
+  - Component-Render fehlte komplett → Komponente nie aufgerufen
+  - Test-Dialog (rotes Overlay) bestätigte: Code in toter Zone
+  - Bewegung vor erstes return → **"das fenster ist jetzt da!"** (User-Zitat)
+- **Lösung**:
+  - AssignContainerDialog von Zeile 1481+ nach Zeile 1170 verschoben (vor erstes return)
+  - Zweites return-Statement gelöscht
+  - 338 Zeilen duplizierten Code entfernt
+- **Ergebnis**: 
+  - Dialog öffnet korrekt bei Button-Klick
+  - 62 Container werden zur Auswahl angezeigt
+  - Produkt-Zuordnung funktioniert einwandfrei
+- **Technisch**: React stoppt Ausführung bei erstem return, alles danach ist unreachable code
 
 ### **FIX 5.9: Master QR Icon-System + Mazerat/Destillat-Badges** ✅ ERLEDIGT
 - **Problem**: Icons zu generisch, Typ-Kennzeichnung (Mazerat/Destillat) fehlte

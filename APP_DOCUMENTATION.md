@@ -1,8 +1,8 @@
 
-# Mazerations-Meister V 1.1.0 - App Dokumentation
+# Mazerations-Meister V 1.2.1 - App Dokumentation
 
-**Stand:** 11. Oktober 2025  
-**Version:** 1.1.0 (Production Ready)
+**Stand:** 17. November 2025  
+**Version:** 1.2.1 (Container-Befüllung Fix)
 
 ---
 
@@ -43,6 +43,11 @@ Die operativen Daten der Lagerverwaltung (Artikelstamm, Chargen, Transaktionen, 
         *   Anlegen neuer Lagerartikel/Chargen, wobei Artikeldetails (Artikel-Nr., Name, Kategorie) aus dem Artikelstamm per Dropdown ausgewählt und übernommen werden können.
         *   Erfassung von Chargennummer, Tank-Nr./Lagerort, Menge, Alkoholgehalt, Erfassungsdatum und Bemerkungen.
         *   Tabellarische Übersicht der einzelnen Chargen im Lager mit Filter- (nach Kategorie) und Sortierfunktionen (diverse Spalten).
+        *   **Container-Befüllung:** *(FIX in v1.2.1)* 
+            *   Violetter "In Container füllen" Button (PackageOpen-Icon) in jeder Tabellenzeile.
+            *   Dialog zur Zuordnung von Lagerbeständen zu Tanks/Containern.
+            *   Auswahl aus 62 verfügbaren Containern mit Anzeige von Produktname, Charge, Menge und Alkoholgehalt.
+            *   Automatische Aktualisierung des Tank-Feldes nach Zuordnung.
     *   **Bestandsbewegungen:**
         *   Möglichkeit, für jede Charge "Zugänge" und "Abgänge" zu buchen.
         *   Dialog zur Erfassung von Menge, Datum und Bemerkungen für jede Transaktion.
