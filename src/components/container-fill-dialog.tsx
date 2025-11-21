@@ -88,14 +88,19 @@ export function ContainerFillDialog({ container, onSuccess, trigger, open: exter
         })
         .map((tank: TankDefinition) => ({
           id: `empty-${tank.id}`,
-          tankNr: tank.id,
+          artikelNummer: '',
           produktName: `${tank.id} (leer)`,
-          batchNumber: '-',
+          chargenNummer: '-',
+          tankNr: tank.id,
           currentQuantityLiters: 0,
-          alcoholContent: 0,
+          alcoholVolProzent: 0,
           category: tank.containerType || 'Container',
           description: `Leerer Container (${tank.volumenLiter}L Kapazität)`,
-          acquisitionDate: new Date().toISOString(),
+          acquisitionDate: new Date(),
+          lastInventoryDate: new Date(),
+          notes: '',
+          bemerkungen: '',
+          kennzeichen: '',
         } as StoredInventoryItem));
       
       console.log('🔍 DEBUG: Leere Tanks gefunden:', emptyTanks.length);

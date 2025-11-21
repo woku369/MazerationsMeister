@@ -304,7 +304,8 @@ app.whenReady().then(() => {
       const fs = await import('fs/promises');
       const path = await import('path');
       
-      const backupDir = path.join(app.getAppPath(), 'backups');
+      // FIX: Verwende userData statt appPath (ASAR ist read-only in gepackter EXE)
+      const backupDir = path.join(app.getPath('userData'), 'backups');
       
       // Erstelle backups/ Verzeichnis falls nicht vorhanden
       try {
@@ -329,7 +330,8 @@ app.whenReady().then(() => {
       const fs = await import('fs/promises');
       const path = await import('path');
       
-      const backupDir = path.join(app.getAppPath(), 'backups');
+      // FIX: Verwende userData statt appPath (ASAR ist read-only)
+      const backupDir = path.join(app.getPath('userData'), 'backups');
       
       try {
         const files = await fs.readdir(backupDir);
@@ -362,7 +364,8 @@ app.whenReady().then(() => {
       const fs = await import('fs/promises');
       const path = await import('path');
       
-      const backupDir = path.join(app.getAppPath(), 'backups');
+      // FIX: Verwende userData statt appPath (ASAR ist read-only)
+      const backupDir = path.join(app.getPath('userData'), 'backups');
       
       try {
         const files = await fs.readdir(backupDir);
@@ -397,7 +400,8 @@ app.whenReady().then(() => {
       const fs = await import('fs/promises');
       const path = await import('path');
       
-      const backupDir = path.join(app.getAppPath(), 'backups');
+      // FIX: Verwende userData statt appPath (ASAR ist read-only)
+      const backupDir = path.join(app.getPath('userData'), 'backups');
       const filePath = path.join(backupDir, filename);
       
       const content = await fs.readFile(filePath, 'utf-8');
