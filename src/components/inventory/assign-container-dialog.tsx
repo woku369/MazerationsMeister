@@ -60,16 +60,8 @@ export function AssignContainerDialog({ isOpen, onClose, item, onAssign }: Assig
 
   console.log('🔍 DEBUG AssignDialog: Render Dialog-JSX, open=', isOpen);
   
-  // CRITICAL: Test ob Return überhaupt erreicht wird
-  if (!isOpen) {
-    console.log('🔍 DEBUG AssignDialog: Dialog geschlossen, return null');
-    return null;
-  }
-  
-  console.log('🔍 DEBUG AssignDialog: RENDERING DIALOG NOW!');
-  
   return (
-    <Dialog open={true} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
