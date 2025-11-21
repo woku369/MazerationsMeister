@@ -17,7 +17,8 @@ type AssignContainerDialogProps = {
   onAssign: (tankId: string) => void;
 };
 
-export default function AssignContainerDialog({ isOpen, onClose, item, onAssign }: AssignContainerDialogProps) {
+// Named Export für bessere Production-Build Kompatibilität
+export function AssignContainerDialog({ isOpen, onClose, item, onAssign }: AssignContainerDialogProps) {
   console.log('🔍 DEBUG AssignDialog: Komponente gerendert, isOpen=', isOpen, ', item=', item?.produktName || 'null');
   
   const [containers, setContainers] = useState<TankDefinition[]>([]);
@@ -45,6 +46,7 @@ export default function AssignContainerDialog({ isOpen, onClose, item, onAssign 
   // FIX: Zeige Dialog trotzdem an, auch wenn item temporär null ist
   // In Production kann es sein, dass item später nachkommt
   console.log('🔍 DEBUG AssignDialog: Dialog wird gerendert, item:', item?.produktName || '(noch nicht gesetzt)');
+  console.log('🔍 DEBUG AssignDialog: isOpen=', isOpen, 'containers=', containers.length);
 
   // Gruppiere Container nach Kategorie
   const containersByCategory: Record<string, TankDefinition[]> = {};
@@ -56,6 +58,8 @@ export default function AssignContainerDialog({ isOpen, onClose, item, onAssign 
     containersByCategory[category].push(tank);
   });
 
+  console.log('🔍 DEBUG AssignDialog: Render Dialog-JSX, open=', isOpen);
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
@@ -162,3 +166,6 @@ export default function AssignContainerDialog({ isOpen, onClose, item, onAssign 
     </Dialog>
   );
 }
+
+// Default Export für Abwärtskompatibilität
+export default AssignContainerDialog;

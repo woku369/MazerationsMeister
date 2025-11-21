@@ -17,7 +17,7 @@ import InventorySummary from './inventory-summary';
 import AddEditArtikelDefinitionDialog from './add-edit-artikel-definition-dialog';
 import ArtikelDefinitionTable from './artikel-definition-table';
 import InventoryTransactionTable from './inventory-transaction-table';
-import AssignContainerDialog from './assign-container-dialog';
+import { AssignContainerDialog } from './assign-container-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { StoredInventoryItem, InventoryTransaction, InventoryTransactionCoreData } from '@/schemas/inventorySchema';

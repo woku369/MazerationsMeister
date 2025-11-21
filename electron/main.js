@@ -305,7 +305,8 @@ electron_1.app.whenReady().then(() => {
         try {
             const fs = await Promise.resolve().then(() => __importStar(require('fs/promises')));
             const path = await Promise.resolve().then(() => __importStar(require('path')));
-            const backupDir = path.join(electron_1.app.getAppPath(), 'backups');
+            // FIX: Verwende userData statt appPath (ASAR ist read-only in gepackter EXE)
+            const backupDir = path.join(electron_1.app.getPath('userData'), 'backups');
             // Erstelle backups/ Verzeichnis falls nicht vorhanden
             try {
                 await fs.mkdir(backupDir, { recursive: true });
@@ -327,7 +328,8 @@ electron_1.app.whenReady().then(() => {
         try {
             const fs = await Promise.resolve().then(() => __importStar(require('fs/promises')));
             const path = await Promise.resolve().then(() => __importStar(require('path')));
-            const backupDir = path.join(electron_1.app.getAppPath(), 'backups');
+            // FIX: Verwende userData statt appPath (ASAR ist read-only)
+            const backupDir = path.join(electron_1.app.getPath('userData'), 'backups');
             try {
                 const files = await fs.readdir(backupDir);
                 const backupFiles = files
@@ -357,7 +359,8 @@ electron_1.app.whenReady().then(() => {
         try {
             const fs = await Promise.resolve().then(() => __importStar(require('fs/promises')));
             const path = await Promise.resolve().then(() => __importStar(require('path')));
-            const backupDir = path.join(electron_1.app.getAppPath(), 'backups');
+            // FIX: Verwende userData statt appPath (ASAR ist read-only)
+            const backupDir = path.join(electron_1.app.getPath('userData'), 'backups');
             try {
                 const files = await fs.readdir(backupDir);
                 const backups = [];
@@ -388,7 +391,8 @@ electron_1.app.whenReady().then(() => {
         try {
             const fs = await Promise.resolve().then(() => __importStar(require('fs/promises')));
             const path = await Promise.resolve().then(() => __importStar(require('path')));
-            const backupDir = path.join(electron_1.app.getAppPath(), 'backups');
+            // FIX: Verwende userData statt appPath (ASAR ist read-only)
+            const backupDir = path.join(electron_1.app.getPath('userData'), 'backups');
             const filePath = path.join(backupDir, filename);
             const content = await fs.readFile(filePath, 'utf-8');
             const data = JSON.parse(content);
