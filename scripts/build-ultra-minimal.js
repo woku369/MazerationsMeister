@@ -110,7 +110,7 @@ try {
 
 // 6. Größe analysieren
 console.log('📊 Step 6/6: Build-Größe analysieren...');
-const distPath = path.join(__dirname, '../dist-ultra/MazerationsMeister-win32-x64');
+const distPath = path.join(__dirname, `../dist-minimal-${timestamp}/MazerationsMeister-win32-x64`);
 
 function getDirSize(dirPath) {
   let totalSize = 0;
@@ -137,7 +137,7 @@ if (fs.existsSync(distPath)) {
   const sizeMB = (sizeBytes / (1024 * 1024)).toFixed(2);
   
   console.log('✅ Build abgeschlossen!\n');
-  console.log('📁 Ausgabe: dist-ultra/MazerationsMeister-win32-x64/');
+  console.log(`📁 Ausgabe: dist-minimal-${timestamp}/MazerationsMeister-win32-x64/`);
   console.log(`📊 Größe: ${sizeMB} MB`);
   console.log(`🎯 Reduzierung: ${((1400 - sizeMB) / 1400 * 100).toFixed(1)}% kleiner als Original`);
   console.log('\n💡 Tipp: Mit 7-Zip auf ~150-200 MB komprimierbar');
