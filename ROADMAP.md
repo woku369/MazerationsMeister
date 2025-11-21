@@ -1,9 +1,22 @@
 ﻿# MazerationsMeister - Roadmap
 
-**Stand:** 17. November 2025  
-**Version:** 1.2.1 (Container-Befüllung Fix)
+**Stand:** 21. November 2025  
+**Version:** 1.2.3 (Google Calendar Integration)
 
-## ✅ Was ist fertig (v1.1.0)
+## ✅ Was ist fertig (v1.2.3)
+
+### **Dashboard-Widgets (NEU in v1.2.3)**
+- **Google Calendar Widget** mit OAuth 2.0 Integration
+  - Monatliche Kalenderansicht mit Terminen
+  - Monats-Navigation (‹ / ›)
+  - Klick auf Tag erstellt neuen Termin
+  - Event-Verwaltung: Erstellen, Bearbeiten, Löschen
+  - .ics-Download für Termine
+  - Native Electron OAuth über IPC (kein Browser-Popup-Blocking)
+  - Client-ID hardcodiert für sofortige Nutzung
+- **ToDo/Projektliste Widget** zur Aufgabenverwaltung
+
+## ✅ Was ist fertig (v1.1.0 - v1.2.2)
 
 - Mazeration-Protokolle
 - Lagerverwaltung mit Chargen & Transaktionen
@@ -19,6 +32,108 @@
 - **App-Größe optimiert** (294 MB portable)
 
 ## 🐛 Bug-Fixes (Oktober - November 2025)
+
+### **FIX 5.11: Container-ID Logik & Git-synchronisierte Backups** ✅ ERLEDIGT (18.11.2025)
+- **Problem 1**: Falsche Container-IDs durch fehlerhafte Sync-Logik
+  - **Symptome**: "Fass-1" wurde zu "Fass-1-1", "B-3" zu "B-3-1" in Gebindeverwaltung
+  - **Root Cause**: `tank-sync.ts` erkannte nur `T 341` als eindeutig (Pattern `/^T\s?\d+/i`)
+  - Nummerierte Container wie "Fass-1", "B-3", "IBC-12" wurden als **generisch** behandelt
+  - Bei jedem Sync: "Fass-1" + 3 Produkte → "Fass-1-1", "Fass-1-2", "Fass-1-3" erstellt
+- **Problem 2**: Container wurden bei XLSX-Import überschrieben
+  - Manuell angelegte Container (z.B. T 344 mit QR-Code) verloren Daten
+  - `bezeichnung`, `volumenLiter`, `movements`, `notes` gingen verloren
+  - Nur ID und Inhalt blieben erhalten
+- **Problem 3**: Keine Backup-Möglichkeit bei Datenverlusten
+- **Problem 4**: Backups nur lokal verfügbar (nicht über GitHub-Sync zwischen Rechnern)
+- **User-Konzept**: 
+  - Jedes physische Gebinde ist **eindeutig** mit QR-Code
+  - Leere Gebinde bleiben sichtbar (Kapazitätsplanung)
+  - Gebinde nur löschen wenn verschickt und nicht retour
+- **Lösung Teil 1 - Eindeutigkeits-Erkennung** (FIX 5.11a):
+  - Pattern erweitert: `/^(.+?)-(\d+)$/` erkennt ALLE nummerierten Behälter
+  - "Fass-1", "B-3", "IBC-12", "Fl-5" werden als eindeutig behandelt
+  - Mehrere Produkte im selben Behälter erlaubt (ein Container, mehrere Items)
+- **Lösung Teil 2 - Container-Merge** (FIX 5.11b):
+  - Container werden nicht mehr ersetzt, sondern **intelligent gemerged**
+  - **Behalten**: `bezeichnung`, `volumenLiter`, `containerType`, `notes`, `movements`
+  - **Aktualisieren**: `currentContent`, `status` (aus Inventar)
+  - Manuell angelegte Container behalten QR-Codes und Beschreibungen
+- **Lösung Teil 3 - Auto-Backup-System** (FIX 5.11c):
+  - Automatisches Backup bei jeder Container-Änderung
+  - Format: `tankDefinitions_backup_2025-11-18T14-30-45` mit Timestamp
+  - Backup enthält: Datum, Version, Anzahl, alle Container-Daten
+  - Letzte 10 Backups werden behalten, ältere automatisch gelöscht
+  - **Neuer Button**: "📦 Backup wiederherstellen" in Gebindeverwaltung
+  - Auswahl aus Liste mit Datum/Zeit, Wiederherstellung per Nummer
+- **Lösung Teil 4 - Git-Synchronisierung** (FIX 5.11d):
+  - **User-Anforderung**: "das arbeiten auf zumindest 2 rechnern geplant ist"
+  - Backups werden **doppelt** gespeichert:
+    - **Lokal** in hybridStorage (schneller Zugriff, wie bisher)
+    - **Git-Repository** in `backups/` Verzeichnis (GitHub-Sync)
+  - Neue Datei: `src/lib/git-backup.ts` mit Git-Backup-Funktionen
+  - Electron IPC-Handler für Dateisystem-Zugriff:
+    - `save-git-backup`: Speichert JSON in backups/ Verzeichnis
+    - `list-git-backups`: Listet verfügbare Git-Backups
+    - `load-git-backup`: Lädt spezifisches Backup aus Git
+    - `cleanup-git-backups`: Räumt alte Git-Backups auf (max. 10)
+  - Backup-Restore zeigt **beide Quellen** an:
+    - 💾 Lokale Backups (sofort verfügbar)
+    - 🌐 Git-Backups (von allen Rechnern)
+  - Automatisches Cleanup für beide Speicherorte
+  - Browser-Fallback: Download-Trigger wenn File System Access nicht verfügbar
+- **Formular-Verbesserungen**:
+  - "Bezeichnung/Nummer" → **"Container-ID"** (eindeutiger)
+  - "Beschreibung" → **"Beschreibung (optional)"** (z.B. "blaues PE-Fass, XY GmbH")
+  - Placeholder aktualisiert: "z.B. Fass-1" statt "z.B. Fass #1"
+  - Hilfetext verbessert: "Eindeutige Container-ID (z.B. Fass-1, B-1...)"
+- **Ergebnis**:
+  - ✅ "Fass-1" bleibt "Fass-1" (keine Suffixe mehr)
+  - ✅ Manuell angelegte Container überleben XLSX-Imports
+  - ✅ QR-Codes bleiben erhalten
+  - ✅ Notizen, Historie, Beschreibungen bleiben erhalten
+### **FEATURE 6.1: Google Calendar Integration** ✅ ERLEDIGT (21.11.2025)
+- **Dashboard-Widget**: Vollständige Google Calendar Integration
+- **OAuth 2.0**: Native Electron-Integration über IPC (kein Browser-Popup!)
+  - IPC-Handler `google-oauth-login` in electron/main.ts
+  - Modal BrowserWindow für OAuth-Flow
+  - URL-Überwachung via `will-redirect` und `did-navigate`
+  - Automatisches Fenster-Schließen nach erfolgreicher Authentifizierung
+- **Kalender-Monatsansicht**:
+  - 7-Tage-Woche (Mo-So) mit deutschem Format
+  - Aktueller Tag hervorgehoben (blau)
+  - Kleine Punkte unter Tagen mit Terminen (bis zu 3 sichtbar)
+  - Monats-Navigation mit ‹ / › Buttons
+  - Monatsname und Jahr als Header (z.B. "November 2025")
+- **Event-Management**:
+  - Klick auf Tag → Dialog mit vorausgefülltem Datum (9:00-10:00 Uhr)
+  - Event-Liste mit nächsten 5 Terminen unter Kalender
+  - Event-Details: Titel, Datum/Zeit, Ort, Beschreibung
+  - Aktions-Buttons: Bearbeiten, Löschen, .ics-Download
+  - Automatisches Neuladen bei Monatswechsel
+- **Client-ID hardcodiert**: `1004514561626-ak5fear0b788324hrchjbv6hkhdiobam.apps.googleusercontent.com`
+- **Technisch**:
+  - `src/lib/google-calendar.ts`: API-Wrapper mit Electron-IPC-Unterstützung
+  - `electron/preload.js`: IPC-Bridge `invoke()` für OAuth
+  - Google Identity Services für Token-Management
+  - COOP-Problem umgangen durch native BrowserWindow
+- **UX-Verbesserungen**:
+  - Keine Popup-Blocker-Probleme (Modal-Fenster statt window.open)
+  - Sofortige Authentifizierung ohne Konfiguration
+  - Deutsche Datumsformatierung (date-fns/locale/de)
+  - Mobile-responsive Grid-Layout
+
+### **FIX 5.10: Container-Befüllung Dialog (Violetter Button)** ✅ ERLEDIGT (17.11.2025)
+  - ✅ Backup-Wiederherstellung mit 10 Versionen
+  - ✅ **Backups über GitHub auf allen Rechnern verfügbar** (FIX 5.11d)
+  - ✅ Dual-Storage-System (lokal + Git) für maximale Sicherheit
+- **Technisch**: 
+  - Pattern-Matching für nummerierte IDs erweitert
+  - Merge-Logik statt Replace für Container-Updates
+  - Backup-Rotation mit Timestamp-basierten Keys
+  - Hilfsfunktion `getAllStorageKeys()` für Cross-Storage Backup-Liste
+  - Git-Backup-System mit Electron IPC-Handlers
+  - `backups/` Verzeichnis mit README und .gitkeep für Git-Tracking
+  - Browser-Fallback mit Download-Trigger
 
 ### **FIX 5.10: Container-Befüllung Dialog (Violetter Button)** ✅ ERLEDIGT (17.11.2025)
 - **Problem**: Violetter "In Container füllen" Button öffnete keinen Dialog

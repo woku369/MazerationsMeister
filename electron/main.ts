@@ -43,6 +43,24 @@ async function startSimpleServer(): Promise<string> {
         const parsedUrl = parse(req.url || '/', true);
         let pathname = parsedUrl.pathname || '/';
         
+        // Handle OAuth callback
+        if (pathname === '/oauth/callback') {
+          const callbackHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head><title>Authentifizierung erfolgreich</title></head>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+              <h1>✅ Authentifizierung erfolgreich!</h1>
+              <p>Dieses Fenster kann geschlossen werden.</p>
+              <script>setTimeout(() => window.close(), 2000);</script>
+            </body>
+            </html>
+          `;
+          res.writeHead(200, { 'Content-Type': 'text/html' });
+          res.end(callbackHtml);
+          return;
+        }
+        
         // Default to index.html for root
         if (pathname === '/') {
           pathname = '/index.html';
@@ -224,6 +242,62 @@ app.whenReady().then(() => {
     return app.getPath('userData');
   });
 
+  // Google OAuth Handler
+  ipcMain.handle('google-oauth-login', async (event, options) => {
+    return new Promise((resolve) => {
+      const authUrl = 
+        `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${options.clientId}&` +
+        `redirect_uri=http://localhost/oauth/callback&` +
+        `response_type=token&` +
+        `scope=${encodeURIComponent(options.scope)}&` +
+        `prompt=select_account`;
+
+      // Erstelle OAuth Fenster
+      const authWindow = new BrowserWindow({
+        width: 600,
+        height: 700,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+        },
+        parent: mainWindow!,
+        modal: true,
+        show: false,
+      });
+
+      authWindow.loadURL(authUrl);
+      authWindow.show();
+
+      // Überwache URL-Änderungen
+      authWindow.webContents.on('will-redirect', (event, url) => {
+        handleCallback(url);
+      });
+
+      authWindow.webContents.on('did-navigate', (event, url) => {
+        handleCallback(url);
+      });
+
+      function handleCallback(url: string) {
+        if (url.includes('/oauth/callback')) {
+          const urlObj = new URL(url);
+          const hash = urlObj.hash.substring(1);
+          const params = new URLSearchParams(hash);
+          const accessToken = params.get('access_token');
+
+          if (accessToken) {
+            resolve({ success: true, accessToken });
+            authWindow.close();
+          }
+        }
+      }
+
+      authWindow.on('closed', () => {
+        resolve({ success: false, error: 'Fenster geschlossen' });
+      });
+    });
+  });
+
   createWindow();
 });
 
@@ -246,6 +320,21 @@ app.on('activate', () => {
 
 app.on('web-contents-created', (event, contents) => {
   contents.setWindowOpenHandler(({ url }) => {
+    // Erlaube Google OAuth Popups
+    if (url.startsWith('https://accounts.google.com')) {
+      return { 
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 600,
+          height: 700,
+          webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true
+          }
+        }
+      };
+    }
+    
     if (url.startsWith('http') && !url.startsWith('http://localhost:')) {
       require('electron').shell.openExternal(url);
       return { action: 'deny' };

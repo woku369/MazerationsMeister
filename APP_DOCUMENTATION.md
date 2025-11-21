@@ -1,8 +1,8 @@
 
-# Mazerations-Meister V 1.2.1 - App Dokumentation
+# Mazerations-Meister V 1.2.2 - App Dokumentation
 
-**Stand:** 17. November 2025  
-**Version:** 1.2.1 (Container-Befüllung Fix)
+**Stand:** 21. November 2025  
+**Version:** 1.2.3 (Google Calendar Integration)
 
 ---
 
@@ -14,6 +14,7 @@
 2.  **Lagerverwaltung:** Verwaltung der Bestände von Rohmaterialien (z.B. Einsatzalkohol), Zwischenprodukten (Mazerate, Destillate) und Endprodukten.
 3.  **Tank-Management mit QR-Codes:** Mobile-optimierte Tank-Überwachung mit dynamischen Füllständen und QR-Code-basiertem Zugriff.
 4.  **Rezeptur-System:** *(NEU in v1.1.0)* Excel-Style Editor zur Verwaltung von Produkt-Rezepturen mit Workflow-Management und druckbarem Produktions-Protokoll.
+5.  **Dashboard mit Widgets:** *(NEU in v1.2.3)* Zentrale Übersicht mit Google Calendar Integration und ToDo-Listen-Verwaltung.
 
 Die operativen Daten der Lagerverwaltung (Artikelstamm, Chargen, Transaktionen, Tank-Daten) werden clientseitig im LocalStorage des Browsers gespeichert. Zusätzlich bietet das System eine optionale OneDrive-Synchronisation für lokale Backups ohne Azure-Registrierung. Mazerationsprotokolle werden als Dateien (PDF, XLSX, DOCX) auf den Computer des Benutzers heruntergeladen.
 
@@ -59,24 +60,33 @@ Die operativen Daten der Lagerverwaltung (Artikelstamm, Chargen, Transaktionen, 
         *   Export der Lagerübersicht (nach Artikel) als XLSX-Datei.
         *   Export des Transaktionsprotokolls als XLSX-Datei.
 
-*   **Tank-Management:**
-    *   **Tank-Inventar:**
-        *   Automatische Synchronisation von Tank-Definitionen aus dem Lagerbestand.
-        *   Anlage von Tank-Einträgen mit Chargennummer, Sorte, Tankgröße und aktueller Füllmenge.
-        *   Kategorisierung nach Sorte/Kategorie (Mazerat, Destillat, etc.).
+*   **Tank-Management (Gebindeverwaltung):**
+    *   **Container-Inventar:**
+        *   Intelligente Synchronisation von Container-Definitionen aus dem Lagerbestand.
+        *   **Container-ID-System:** Eindeutige IDs (Fass-1, B-3, T 341) für jedes physische Gebinde.
+        *   **Smart Merge:** Bestehende Container werden aktualisiert (nicht ersetzt) - QR-Codes bleiben erhalten!
+        *   Anlage von Container-Einträgen mit Container-ID, Beschreibung, Kapazität und Füllmenge.
+        *   Kategorisierung nach Container-Typ (Tank, Fass, Ballon, IBC, Flasche, Sonstiges).
     *   **QR-Code-System:**
-        *   Generierung von QR-Codes für ausgewählte Tanks (per Checkbox auswählbar).
-        *   Mobile-optimierte Tank-Detail-Seiten mit großer, gut lesbarer Darstellung.
+        *   Generierung von QR-Codes für ausgewählte Container (per Checkbox auswählbar).
+        *   Mobile-optimierte Container-Detail-Seiten mit großer, gut lesbarer Darstellung.
         *   Direkte Bearbeitung von Füllstand und Inhalt über Smartphone.
-        *   Print-optimierte QR-Code-Ausgabe mit Tank-Informationen.
+        *   Batch-Druck: QR-Codes für mehrere Container gleichzeitig drucken.
     *   **Dynamische Inhalts-Verfolgung:**
-        *   Verwaltung von Chargen/Batches pro Tank mit individuellen Mengen.
+        *   Verwaltung von Chargen/Batches pro Container mit individuellen Mengen.
+        *   Mehrere Produkte pro Container erlaubt (z.B. T 341 mit 3 verschiedenen Mazeraten).
         *   Hinzufügen/Entfernen von Chargen mit automatischer Füllstand-Berechnung.
         *   Echtzeit-Übersicht über Gesamtinhalt und Zusammensetzung.
+    *   **Automatisches Backup-System:** *(NEU in v1.2.2)*
+        *   Automatische Backups bei jeder Container-Änderung (XLSX-Import, Befüllen, Bearbeiten).
+        *   10 Backup-Versionen mit Timestamp (z.B. `tankDefinitions_backup_2025-11-18T14-30-45`).
+        *   Button "📦 Backup wiederherstellen" zur Auswahl und Wiederherstellung alter Versionen.
+        *   Backup-Rotation: Letzte 10 werden behalten, ältere automatisch gelöscht.
+        *   Schutz vor Datenverlust bei XLSX-Imports, versehentlichem Löschen oder Sync-Fehlern.
     *   **OneDrive-Synchronisation:**
         *   Optional: Lokale OneDrive-Ordner-Synchronisation ohne Azure-Registrierung.
-        *   Automatische Backups der Tank-Daten in lokalen OneDrive-Ordner.
-        *   Wiederherstellung von Tank-Daten aus OneDrive-Backups.
+        *   Automatische Backups der Container-Daten in lokalen OneDrive-Ordner.
+        *   Wiederherstellung von Container-Daten aus OneDrive-Backups.
 
 *   **Rezeptur-System:** *(NEU in v1.1.0)*
     *   **Rezeptur-Editor:**
@@ -111,6 +121,39 @@ Die operativen Daten der Lagerverwaltung (Artikelstamm, Chargen, Transaktionen, 
     *   Navigation über eine Kopfleiste zu den Bereichen "Mazerationsprotokoll" und "Lagerverwaltung".
 
 ## 2. Änderungsprotokoll (Chronologisch)
+
+### **v1.2.3 - Google Calendar Integration (21.11.2025)**
+
+*   **Dashboard-Widget: Google Calendar** *(FEATURE 6.1)*
+    *   Vollständige Google Calendar Integration mit OAuth 2.0
+    *   **Native Electron-OAuth via IPC:**
+        *   IPC-Handler `google-oauth-login` in `electron/main.ts`
+        *   Modal BrowserWindow statt Browser-Popup (umgeht COOP-Probleme)
+        *   URL-Überwachung via `will-redirect` und `did-navigate` Events
+        *   Automatische Token-Extraktion aus URL-Hash
+        *   Kein Popup-Blocking, bessere UX
+    *   **Kalender-Monatsansicht:**
+        *   7-Tage-Woche (Mo-So) mit deutscher Formatierung
+        *   Aktueller Tag hervorgehoben (blau)
+        *   Event-Indikatoren: Bis zu 3 Punkte unter Tagen mit Terminen
+        *   Tooltip zeigt Event-Titel bei Hover
+    *   **Navigation & Interaktion:**
+        *   ‹ / › Buttons zum Blättern zwischen Monaten
+        *   Monatsname und Jahr als Header (z.B. "November 2025")
+        *   Klick auf Tag öffnet Event-Erstellungs-Dialog mit vorausgefülltem Datum (9:00-10:00 Uhr)
+        *   Automatisches Nachladen der Events beim Monatswechsel
+    *   **Event-Management:**
+        *   Erstellen: Dialog mit Titel, Datum/Zeit, Ort, Beschreibung
+        *   Bearbeiten: Button bei jedem Event
+        *   Löschen: Mit Bestätigung
+        *   .ics-Download: Export für Kalender-Import
+    *   **Event-Liste:** Nächste 5 anstehende Termine unter dem Kalender
+    *   **Client-ID hardcodiert:** `1004514561626-ak5fear0b788324hrchjbv6hkhdiobam.apps.googleusercontent.com`
+    *   **Technisch:**
+        *   `src/lib/google-calendar.ts`: API-Wrapper mit Electron-IPC-Support
+        *   `electron/preload.js`: IPC-Bridge `invoke()` für OAuth
+        *   Google Identity Services + Google Calendar API v3
+        *   COOP-Problem gelöst durch native BrowserWindow
 
 *   **Grundlegende Einrichtung:** Next.js-Anwendung initialisiert.
 *   **Mazerationsformular - Phase 1 (Basis):**

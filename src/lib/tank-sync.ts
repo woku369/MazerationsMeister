@@ -1,6 +1,39 @@
 import type { TankDefinition, ContainerType } from '@/schemas/tankSchema';
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 import { hybridStorage } from './hybrid-storage';
+import { createGitBackup } from './git-backup';
+
+/**
+ * ✅ FIX 5.11c: Automatisches Backup-System für Container-Definitionen
+ * ✅ FIX 5.11d: Git-synchronisierte Backups (verfügbar auf allen Rechnern)
+ * Erstellt bei jeder Änderung ein Backup mit Timestamp
+ */
+async function createContainerBackup(tanks: TankDefinition[]): Promise<void> {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    // Neues Git-Backup-System (lokal + Git-Repository)
+    await createGitBackup(tanks);
+  } catch (error) {
+    console.error('❌ Fehler beim Erstellen des Container-Backups:', error);
+  }
+}
+
+/**
+ * Hilfsfunktion: Alle Storage-Keys auflisten
+ */
+async function getAllStorageKeys(): Promise<string[]> {
+  if (typeof window === 'undefined') return [];
+  
+  try {
+    // Nutze hybridStorage.keys() für beide Storage-Typen
+    const keys = await hybridStorage.keys();
+    return keys;
+  } catch {
+    // Fallback auf localStorage
+    return Object.keys(localStorage);
+  }
+}
 
 /**
  * Synchronisiert Tank-Definitionen mit dem aktuellen Inventar
@@ -52,38 +85,50 @@ export async function syncTankDefinitionsWithInventory(): Promise<void> {
   const inventoryBasedContainers: TankDefinition[] = [];
   
   containerData.forEach((data, tankNr) => {
-    const isUnique = tankNr.match(/^T\s?\d+/i); // Tanks mit T-Nummer
+    // ✅ FIX 5.11: Erkenne ALLE nummerierten Behälter als eindeutig (Fass-1, B-3, IBC-12, T 341, etc.)
+    const isUnique = tankNr.match(/^(.+?)-(\d+)$/) || tankNr.match(/^T\s?\d+/i);
     
     if (isUnique) {
-      // Eindeutige Tanks - EIN Container mit allen Produkten
-      // ✅ FIX: Behalte bestehende Kapazität bei
+      // ✅ FIX 5.11b: Eindeutige Behälter - MERGE mit bestehendem Container (QR-Codes bleiben!)
+      // Mehrere Produkte im selben Behälter sind erlaubt und normal!
       const existingTank = currentTanks.find(t => t.id === tankNr);
+      
       inventoryBasedContainers.push({
         id: tankNr,
         tankNr: tankNr,
+        // ✅ MERGE: Behalte manuelle Felder, aktualisiere nur Inventar-Felder
         bezeichnung: existingTank?.bezeichnung || tankNr,
         volumenLiter: existingTank?.volumenLiter || Math.max(5000, data.totalVolume * 1.2),
-        containerType: 'tank',
+        containerType: existingTank?.containerType || 'tank',
         hasUniqueNumber: true,
+        notes: existingTank?.notes, // ✅ Behalte Notizen
+        movements: existingTank?.movements, // ✅ Behalte Historie
+        // Aktualisiere Inventar-bezogene Felder
         status: data.totalVolume > 0 ? 'filled' : 'empty',
         currentContent: data.products.join(', ')
       });
     } else {
-      // Nicht-eindeutige Behälter (B, Fass, Fl, IBC) - Pro CHARGE ein Container
+      // ✅ FIX 5.11: Nur GENERISCHE Behälter (ohne Nummer) - Pro CHARGE ein Container
+      // Beispiel: "Fass" (ohne Nummer) + 5 Einträge → "Fass-1", "Fass-2", "Fass-3", "Fass-4", "Fass-5"
+      // WICHTIG: "Fass-1" (MIT Nummer) wird oben als eindeutig behandelt!
       let containerNumber = 1;
       data.items.forEach(item => {
         const containerId = `${tankNr}-${containerNumber}`;
         
-        // ✅ FIX: Behalte bestehende Kapazität bei
+        // ✅ FIX 5.11b: MERGE mit bestehendem Container (QR-Codes bleiben!)
         const existingTank = currentTanks.find(t => t.id === containerId);
         
         inventoryBasedContainers.push({
           id: containerId,
           tankNr: tankNr,
+          // ✅ MERGE: Behalte manuelle Felder
           bezeichnung: existingTank?.bezeichnung || containerId,
           volumenLiter: existingTank?.volumenLiter || Math.max(100, (item.currentQuantityLiters || 0) * 1.2),
-          containerType: 'other',
-          hasUniqueNumber: true, // ✅ B-1 ist eindeutig!
+          containerType: existingTank?.containerType || 'other',
+          hasUniqueNumber: true,
+          notes: existingTank?.notes, // ✅ Behalte Notizen
+          movements: existingTank?.movements, // ✅ Behalte Historie
+          // Aktualisiere Inventar-bezogene Felder
           currentContent: item.produktName || 'Unbekannt',
           status: (item.currentQuantityLiters || 0) > 0 ? 'filled' : 'empty'
         });
@@ -122,6 +167,9 @@ export async function syncTankDefinitionsWithInventory(): Promise<void> {
   const updatedTanks = [...inventoryBasedContainers, ...trueManualContainers];
   
   console.log(`📊 Total: ${updatedTanks.length} Container (${inventoryBasedContainers.length} Inventar + ${trueManualContainers.length} manuell)`);
+  
+  // ✅ FIX 5.11c: Erstelle automatisches Backup VOR dem Speichern
+  await createContainerBackup(updatedTanks);
   
   // Speichere
   await hybridStorage.set('tankDefinitions', updatedTanks);

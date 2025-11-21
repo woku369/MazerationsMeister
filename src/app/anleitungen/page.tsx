@@ -945,6 +945,62 @@ export default function AnleitungenPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* NEU: Backup-System */}
+            <Card className="border-l-4 border-l-purple-500 bg-purple-50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">📦 Automatisches Backup-System (NEU v1.2.2)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="bg-white rounded p-3 border border-purple-200">
+                  <strong className="text-purple-700">🔄 Automatische Sicherung</strong>
+                  <p className="text-gray-600 mt-1">
+                    Bei jeder Container-Änderung wird automatisch ein Backup erstellt. 
+                    Letzte 10 Backups werden behalten, ältere automatisch gelöscht.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <strong className="text-purple-700">Wann werden Backups erstellt?</strong>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                    <div>XLSX-Import in Lagerverwaltung</div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                    <div>Container hinzufügen/bearbeiten</div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                    <div>Container befüllen oder entleeren</div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                    <div>Container-Reset</div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded p-3 border border-purple-200">
+                  <strong className="text-purple-700">📥 Backup wiederherstellen</strong>
+                  <div className="mt-2 space-y-1">
+                    <div>1. Button <strong>"📦 Backup wiederherstellen"</strong> klicken</div>
+                    <div>2. Backup aus Liste auswählen (1-10)</div>
+                    <div>3. Nummer eingeben → Enter/OK</div>
+                    <div>4. App lädt neu mit wiederhergestellten Daten ✅</div>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-300 rounded p-3">
+                  <strong className="text-amber-700">💡 Wichtig zu wissen:</strong>
+                  <ul className="mt-2 space-y-1 text-gray-700">
+                    <li>• QR-Codes, Beschreibungen, Kapazitäten bleiben erhalten</li>
+                    <li>• Manuell angelegte Container überleben XLSX-Imports</li>
+                    <li>• Backups überleben App-Updates</li>
+                    <li>• 10 Backup-Versionen = ca. 10 letzte Änderungen</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
           </CardContent>
         )}
       </Card>

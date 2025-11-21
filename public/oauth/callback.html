@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google OAuth - Authentifizierung erfolgreich</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: bounce 1s ease-in-out;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.5rem;
+        }
+        p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">✅</div>
+        <h1>Authentifizierung erfolgreich!</h1>
+        <p>Dieses Fenster wird automatisch geschlossen...</p>
+    </div>
+
+    <script>
+        // Extrahiere Access Token aus URL Fragment
+        const hash = window.location.hash;
+        
+        if (hash && window.opener) {
+            // Sende Token zurück zum Haupt-Fenster
+            window.opener.postMessage({
+                type: 'oauth-callback',
+                hash: hash
+            }, window.location.origin);
+            
+            // Schließe Fenster nach kurzer Verzögerung
+            setTimeout(() => {
+                window.close();
+            }, 1500);
+        } else if (!hash) {
+            document.querySelector('.success-icon').textContent = '❌';
+            document.querySelector('h1').textContent = 'Fehler';
+            document.querySelector('p').textContent = 'Kein Access Token erhalten. Bitte versuchen Sie es erneut.';
+        }
+    </script>
+</body>
+</html>

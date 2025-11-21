@@ -22,6 +22,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   storageCreateBackup: (name) => ipcRenderer.invoke('storage-create-backup', name),
   storageExport: () => ipcRenderer.invoke('storage-export'),
   storageImport: (jsonData) => ipcRenderer.invoke('storage-import', jsonData),
+  
+  // Git-Backup APIs (FIX 5.11d)
+  saveGitBackup: (filename, content) => ipcRenderer.invoke('save-git-backup', filename, content),
+  listGitBackups: () => ipcRenderer.invoke('list-git-backups'),
+  loadGitBackup: (filename) => ipcRenderer.invoke('load-git-backup', filename),
+  cleanupGitBackups: (maxCount) => ipcRenderer.invoke('cleanup-git-backups', maxCount),
+  
+  // Google OAuth API
+  invoke: (channel, data) => ipcRenderer.invoke(channel, data),
 });
 
 // Entferne gefährliche APIs

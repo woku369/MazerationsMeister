@@ -122,41 +122,41 @@ function TankForm({
       
       <div>
         <label className="text-sm font-medium">
-          {containerType === 'tank' ? 'Tank-Nummer' : 'Bezeichnung/Nummer'}
+          {containerType === 'tank' ? 'Tank-Nummer' : 'Container-ID'}
         </label>
         <Input
           value={tankNr}
           onChange={(e) => setTankNr(e.target.value)}
           placeholder={
             containerType === 'tank' ? 'z.B. T 341' :
-            containerType === 'bottle' ? 'z.B. Flasche A oder Flasche #1' :
-            containerType === 'barrel' ? 'z.B. Fass #1' :
-            containerType === 'ibc' ? 'z.B. IBC Container #1' :
-            containerType === 'balloon' ? 'z.B. Ballon A' :
-            'z.B. Behältnis #1'
+            containerType === 'bottle' ? 'z.B. Fl-1' :
+            containerType === 'barrel' ? 'z.B. Fass-1' :
+            containerType === 'ibc' ? 'z.B. IBC-1' :
+            containerType === 'balloon' ? 'z.B. B-1' :
+            'z.B. Container-1'
           }
           required
         />
         <p className="text-xs text-muted-foreground mt-1">
           {containerType === 'tank' ? 
             'Eindeutige Tank-Nummer (z.B. T 341, T 431)' : 
-            'Frei wählbare Bezeichnung, da keine feste Nummerierung vorhanden'
+            'Eindeutige Container-ID (z.B. Fass-1, Fass-2, B-1, B-2...)'
           }
         </p>
       </div>
       
       <div>
-        <label className="text-sm font-medium">Beschreibung</label>
+        <label className="text-sm font-medium">Beschreibung (optional)</label>
         <Input
           value={bezeichnung}
           onChange={(e) => setBezeichnung(e.target.value)}
           placeholder={
             containerType === 'tank' ? 'z.B. Edelstahl 5000L' :
             containerType === 'bottle' ? 'z.B. Glasflasche 0,75L' :
-            containerType === 'barrel' ? 'z.B. Holzfass 200L' :
+            containerType === 'barrel' ? 'z.B. Holzfass 200L, Eigentum XY GmbH' :
             containerType === 'ibc' ? 'z.B. Kunststoff IBC 1000L' :
-            containerType === 'balloon' ? 'z.B. Glasballon 25L' :
-            'z.B. Material und Größe'
+            containerType === 'balloon' ? 'z.B. Glasballon 25L, blau' :
+            'z.B. Material, Farbe, Eigentümer'
           }
           required
         />
@@ -617,6 +617,50 @@ export default function TankManagement() {
             <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
               <Upload className="mr-2 h-4 w-4" />
               Tanks importieren
+            </Button>
+            
+            <Button 
+              variant="outline"
+              onClick={async () => {
+                try {
+                  // ✅ FIX 5.11d: Zeige sowohl lokale als auch Git-Backups
+                  const { listGitBackups, restoreGitBackup } = await import('@/lib/git-backup');
+                  const allBackups = await listGitBackups();
+                  
+                  if (allBackups.length === 0) {
+                    alert('Keine Backups gefunden');
+                    return;
+                  }
+                  
+                  const backupList = allBackups.map((backup, idx) => {
+                    const date = new Date(backup.timestamp).toLocaleString('de-DE');
+                    const source = backup.source === 'git' ? '🌐 Git' : '💾 Lokal';
+                    return `${idx + 1}. ${date} - ${backup.containerCount} Container (${source})`;
+                  }).join('\n');
+                  
+                  const selection = prompt(`Verfügbare Backups:\n\n${backupList}\n\nNummer eingeben (1-${allBackups.length}):`);
+                  if (!selection) return;
+                  
+                  const idx = parseInt(selection) - 1;
+                  if (idx < 0 || idx >= allBackups.length) {
+                    alert('Ungültige Auswahl');
+                    return;
+                  }
+                  
+                  const selectedBackup = allBackups[idx];
+                  const containers = await restoreGitBackup(selectedBackup.filename, selectedBackup.source);
+                  
+                  if (containers && containers.length > 0) {
+                    await hybridStorage.set('tankDefinitions', containers);
+                    alert(`✅ Backup wiederhergestellt: ${containers.length} Container\nQuelle: ${selectedBackup.source === 'git' ? 'Git-Repository' : 'Lokaler Speicher'}\nTimestamp: ${new Date(selectedBackup.timestamp).toLocaleString('de-DE')}`);
+                    window.location.reload();
+                  }
+                } catch (error) {
+                  alert('❌ Fehler beim Wiederherstellen: ' + error);
+                }
+              }}
+            >
+              📦 Backup wiederherstellen
             </Button>
             
             {selectedTanks.size > 0 && (
