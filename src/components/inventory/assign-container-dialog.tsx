@@ -42,12 +42,9 @@ export default function AssignContainerDialog({ isOpen, onClose, item, onAssign 
     onClose();
   };
 
-  if (!item) {
-    console.log('🔍 DEBUG AssignDialog: Item ist null, Dialog wird nicht gerendert');
-    return null;
-  }
-
-  console.log('🔍 DEBUG AssignDialog: Dialog wird gerendert für:', item.produktName);
+  // FIX: Zeige Dialog trotzdem an, auch wenn item temporär null ist
+  // In Production kann es sein, dass item später nachkommt
+  console.log('🔍 DEBUG AssignDialog: Dialog wird gerendert, item:', item?.produktName || '(noch nicht gesetzt)');
 
   // Gruppiere Container nach Kategorie
   const containersByCategory: Record<string, TankDefinition[]> = {};
@@ -74,19 +71,21 @@ export default function AssignContainerDialog({ isOpen, onClose, item, onAssign 
 
         <div className="space-y-4 py-4">
           {/* Produkt-Info */}
-          <div className="space-y-2">
-            <Label className="text-base font-semibold">Produkt</Label>
-            <div className="p-3 bg-muted rounded-lg">
-              <p className="font-medium">{item.produktName}</p>
-              {item.chargenNummer && (
-                <p className="text-sm text-muted-foreground">Charge: {item.chargenNummer}</p>
-              )}
-              <div className="flex gap-4 mt-2 text-sm">
-                <span><strong>Menge:</strong> {item.currentQuantityLiters.toFixed(2)} L</span>
-                <span><strong>Alkohol:</strong> {item.alcoholVolProzent.toFixed(1)} % vol</span>
+          {item && (
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">Produkt</Label>
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="font-medium">{item.produktName}</p>
+                {item.chargenNummer && (
+                  <p className="text-sm text-muted-foreground">Charge: {item.chargenNummer}</p>
+                )}
+                <div className="flex gap-4 mt-2 text-sm">
+                  <span><strong>Menge:</strong> {item.currentQuantityLiters?.toFixed(2) || 0} L</span>
+                  <span><strong>Alkohol:</strong> {item.alcoholVolProzent?.toFixed(1) || 0} % vol</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Container-Auswahl */}
           <div className="space-y-2">
@@ -134,7 +133,7 @@ export default function AssignContainerDialog({ isOpen, onClose, item, onAssign 
           </div>
 
           {/* Aktueller Container (falls vorhanden) */}
-          {item.tankNr && (
+          {item?.tankNr && (
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm">
                 <strong>Aktueller Container:</strong> {item.tankNr}

@@ -57,9 +57,9 @@ class UniversalStorageManager {
    * 🔍 UMGEBUNGS-ERKENNUNG: Browser vs Electron
    */
   private detectEnvironment(): void {
+    // Bessere Electron-Erkennung: Prüfe ob electronAPI verfügbar ist (funktioniert auch in gepackter EXE)
     this.isElectron = typeof window !== 'undefined' && 
-                     typeof window.process === 'object' && 
-                     window.process.type === 'renderer';
+                     typeof (window as any).electronAPI !== 'undefined';
     
     console.log(`🔍 Umgebung erkannt: ${this.isElectron ? 'Electron' : 'Browser'} - localStorage-Speicher`);
   }
