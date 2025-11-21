@@ -300,6 +300,106 @@ electron_1.app.whenReady().then(() => {
             });
         });
     });
+    // Git-Backup Handlers (FIX 5.11d)
+    electron_1.ipcMain.handle('save-git-backup', async (event, filename, content) => {
+        try {
+            const fs = await Promise.resolve().then(() => __importStar(require('fs/promises')));
+            const path = await Promise.resolve().then(() => __importStar(require('path')));
+            const backupDir = path.join(electron_1.app.getAppPath(), 'backups');
+            // Erstelle backups/ Verzeichnis falls nicht vorhanden
+            try {
+                await fs.mkdir(backupDir, { recursive: true });
+            }
+            catch (err) {
+                // Verzeichnis existiert bereits
+            }
+            const filePath = path.join(backupDir, filename);
+            await fs.writeFile(filePath, content, 'utf-8');
+            console.log(`✅ Git-Backup gespeichert: ${filePath}`);
+            return { success: true, path: filePath };
+        }
+        catch (error) {
+            console.error('❌ Fehler beim Speichern des Git-Backups:', error);
+            return { success: false, error: String(error) };
+        }
+    });
+    electron_1.ipcMain.handle('cleanup-git-backups', async (event, maxCount) => {
+        try {
+            const fs = await Promise.resolve().then(() => __importStar(require('fs/promises')));
+            const path = await Promise.resolve().then(() => __importStar(require('path')));
+            const backupDir = path.join(electron_1.app.getAppPath(), 'backups');
+            try {
+                const files = await fs.readdir(backupDir);
+                const backupFiles = files
+                    .filter(f => f.startsWith('tankDefinitions_backup_') && f.endsWith('.json'))
+                    .sort()
+                    .reverse();
+                if (backupFiles.length > maxCount) {
+                    const filesToDelete = backupFiles.slice(maxCount);
+                    for (const file of filesToDelete) {
+                        await fs.unlink(path.join(backupDir, file));
+                        console.log(`🗑️ Altes Git-Backup gelöscht: ${file}`);
+                    }
+                }
+                return { success: true, deleted: backupFiles.length - maxCount };
+            }
+            catch (err) {
+                // backups/ Verzeichnis existiert nicht
+                return { success: true, deleted: 0 };
+            }
+        }
+        catch (error) {
+            console.error('❌ Fehler beim Aufräumen der Git-Backups:', error);
+            return { success: false, error: String(error) };
+        }
+    });
+    electron_1.ipcMain.handle('list-git-backups', async () => {
+        try {
+            const fs = await Promise.resolve().then(() => __importStar(require('fs/promises')));
+            const path = await Promise.resolve().then(() => __importStar(require('path')));
+            const backupDir = path.join(electron_1.app.getAppPath(), 'backups');
+            try {
+                const files = await fs.readdir(backupDir);
+                const backups = [];
+                for (const file of files) {
+                    if (file.startsWith('tankDefinitions_backup_') && file.endsWith('.json')) {
+                        const filePath = path.join(backupDir, file);
+                        const content = await fs.readFile(filePath, 'utf-8');
+                        const data = JSON.parse(content);
+                        backups.push({
+                            filename: file,
+                            timestamp: data.timestamp || '',
+                            containerCount: data.containerCount || 0,
+                        });
+                    }
+                }
+                return backups.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+            }
+            catch (err) {
+                return [];
+            }
+        }
+        catch (error) {
+            console.error('❌ Fehler beim Auflisten der Git-Backups:', error);
+            return [];
+        }
+    });
+    electron_1.ipcMain.handle('load-git-backup', async (event, filename) => {
+        try {
+            const fs = await Promise.resolve().then(() => __importStar(require('fs/promises')));
+            const path = await Promise.resolve().then(() => __importStar(require('path')));
+            const backupDir = path.join(electron_1.app.getAppPath(), 'backups');
+            const filePath = path.join(backupDir, filename);
+            const content = await fs.readFile(filePath, 'utf-8');
+            const data = JSON.parse(content);
+            console.log(`✅ Git-Backup geladen: ${filename}`);
+            return data;
+        }
+        catch (error) {
+            console.error('❌ Fehler beim Laden des Git-Backups:', error);
+            throw error;
+        }
+    });
     createWindow();
 });
 electron_1.app.on('window-all-closed', () => {
