@@ -1,8 +1,8 @@
 
-# Mazerations-Meister V 1.2.2 - App Dokumentation
+# Mazerations-Meister V 1.2.3 - App Dokumentation
 
-**Stand:** 21. November 2025  
-**Version:** 1.2.3 (Google Calendar Integration)
+**Stand:** 22. November 2025  
+**Version:** 1.2.3 (Google Calendar Integration + Dashboard Statistics)
 
 ---
 
@@ -14,7 +14,7 @@
 2.  **Lagerverwaltung:** Verwaltung der Bestände von Rohmaterialien (z.B. Einsatzalkohol), Zwischenprodukten (Mazerate, Destillate) und Endprodukten.
 3.  **Tank-Management mit QR-Codes:** Mobile-optimierte Tank-Überwachung mit dynamischen Füllständen und QR-Code-basiertem Zugriff.
 4.  **Rezeptur-System:** *(NEU in v1.1.0)* Excel-Style Editor zur Verwaltung von Produkt-Rezepturen mit Workflow-Management und druckbarem Produktions-Protokoll.
-5.  **Dashboard mit Widgets:** *(NEU in v1.2.3)* Zentrale Übersicht mit Google Calendar Integration und ToDo-Listen-Verwaltung.
+5.  **Dashboard mit Widgets:** *(NEU in v1.2.3)* Zentrale Übersicht mit Google Calendar Integration, ToDo-Listen-Verwaltung und Lagerstatistik-Widget.
 
 Die operativen Daten der Lagerverwaltung (Artikelstamm, Chargen, Transaktionen, Tank-Daten) werden clientseitig im LocalStorage des Browsers gespeichert. Zusätzlich bietet das System eine optionale OneDrive-Synchronisation für lokale Backups ohne Azure-Registrierung. Mazerationsprotokolle werden als Dateien (PDF, XLSX, DOCX) auf den Computer des Benutzers heruntergeladen.
 
@@ -154,6 +154,36 @@ Die operativen Daten der Lagerverwaltung (Artikelstamm, Chargen, Transaktionen, 
         *   `electron/preload.js`: IPC-Bridge `invoke()` für OAuth
         *   Google Identity Services + Google Calendar API v3
         *   COOP-Problem gelöst durch native BrowserWindow
+
+*   **Dashboard-Widget: Lagerstatistik** *(NEU 22.11.2025)*
+    *   **5 Statistik-Karten:**
+        1.  **Sorten:** Anzahl unterschiedlicher Produkte (z.B. 27 Sorten)
+        2.  **Mazerat:** Gesamtmenge in Litern mit visueller Sortenverteilung
+            *   Gestapelter Balken (progress bar) mit 6 Grünabstufungen
+            *   Tooltip zeigt: Produktname, Liter, Prozentanteil
+        3.  **Destillat:** Gesamtmenge in Litern (z.B. 5.123,4 L)
+        4.  **Sprit:** Separat angezeigt als Ausgangsstoff (z.B. 3.330,0 L)
+        5.  **Gesamt-LA:** Liter Absolutalkohol über alle Kategorien (z.B. 18.456,2 LA)
+    *   **Kategorie-Normalisierung:**
+        *   Automatische Erkennung: M/D/Dest/Sbl → Mazerat/Destillat
+        *   Sprit-Erkennung: Produkte mit Namen "sprit" werden separat kategorisiert
+        *   Konsistente Kategorisierung trotz unterschiedlicher Schreibweisen
+    *   **Interaktives Bar Chart (Mengenverhältnis):**
+        *   Gestapelte Balken für Mazerat-Sorten (6 verschiedene Grüntöne)
+        *   Normale Balken für Destillat (blau) und Sprit (orange/amber)
+        *   LA-Balken in Violett für bessere Unterscheidung
+        *   Tooltip on hover: Produktname, Literzahl, Prozentanteil (bei Mazerat)
+    *   **Detailtabelle:**
+        *   Kategorisierte Übersicht: Mazerat, Destillat, Sprit
+        *   Spalten: Kategorie, Menge (Liter), LA (Liter)
+        *   Farbcodierung entsprechend der Kategorie
+    *   **Automatische Aktualisierung:**
+        *   Daten aus Lagerverwaltung via `hybridStorage`
+        *   Echtzeit-Synchronisation bei Bestandsänderungen
+        *   Unterstützt Electron IPC und localStorage fallback
+    *   **Responsive Layout:**
+        *   Grid: 1 Spalte (mobile) → 2 Spalten (tablet) → 5 Spalten (desktop)
+        *   Optimierte Card-Größen für verschiedene Bildschirmbreiten
 
 *   **Grundlegende Einrichtung:** Next.js-Anwendung initialisiert.
 *   **Mazerationsformular - Phase 1 (Basis):**

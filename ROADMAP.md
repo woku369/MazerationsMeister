@@ -1,7 +1,7 @@
 ﻿# MazerationsMeister - Roadmap
 
-**Stand:** 21. November 2025  
-**Version:** 1.2.3 (Google Calendar Integration)
+**Stand:** 22. November 2025  
+**Version:** 1.2.3 (Google Calendar Integration + Dashboard Statistics)
 
 ## ✅ Was ist fertig (v1.2.3)
 
@@ -15,6 +15,14 @@
   - Native Electron OAuth über IPC (kein Browser-Popup-Blocking)
   - Client-ID hardcodiert für sofortige Nutzung
 - **ToDo/Projektliste Widget** zur Aufgabenverwaltung
+- **Lagerstatistik-Widget** (NEU 22.11.2025)
+  - 5 Übersichtskarten: Sorten, Mazerat, Destillat, Sprit, Gesamt-LA
+  - Gestapelter Balken in Mazerat-Karte (Sortenverteilung mit Tooltip)
+  - Kategorie-Normalisierung (M/D/Dest/Sbl → Mazerat/Destillat/Sprit)
+  - Sprit als separate Kategorie (Ausgangsstoff, nicht Endprodukt)
+  - Detailtabelle mit allen Kategorien
+  - Bar Chart mit gestapelten Mazerat-Balken (verschiedene Grüntöne pro Sorte)
+  - Automatische Datenaktualisierung aus Lagerverwaltung
 
 ## ✅ Was ist fertig (v1.1.0 - v1.2.2)
 
@@ -294,13 +302,61 @@
   - Alternative Ansätze
 
 - **`FIXES_SUMMARY.md`** - Alle Bug-Fixes dokumentiert
-  - FIX 1.1 bis 4.1 mit technischen Details
-  - Test-Checklisten
-  - Deployment-Guide
+### **0. Reichweitenanalyse** 📋 OFFEN - Hohe Priorität (geplant Q1 2026)
+**Status:** 📋 Konzept erstellt (22.11.2025)  
+**Dokumentation:** [docs/REICHWEITENANALYSE_KONZEPT.md](docs/REICHWEITENANALYSE_KONZEPT.md)
 
-##  Offene Punkte (Q4 2025)
+**Ziel:** Prognose der Reichweite von Mazeraten, Destillaten und GFKC-Vorräten bei geplanter Jahresproduktion.
 
-**Strategie:** Erst stabilisieren & testen, dann neue Features!
+**Kernfunktionen:**
+- Eingabe: Musterrezeptur, Jahresabsatz, GFKC-Lagerbestände (intern + Lohnabfüller)
+- Berechnung: Gesamtreichweite in Tagen/Jahren
+- Engpass-Erkennung: Welche Zutaten werden zuerst knapp?
+- Komponenten-Details: Tabelle mit Reichweite pro Zutat
+- Verbrauchsprognose: Chart mit zeitlicher Entwicklung
+- Empfehlungen: Welche Komponenten nachproduzieren?
+- **Multi-Rezeptur-Support:** Mehrere Produkte parallel (GFKC, GFKC-A, GFKC-K)
+- **Produktionsauftrag-Simulation:** Verfügbarkeit prüfen + Reichweiten-Impact
+
+**UI-Features:**
+- Neue Seite `/reichweite`
+- 3-Spalten-Layout: Konfiguration | Vorräte | Ergebnisse
+- Fortschrittsbalken (Grün/Gelb/Orange/Rot)
+- Interaktives Verbrauchsdiagramm (recharts)
+- Status-Indikatoren (✅⚠️🔴) für Komponenten
+- **Umfassende Export-Funktionen:** PDF, Excel (XLSX), CSV, E-Mail
+
+**Implementierungsphasen:**
+- [ ] Phase 1: Grundfunktionalität (4-6h) - Berechnung + Eingabe
+- [ ] Phase 2: Datenintegration (2-3h) - Lager + Rezepte anbinden
+- [ ] Phase 3: Visualisierung (3-4h) - Charts + Fortschrittsbalken
+- [ ] Phase 4: Multi-Rezeptur + Was-wäre-wenn (4-6h)
+- [ ] Phase 5: Export & Reporting (3-4h) - PDF/Excel/CSV/E-Mail
+- [ ] Phase 6: Produktionsauftrag-Simulation (3-4h) - Vereinfacht, ohne Anbauplanung
+
+**Geschätzte Gesamtdauer:** 21-29 Stunden (MVP: 13-17h ohne Phase 4+6)
+
+**Scope-Entscheidungen:**
+- ✅ Reichweitenberechnung + Visualisierung
+- ✅ Multi-Rezeptur-System (evolutionär)
+- ✅ Produktionsauftrag-Simulation (vereinfacht)
+- ✅ Umfassende Export-Funktionen
+- ❌ KEINE Anbauplanung (zu komplex, Datenoverkill vermieden)
+- ❌ KEINE Kalender-Integration für Pflanzungen
+
+**Erweiterungsideen (Zukunft):**
+- Automatische Bestellvorschläge
+- Lohnabfüller-Portal (direkter Zugriff)
+- KI-Prognose (historische Daten, Saisonalität)
+- Mobile Benachrichtigungen bei kritischen Wertennden
+
+**Erweiterungsideen (Zukunft):**
+- Automatische Bestellvorschläge
+- Produktionskalender (optimaler Zeitpunkt)
+- Lohnabfüller-Portal (direkter Zugriff)
+- KI-Prognose (historische Daten, Saisonalität)
+- Mobile Benachrichtigungen bei kritischen Werten
+- Kostenrechnung & Break-Even-Analyse
 
 ### **1. Production Testing** (Höchste Priorität - JETZT!)
 - ✅ QR-Codes mit eindeutigen IDs testen (FIX 4.1)

@@ -14,6 +14,7 @@ type InventorySummaryProps = {
 type ProductSummary = {
   artikelNummer: string;
   produktName: string; // Take from the first item in the group
+  category: string; // Kategorie (Mazerat, Destillat, etc.)
   totalQuantityLiters: number;
   totalAbsoluteAlcoholLiters: number;
 };
@@ -28,15 +29,18 @@ export default function InventorySummary({ items }: InventorySummaryProps) {
   console.log('InventorySummary - Items received:', items);
 
   const productSummaries = items.reduce<Record<string, ProductSummary & { uniqueKey: string }>>((acc, item) => {
-    // Gruppiere nach Produktname statt nach Artikel-Nr., falls Artikel-Nr. leer oder identisch ist
-    const key = item.produktName || item.artikelNummer || 'unbekannt';
+    // Gruppiere nach Produktname UND Kategorie (wichtig für Mazerat vs. Destillat!)
+    const productName = item.produktName || item.artikelNummer || 'unbekannt';
+    const category = item.category || 'Sonstige';
+    const key = `${productName}::${category}`; // Kombination als eindeutiger Key
     
-    console.log(`Processing item: ${item.produktName}, Artikel-Nr: ${item.artikelNummer}, Key: ${key}`);
+    console.log(`Processing item: ${item.produktName}, Kategorie: ${item.category}, Key: ${key}`);
     
     if (!acc[key]) {
       acc[key] = {
         artikelNummer: item.artikelNummer || '',
-        produktName: item.produktName || '',
+        produktName: productName,
+        category: category,
         totalQuantityLiters: 0,
         totalAbsoluteAlcoholLiters: 0,
         uniqueKey: key, // Store the unique key used for grouping
@@ -73,6 +77,7 @@ export default function InventorySummary({ items }: InventorySummaryProps) {
               <TableRow>
                 <TableHead className="min-w-[120px]">Artikel-Nr.</TableHead>
                 <TableHead className="min-w-[200px]">Produktname</TableHead>
+                <TableHead className="min-w-[120px]">Kategorie</TableHead>
                 <TableHead className="text-right min-w-[150px]">Gesamtmenge (L)</TableHead>
                 <TableHead className="text-right min-w-[180px]">Gesamt LA (L)</TableHead>
               </TableRow>
@@ -80,7 +85,7 @@ export default function InventorySummary({ items }: InventorySummaryProps) {
             <TableBody>
               {summariesArray.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
                     Keine Artikel im Lager.
                   </TableCell>
                 </TableRow>
@@ -89,6 +94,7 @@ export default function InventorySummary({ items }: InventorySummaryProps) {
                 <TableRow key={summary.uniqueKey}>
                   <TableCell className="font-medium">{summary.artikelNummer}</TableCell>
                   <TableCell>{summary.produktName}</TableCell>
+                  <TableCell className="font-medium text-primary">{summary.category}</TableCell>
                   <TableCell className="text-right">{formatNumber(summary.totalQuantityLiters)}</TableCell>
                   <TableCell className="text-right">{formatNumber(summary.totalAbsoluteAlcoholLiters, 3)}</TableCell>
                 </TableRow>

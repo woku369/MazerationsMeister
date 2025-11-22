@@ -3,6 +3,7 @@
 
 import CalendarWidget from '@/components/dashboard/CalendarWidget';
 import TaskWidget from '@/components/dashboard/TaskWidget';
+import InventoryStatsWidget from '@/components/dashboard/InventoryStatsWidget';
 import { Suspense } from 'react';
 
 export default function Home() {
@@ -13,7 +14,13 @@ export default function Home() {
         <p className="text-gray-600 mt-4">Willkommen bei MazerationsMeister</p>
       </div>
       
-      <div className="mx-auto w-full max-w-5xl">
+      <div className="mx-auto w-full max-w-7xl space-y-6">
+        {/* Lagerstatistik - NEU! */}
+        <Suspense fallback={<div className="p-6 bg-white rounded-lg shadow-md">Statistik lädt...</div>}>
+          <InventoryStatsWidget />
+        </Suspense>
+
+        {/* Kalender & Aufgaben */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-1">
             <Suspense fallback={<div className="p-6 bg-white rounded-lg shadow-md">Kalender lädt...</div>}>
