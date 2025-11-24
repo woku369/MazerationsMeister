@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Home, Warehouse, BookOpen, Menu, Settings, FlaskConical } from 'lucide-react';
+import { Home, Warehouse, BookOpen, Menu, Settings, FlaskConical, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,7 @@ export default function AppHeader() {
     { href: '/', label: 'Dashboard', icon: Home },
     { href: '/mazerationen', label: 'Mazerationen', icon: FlaskConical },
     { href: '/inventory', label: 'Lagerverwaltung', icon: Warehouse },
+    { href: '/reichweite', label: 'Reichweitenanalyse', icon: TrendingUp },
     { href: '/anleitungen', label: 'Anleitungen', icon: BookOpen },
     { href: '/einstellungen', label: 'Einstellungen', icon: Settings },
   ];
@@ -24,6 +25,7 @@ export default function AppHeader() {
   const mainNavItems = [
     { href: '/?resetForm=true', label: 'Neues Protokoll', icon: Home },
     { href: '/inventory', label: 'Lagerverwaltung', icon: Warehouse },
+    { href: '/reichweite', label: 'Reichweitenanalyse', icon: TrendingUp },
     { href: '/anleitungen', label: 'Anleitungen', icon: BookOpen },
   ];
 

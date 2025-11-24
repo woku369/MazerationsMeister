@@ -1,7 +1,46 @@
 ﻿# MazerationsMeister - Roadmap
 
-**Stand:** 22. November 2025  
-**Version:** 1.2.3 (Google Calendar Integration + Dashboard Statistics)
+**Stand:** 24. November 2025  
+**Version:** 1.2.4 (Produktionsplanung mit FIFO-Logik)
+
+## ✅ Was ist fertig (v1.2.4)
+
+### **Reichweitenanalyse - Produktionsplanung (NEU in v1.2.4)** ✅ FERTIG (24.11.2025)
+- **Ziel-Produktionsmenge Eingabe**
+  - Optionales Eingabefeld für gewünschte Produktionsmenge (z.B. 5.000 Liter)
+  - 0 oder leer = Normale Reichweitenanalyse
+  - >0 = Produktionsplanung wird berechnet
+- **FIFO-Gebinde-Empfehlung mit intelligenter Priorisierung**
+  - **GESPERRT**: Ballons (B-*) und Flaschen (Fl-*) komplett ausgeschlossen
+  - **BEVORZUGT**: Tanks (T-*), Container (C-*), IBC (IBC-*), Fässer (Fass-*)
+  - **Chargenreine Entnahme**: Bevorzugt 1 Gebinde statt mehrere
+  - **Sortierung**:
+    1. Priorität: Gebinde mit exakt passender Menge (± 5%)
+    2. Priorität: Gebinde die alleine ausreichen
+    3. Priorität: Kleinste Gebinde zuerst (komplettes Leeren)
+- **Produktionsplanungs-Anzeige** (lila Karte)
+  - Status-Übersicht: Ziel-Menge, Tatsächlich möglich, Status (✓/✗)
+  - Skalierungsfaktor (Rezept → Zielproduktion)
+  - Limitierende Komponente mit fehlender Menge
+  - **Pro Komponente**:
+    - Benötigte Menge vs. Verfügbare Menge
+    - Max. mögliche Produktionsmenge mit dieser Komponente
+    - **FIFO-Gebindeliste** mit Entnahme-Empfehlung:
+      - Container-ID und Typ (Tank, Fass, IBC, etc.)
+      - Aktueller Füllstand
+      - Zu entnehmende Menge (lila hervorgehoben)
+      - Verbleibende Menge nach Entnahme
+      - **"✓ Komplett leeren"** bei vollen Entnahmen (blau)
+- **Backend-Verbesserungen**:
+  - Tank-Aggregation korrigiert: Alle Tanks mit gleichem Produkt werden summiert
+  - Deutsches Zahlenformat durchgängig: `9.840,00 L` statt `9840 L`
+  - Konfigurierbare Schwellenwerte für Kritikalität (CRITICAL_THRESHOLD, LOW_THRESHOLD)
+  - Dual-Mode System: Reichweite + Produktionsplanung parallel
+  - Neue Datei: `src/lib/production-planning.ts` (FIFO-Engine)
+  - Interface-Erweiterungen: `ContainerRecommendation`, `ProductionPlan`
+- **Dokumentation**:
+  - `docs/REICHWEITENANALYSE_KONFIGURATION.md` mit Schwellenwerten-Guide
+  - Troubleshooting-Sektion für häufige Probleme
 
 ## ✅ Was ist fertig (v1.2.3)
 
@@ -302,53 +341,61 @@
   - Alternative Ansätze
 
 - **`FIXES_SUMMARY.md`** - Alle Bug-Fixes dokumentiert
-### **0. Reichweitenanalyse** 📋 OFFEN - Hohe Priorität (geplant Q1 2026)
-**Status:** 📋 Konzept erstellt (22.11.2025)  
-**Dokumentation:** [docs/REICHWEITENANALYSE_KONZEPT.md](docs/REICHWEITENANALYSE_KONZEPT.md)
+### **0. Reichweitenanalyse** ✅ ABGESCHLOSSEN (23.11.2025)
+**Status:** ✅ Implementiert & funktionsfähig  
+**Dokumentation:** 
+- Konzept: [docs/REICHWEITENANALYSE_KONZEPT.md](docs/REICHWEITENANALYSE_KONZEPT.md)
+- Anleitung: [docs/REICHWEITENANALYSE_ANLEITUNG.md](docs/REICHWEITENANALYSE_ANLEITUNG.md)
 
 **Ziel:** Prognose der Reichweite von Mazeraten, Destillaten und GFKC-Vorräten bei geplanter Jahresproduktion.
 
-**Kernfunktionen:**
-- Eingabe: Musterrezeptur, Jahresabsatz, GFKC-Lagerbestände (intern + Lohnabfüller)
-- Berechnung: Gesamtreichweite in Tagen/Jahren
-- Engpass-Erkennung: Welche Zutaten werden zuerst knapp?
-- Komponenten-Details: Tabelle mit Reichweite pro Zutat
-- Verbrauchsprognose: Chart mit zeitlicher Entwicklung
-- Empfehlungen: Welche Komponenten nachproduzieren?
-- **Multi-Rezeptur-Support:** Mehrere Produkte parallel (GFKC, GFKC-A, GFKC-K)
-- **Produktionsauftrag-Simulation:** Verfügbarkeit prüfen + Reichweiten-Impact
+**Implementierte Features:**
+- ✅ Zwei-Prioritäten-System:
+  - **Priorität 1**: Fertiges GFKC-Mazerat (eigenes Lager + beim Lohnabfüller)
+  - **Priorität 2**: Herstellbare Menge aus Rohstoffen nach freigegebener Basisrezeptur
+- ✅ Permanente GFKC-Lageranzeige (9,840 L aus Kategorie M)
+- ✅ Engpass-Erkennung mit visuellen Indikatoren
+- ✅ Komponenten-Details mit Kategorie-Anzeige (Mazerat/Destillat)
+- ✅ Unbegrenzte Ressourcen (Wasser-Varianten blockieren nicht)
+- ✅ Manuelle Übersteuerung für kritische/Engpass-Komponenten
+- ✅ 12-Monats-Verbrauchsdiagramm
+- ✅ Multiple Rezeptur-Auswahl via Checkboxen
+- ✅ Entkoppelt von Rezeptur (funktioniert auch ohne Rezept)
+- ✅ Export-Funktionen: CSV (Semikolon), Excel (XLSX), Print/PDF (A4 Hochformat)
+- ✅ Responsive 3-Spalten-Layout mit Cards und Charts
 
 **UI-Features:**
-- Neue Seite `/reichweite`
-- 3-Spalten-Layout: Konfiguration | Vorräte | Ergebnisse
-- Fortschrittsbalken (Grün/Gelb/Orange/Rot)
-- Interaktives Verbrauchsdiagramm (recharts)
-- Status-Indikatoren (✅⚠️🔴) für Komponenten
-- **Umfassende Export-Funktionen:** PDF, Excel (XLSX), CSV, E-Mail
+- Seite: `/reichweite`
+- Navigation: Header (mobil + desktop)
+- 3-Spalten-Grid: Eingaben | Metriken/Reichweite | Komponenten-Status
+- Fortschrittsbalken mit Farb-Codierung (Grün/Orange/Rot)
+- Status-Indikatoren: ✅ OK, ⚠️ Niedrig, 🔴 Kritisch, 🔴 Engpass
+- Interaktives Verbrauchsdiagramm (recharts BarChart)
+- Export-Buttons: 🖨️ Drucken/PDF, 📄 CSV, 📊 Excel
 
-**Implementierungsphasen:**
-- [ ] Phase 1: Grundfunktionalität (4-6h) - Berechnung + Eingabe
-- [ ] Phase 2: Datenintegration (2-3h) - Lager + Rezepte anbinden
-- [ ] Phase 3: Visualisierung (3-4h) - Charts + Fortschrittsbalken
-- [ ] Phase 4: Multi-Rezeptur + Was-wäre-wenn (4-6h)
-- [ ] Phase 5: Export & Reporting (3-4h) - PDF/Excel/CSV/E-Mail
-- [ ] Phase 6: Produktionsauftrag-Simulation (3-4h) - Vereinfacht, ohne Anbauplanung
-
-**Geschätzte Gesamtdauer:** 21-29 Stunden (MVP: 13-17h ohne Phase 4+6)
+**Technische Details:**
+- **Engine**: `src/lib/range-calculator.ts` (517 Zeilen)
+- **UI**: `src/components/reichweite/RangeCalculator.tsx` (1083 Zeilen)
+- **Build**: 18 pages, `/reichweite` at 12.6 kB
+- **Datenquellen**: 
+  - `inventoryItems` key (direkt)
+  - `ladeRezepturen()` aus app-auto-sync
+- **GFKC-Erkennung**: Pattern-basiert + Kategorie-Check (M/Mazerat)
+- **Unlimited Resources**: `isUnlimitedResource()` → possibleBatches = Infinity
+- **Manual Overrides**: `Map<string, number>` mit Auto-Recalc (100ms timeout)
 
 **Scope-Entscheidungen:**
 - ✅ Reichweitenberechnung + Visualisierung
-- ✅ Multi-Rezeptur-System (evolutionär)
-- ✅ Produktionsauftrag-Simulation (vereinfacht)
-- ✅ Umfassende Export-Funktionen
-- ❌ KEINE Anbauplanung (zu komplex, Datenoverkill vermieden)
-- ❌ KEINE Kalender-Integration für Pflanzungen
+- ✅ Entkopplung von Rezeptur-Requirement
+- ✅ Unlimited Resources + Manual Overrides
+- ✅ CSV/Excel/PDF Export
+- ❌ KEINE Anbauplanung (zu komplex)
+- ❌ KEINE separater PDF-Button (noch über Print-Dialog) → **geplant**
 
-**Erweiterungsideen (Zukunft):**
-- Automatische Bestellvorschläge
-- Lohnabfüller-Portal (direkter Zugriff)
-- KI-Prognose (historische Daten, Saisonalität)
-- Mobile Benachrichtigungen bei kritischen Wertennden
+**Offene Tasks:**
+- [ ] Separater PDF-Export (jsPDF statt window.print())
+- [ ] Sidebar-Navigation zwischen Rezepturen und QR-Code Album
+- [ ] Production Testing mit realen Daten
 
 **Erweiterungsideen (Zukunft):**
 - Automatische Bestellvorschläge
@@ -357,6 +404,88 @@
 - KI-Prognose (historische Daten, Saisonalität)
 - Mobile Benachrichtigungen bei kritischen Werten
 - Kostenrechnung & Break-Even-Analyse
+
+---
+
+### **00. Dokumentenverwaltung** 📋 GEPLANT (Q1 2026)
+**Status:** 📋 Konzept erstellt (23.11.2025)  
+**Dokumentation:** [docs/DOKUMENTENVERWALTUNG.md](docs/DOKUMENTENVERWALTUNG.md)
+
+**Ziel:** Zentrale Verwaltung aller im MazerationsMeister erstellten Dokumente und Berichte.
+
+**Geplante Features:**
+- **Dokumentenübersicht** mit Filtermöglichkeiten
+  - Nach Typ (Reichweite, Protokoll, Rezeptur, QR-Codes, etc.)
+  - Nach Datum, Status, Tags
+  - Volltextsuche in Dokumentennamen und Notizen
+- **Export und Download**
+  - Einzelexport oder Batch-Download (ZIP)
+  - Format-Konvertierung (PDF ↔ Excel ↔ CSV)
+- **Dokumentenerstellung**
+  - Schnellzugriff auf Dokument-Generierung aus anderen Bereichen
+  - "Neue Reichweitenanalyse", "Produktionsprotokoll", etc.
+- **Verwaltungsfunktionen**
+  - Umbenennen, Löschen, Archivieren
+  - Benutzerdefinierte Tags
+  - Notizen zu Dokumenten
+- **Versionierung & Historie**
+  - Mehrere Versionen eines Dokuments
+  - Änderungsprotokoll (wer, wann, was)
+  - Vergleichsfunktion zwischen Versionen
+
+**Datenstruktur:**
+```typescript
+interface ManagedDocument {
+  id: string;
+  name: string;
+  type: DocumentType;
+  format: 'pdf' | 'xlsx' | 'csv' | 'json';
+  filePath?: string;  // Lokaler Pfad (Electron)
+  blobUrl?: string;   // Blob-URL (Browser)
+  size: number;
+  createdAt: string;
+  updatedAt: string;
+  linkedEntityType?: 'rezeptur' | 'charge' | 'inventory' | 'range-analysis';
+  linkedEntityId?: string;
+  status: 'draft' | 'final' | 'archived';
+  tags: string[];
+  notes?: string;
+  version: number;
+  previousVersionId?: string;
+}
+```
+
+**UI-Layout:**
+- Seite: `/dokumente` oder `/documents`
+- Navigation: **Sidebar-Tab ganz unten** (nach Einstellungen)
+- Icon: 📁 FileText oder Folder
+- 2-Spalten-Layout:
+  - **Sidebar**: Filter nach Typ, Status, Zeitraum
+  - **Hauptbereich**: Dokumentenliste mit Vorschau-Buttons
+
+**Implementierungsphasen:**
+- [ ] Phase 1 (MVP): Dokumentenliste, Speicherung, Download, Filter
+- [ ] Phase 2: Vorschau-Funktion, Suche, Tags, Umbenennen
+- [ ] Phase 3: Versionierung, Archivierung, Batch-Operationen
+- [ ] Phase 4 (optional): Cloud-Sync, Vergleichsfunktion
+
+**Integration:**
+- **Reichweitenanalyse**: Nach Export automatisch speichern
+- **Produktionsprotokolle**: Beim Speichern automatisch archivieren
+- **Rezepturen**: Beim Druck automatisch dokumentieren
+- **QR-Codes**: QR-Code-Sheets automatisch speichern
+
+**Speicherung:**
+- **Electron**: Lokale Dateien in `~/MazerationsMeister/documents/`
+- **Browser**: IndexedDB für Metadaten + Blob Storage für Dateien
+- **Optional**: OneDrive/GitHub-Sync wie bei anderen Features
+
+**Nächste Schritte:**
+1. UI-Mockups erstellen
+2. Datenmodell finalisieren
+3. Implementierung Phase 1 starten
+4. Tests mit echten Dokumenten
+5. User Feedback einholen
 
 ### **1. Production Testing** (Höchste Priorität - JETZT!)
 - ✅ QR-Codes mit eindeutigen IDs testen (FIX 4.1)
@@ -408,17 +537,37 @@
 ##  Technische Notizen
 
 **Branch:** pages-clean (Production)  
-**Build:** node scripts/build-ultra-minimal.js (läuft gerade)  
+**Build:** node scripts/build-ultra-minimal.js  
 **Storage:** hybridStorage (Electron IPC + localStorage)  
 **Sync:** GitHub Pages als zentrales Werkzeug (nicht OneDrive!)  
 **App-Größe:** 294 MB portable (196 MB exe)  
 **Container:** 57 mit eindeutigen IDs (B-1 bis B-25, Fass-1 bis Fass-6, T-Tanks)
 
+## 📝 Changelog
+
+### v1.2.4 (24.11.2025)
+- ✅ Produktionsplanung mit Ziel-Produktionsmenge
+- ✅ FIFO-Gebinde-Empfehlung (Ballons/Flaschen gesperrt)
+- ✅ Chargenreine Entnahme bevorzugt
+- ✅ Intelligente Gebinde-Sortierung (3 Prioritäts-Stufen)
+- ✅ Tank-Aggregation korrigiert
+- ✅ Deutsches Zahlenformat durchgängig
+- ✅ Konfigurierbare Schwellenwerte
+- ✅ Gebindebezeichnungen lesbar (T 341, Fass-1)
+
+### v1.2.3 (22.11.2025)
+- ✅ Google Calendar Widget mit OAuth 2.0
+- ✅ Lagerstatistik-Widget mit Bar Charts
+- ✅ ToDo/Projektliste Widget
+
+### v1.2.2 (18.11.2025)
+- ✅ Container-ID Logik & Git-synchronisierte Backups
+
 ## 🎯 Nächste Schritte
 
-1. **EXE Build abschließen** (läuft gerade)
-2. **QR-Code Fix testen** - Jeder Container hat eindeutige URL
-3. **TODO-Liste Persistenz testen** - Bleibt nach Neustart erhalten
+1. **Dokumentenverwaltung implementieren** (Q1 2026)
+2. **Benachrichtigungssystem** für Mazerat-Fertigstellung
+3. **Analytics & Reporting** mit Trends
 4. **GitHub-Sync testen** - Zwischen 2 Rechnern synchronisieren
 5. **Production Testing starten** - Alle Features im realen Einsatz prüfen
 

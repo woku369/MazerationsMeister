@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { Home, FlaskConical, Warehouse, Settings, BookOpen, Package, QrCode, LayoutGrid, Beaker } from 'lucide-react';
+import { Home, FlaskConical, Warehouse, Settings, BookOpen, Package, QrCode, LayoutGrid, Beaker, TrendingUp, FileText } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: Home },
@@ -8,10 +8,12 @@ const navItems = [
   { href: '/inventory', label: 'Lagerverwaltung', icon: Warehouse },
   { href: '/gebindeverwaltung', label: 'Gebindeverwaltung', icon: Package },
   { href: '/rezepturen', label: 'Rezepturen', icon: Beaker },
+  { href: '/reichweite', label: 'Reichweitenanalyse', icon: TrendingUp },
   { href: '/qr-album', label: 'QR-Code Album', icon: LayoutGrid },
   { href: '/tank-overview', label: 'Tank-Übersicht', icon: QrCode },
   { href: '/anleitungen', label: 'Anleitungen', icon: BookOpen },
   { href: '/einstellungen', label: 'Einstellungen', icon: Settings },
+  { href: '/dokumente', label: 'Dokumente', icon: FileText },
 ];
 
 export default function Sidebar() {

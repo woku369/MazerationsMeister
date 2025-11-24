@@ -127,4 +127,48 @@ body {
   button.print\\:hidden {
     display: none !important;
   }
+
+  /* Reichweitenanalyse Druck-Layout - A4 Hochformat */
+  @page {
+    size: A4 portrait;
+    margin: 15mm 15mm 15mm 15mm;
+  }
+
+  /* Export-Buttons ausblenden beim Drucken */
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  /* Sidebar und Navigation ausblenden */
+  aside, header, nav {
+    display: none !important;
+  }
+
+  /* Hauptinhalt auf volle Breite */
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  /* Grid-Layout für Druck optimieren */
+  .grid {
+    display: block !important;
+  }
+
+  /* Cards schöner formatieren */
+  [class*="border"] {
+    border: 1px solid #000 !important;
+    page-break-inside: avoid;
+  }
+
+  /* Chart ausblenden oder vereinfachen */
+  svg {
+    max-width: 100%;
+  }
+
+  /* Komponenten-Liste */
+  [class*="space-y"] > div {
+    margin-bottom: 8px;
+    page-break-inside: avoid;
+  }
 }

@@ -1,6 +1,6 @@
 {
   "name": "mazerationsmeister",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Protokollierung und Verwaltung von Mazerationen für die Gurktaler AG.",
   "author": "Wolfgang Kulmitzer <email@example.com>",
   "private": true,
