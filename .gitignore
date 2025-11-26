@@ -45,3 +45,7 @@ next-env.d.ts
 
 .genkit/*
 .env*
+
+# Google OAuth Secrets (NEVER commit!)
+**/client_secret*.json
+kalenderwidget google oauth client/
