@@ -15,7 +15,7 @@
 
 # next.js
 /.next/
-# /out/ - Wird für GitHub Pages gebraucht
+# /out/ - Wird fuer GitHub Pages gebraucht
 
 # production
 /build
@@ -39,3 +39,7 @@ next-env.d.ts
 
 .genkit/*
 .env*
+
+# Tank-Daten Backup-Snapshots (werden automatisch per GitHub-Sync erstellt)
+# Nur tank-data.json und tank-data-live.json werden behalten
+tank-data-[0-9]*.json
