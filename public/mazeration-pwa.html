@@ -139,7 +139,7 @@
                         </div>
                         <div>
                             <label class="field-label" id="weight-label">Pflanzengewicht (g)</label>
-                            <input id="f-weight" type="text" inputmode="decimal" class="field-input" placeholder="0,0">
+                            <input id="f-weight" type="text" inputmode="decimal" class="field-input" placeholder="0,0" oninput="calcAusbeute()">
                         </div>
                         <!-- Kisten (nur bei kg) -->
                         <div id="crate-section" class="hidden space-y-4 border-t border-gray-100 pt-4">
@@ -210,7 +210,7 @@
                                 <button type="button" class="toggle-btn" id="vol-ml" onclick="setVolUnit('ml')">ml</button>
                                 <button type="button" class="toggle-btn selected" id="vol-l" onclick="setVolUnit('l')">Liter</button>
                             </div>
-                            <input id="f-alc-vol" type="text" inputmode="decimal" class="field-input" placeholder="0,0">
+                            <input id="f-alc-vol" type="text" inputmode="decimal" class="field-input" placeholder="0,0" oninput="calcAusbeute()">
                         </div>
                     </div>
                 </div>
@@ -265,7 +265,8 @@
                                 <button type="button" class="toggle-btn" id="yield-ml" onclick="setYieldUnit('ml')">ml</button>
                                 <button type="button" class="toggle-btn selected" id="yield-l" onclick="setYieldUnit('l')">Liter</button>
                             </div>
-                            <input id="f-yield" type="text" inputmode="decimal" class="field-input" placeholder="0,0">
+                            <input id="f-yield" type="text" inputmode="decimal" class="field-input" placeholder="0,0" oninput="calcAusbeute()">
+                            <div id="ausbeute-display" class="calc-display hidden mt-2 text-sm"></div>
                         </div>
                         <div>
                             <label class="field-label">Endkonzentration (% vol)</label>
@@ -301,11 +302,19 @@
 
         <!-- ===== PROTOKOLLE ===== -->
         <div id="tab-content-list" class="hidden">
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex justify-between items-center mb-3">
                 <h2 class="text-white font-bold text-base">Gespeicherte Protokolle</h2>
                 <button onclick="syncAll()" class="bg-white text-purple-700 font-bold px-4 py-2 rounded-lg text-sm shadow">
                     ☁️ Alle syncen
                 </button>
+            </div>
+            <div class="mb-3 space-y-2">
+                <input id="protocol-search" type="search" class="field-input text-gray-800 text-sm" placeholder="🔍 Name, Charge, Pflanze ..." oninput="renderProtocolList()">
+                <div class="flex gap-2">
+                    <button onclick="setProtocolFilter('all')" id="filter-all" class="toggle-btn selected text-xs px-3 py-1.5">Alle</button>
+                    <button onclick="setProtocolFilter('draft')" id="filter-draft" class="toggle-btn text-xs px-3 py-1.5">📂 Entwurf</button>
+                    <button onclick="setProtocolFilter('done')" id="filter-done" class="toggle-btn text-xs px-3 py-1.5">✅ Fertig</button>
+                </div>
             </div>
             <div id="protocol-list" class="space-y-3">
                 <div class="card p-6 text-center text-gray-400 text-sm">Keine Protokolle gespeichert</div>
@@ -349,6 +358,29 @@
 
         <!-- ===== EINSTELLUNGEN ===== -->
         <div id="tab-content-settings" class="hidden">
+            <!-- Benachrichtigungen -->
+            <div class="card p-4 mb-4">
+                <h2 class="font-bold text-gray-800 mb-3">🔔 Benachrichtigungen</h2>
+                <p class="text-sm text-gray-600 mb-3">Beim Öffnen der App wird geprüft, ob ein Mazerat abgezogen werden sollte.</p>
+                <button onclick="requestNotificationPermission()" id="notif-btn" class="w-full bg-purple-50 text-purple-700 font-bold py-3 rounded-xl text-sm">
+                    🔔 Benachrichtigungen aktivieren
+                </button>
+                <p id="notif-status" class="text-xs text-gray-400 mt-2 text-center"></p>
+            </div>
+            <!-- Datensicherung -->
+            <div class="card p-4 mb-4">
+                <h2 class="font-bold text-gray-800 mb-3">💾 Datensicherung</h2>
+                <div class="space-y-3">
+                    <button onclick="exportAllJSON()" class="w-full bg-blue-50 text-blue-700 font-bold py-3 rounded-xl text-sm">
+                        📥 Alle Protokolle exportieren (.json)
+                    </button>
+                    <label class="w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl text-sm flex items-center justify-center cursor-pointer">
+                        📤 Protokolle importieren (.json)
+                        <input type="file" accept=".json" onchange="importFromJSON(event)" class="hidden">
+                    </label>
+                    <p class="text-xs text-gray-400">Import ergänzt bestehende Daten – vorhandene IDs werden übersprungen.</p>
+                </div>
+            </div>
             <div class="card p-4 mb-4">
                 <h2 class="font-bold text-gray-800 mb-4">⚙️ GitHub Sync</h2>
                 <div class="space-y-4">
@@ -401,6 +433,7 @@
     let volUnit = 'l';
     let yieldUnit = 'l';
     let editingId = null;
+    let protocolFilter = 'all';
 
     // ============================================================
     // INIT
@@ -414,6 +447,8 @@
         registerSW();
         setupAutosave();
         await restoreDraft();
+        if ('Notification' in window) updateNotifStatus(Notification.permission);
+        await checkEndDateNotifications();
     });
 
     window.addEventListener('online', updateOnlineStatus);
@@ -564,16 +599,19 @@
         document.getElementById('unit-kg').classList.toggle('selected', u === 'kg');
         document.getElementById('weight-label').textContent = `Pflanzengewicht (${u})`;
         document.getElementById('crate-section').classList.toggle('hidden', u !== 'kg');
+        calcAusbeute();
     }
     function setVolUnit(u) {
         volUnit = u;
         document.getElementById('vol-ml').classList.toggle('selected', u === 'ml');
         document.getElementById('vol-l').classList.toggle('selected', u === 'l');
+        calcAusbeute();
     }
     function setYieldUnit(u) {
         yieldUnit = u;
         document.getElementById('yield-ml').classList.toggle('selected', u === 'ml');
         document.getElementById('yield-l').classList.toggle('selected', u === 'l');
+        calcAusbeute();
     }
 
     // ============================================================
@@ -595,6 +633,27 @@
                 document.getElementById('net-per-crate').textContent = crates > 0 ? (net / crates).toFixed(2) : '–';
             }
         } else { disp.classList.add('hidden'); }
+    }
+
+    function calcAusbeute() {
+        const weightG = weightUnit === 'kg' ? toNum('f-weight') * 1000 : toNum('f-weight');
+        const spritMl = volUnit   === 'l'  ? toNum('f-alc-vol') * 1000 : toNum('f-alc-vol');
+        const yieldMl = yieldUnit === 'l'  ? toNum('f-yield')   * 1000 : toNum('f-yield');
+        const disp = document.getElementById('ausbeute-display');
+        const parts = [];
+        if (spritMl > 0 && yieldMl > 0) {
+            parts.push(`📊 Ausbeute: ${(yieldMl / spritMl * 100).toFixed(1).replace('.', ',')} %`);
+        }
+        if (weightG > 0 && spritMl > 0) {
+            const ratio = spritMl / weightG;
+            parts.push(`⚗️ Kraut:Sprit = 1:${ratio.toFixed(2).replace('.', ',')}`);
+        }
+        if (parts.length) {
+            disp.textContent = parts.join('   |   ');
+            disp.classList.remove('hidden');
+        } else {
+            disp.classList.add('hidden');
+        }
     }
 
     function calcDuration() {
@@ -717,7 +776,7 @@
             if (d.yieldVolume)    set('f-yield',    String(d.yieldVolume).replace('.',','));
             if (d.endConcentration) set('f-end-conc', String(d.endConcentration).replace('.',','));
             set('f-remarks', d.remarks);
-            calcNet(); calcDuration();
+            calcNet(); calcDuration(); calcAusbeute();
             setStatus('↩ Entwurf wiederhergestellt');
         } catch (e) {}
     }
@@ -761,7 +820,7 @@
         if (p.yieldVolume)    set('f-yield',    String(p.yieldVolume).replace('.',','));
         if (p.endConcentration) set('f-end-conc', String(p.endConcentration).replace('.',','));
         set('f-remarks', p.remarks);
-        calcNet(); calcDuration();
+        calcNet(); calcDuration(); calcAusbeute();
         // Bearbeitungs-Modus aktivieren
         editingId = id;
         document.getElementById('editing-banner').classList.remove('hidden');
@@ -888,9 +947,25 @@
     // ============================================================
     // PROTOKOLLLISTE
     // ============================================================
+    function setProtocolFilter(f) {
+        protocolFilter = f;
+        ['all', 'draft', 'done'].forEach(k => {
+            document.getElementById(`filter-${k}`).classList.toggle('selected', k === f);
+        });
+        renderProtocolList();
+    }
+
     async function renderProtocolList() {
         const list = document.getElementById('protocol-list');
-        const protocols = (await dbGetAll('protocols')).sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+        const search = (document.getElementById('protocol-search')?.value || '').toLowerCase();
+        let protocols = (await dbGetAll('protocols')).sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+        if (search) protocols = protocols.filter(p =>
+            (p.macerationName || '').toLowerCase().includes(search) ||
+            (p.batchNumber    || '').toLowerCase().includes(search) ||
+            (p.plantName      || '').toLowerCase().includes(search)
+        );
+        if (protocolFilter === 'draft') protocols = protocols.filter(p =>  p.draft);
+        if (protocolFilter === 'done')  protocols = protocols.filter(p => !p.draft);
         if (!protocols.length) {
             list.innerHTML = '<div class="card p-6 text-center text-gray-400 text-sm">Keine Protokolle gespeichert<\/div>';
             return;
@@ -1325,6 +1400,86 @@
         if (!w) { showToast('❌ Popup blockiert – bitte Popups erlauben', 3500); return; }
         w.document.write(html);
         w.document.close();
+    }
+
+    // ============================================================
+    // AUSBEUTE & VERHÄLTNIS (wird auch aus openForEdit/restoreDraft aufgerufen)
+    // ============================================================
+
+    // ============================================================
+    // PUSH-BENACHRICHTIGUNGEN
+    // ============================================================
+    async function requestNotificationPermission() {
+        if (!('Notification' in window)) { showToast('❌ Benachrichtigungen nicht verfügbar'); return; }
+        const perm = await Notification.requestPermission();
+        updateNotifStatus(perm);
+        if (perm === 'granted') showToast('✅ Benachrichtigungen aktiviert');
+        else showToast('⚠️ Berechtigung nicht erteilt');
+    }
+
+    function updateNotifStatus(perm) {
+        const btn = document.getElementById('notif-btn');
+        const status = document.getElementById('notif-status');
+        if (!btn) return;
+        if (perm === 'granted') {
+            btn.textContent = '✅ Benachrichtigungen aktiv';
+            btn.className = 'w-full bg-green-50 text-green-700 font-bold py-3 rounded-xl text-sm';
+            if (status) status.textContent = 'Du wirst beim Öffnen der App an fällige Mazerationen erinnert.';
+        } else if (perm === 'denied') {
+            btn.textContent = '❌ Benachrichtigungen blockiert';
+            btn.className = 'w-full bg-red-50 text-red-600 font-bold py-3 rounded-xl text-sm';
+            if (status) status.textContent = 'In den Browser-Einstellungen freigeben.';
+        }
+    }
+
+    async function checkEndDateNotifications() {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        const protocols = await dbGetAll('protocols');
+        const today = new Date().toISOString().slice(0, 10);
+        const due = protocols.filter(p => p.macerationEndDate && p.macerationEndDate <= today && p.draft);
+        due.forEach(p => {
+            new Notification('🌿 Mazerat abziehen!', {
+                body: `${p.macerationName} (Charge ${p.batchNumber || '–'}) · Ende: ${(p.macerationEndDate || '').split('-').reverse().join('.')}`,
+                icon: './icons/icon-192.png',
+                tag: p.id,
+            });
+        });
+    }
+
+    // ============================================================
+    // JSON BACKUP / RESTORE
+    // ============================================================
+    async function exportAllJSON() {
+        const protocols = await dbGetAll('protocols');
+        const json = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), protocols }, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `mazeration-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`✅ ${protocols.length} Protokolle exportiert`);
+    }
+
+    async function importFromJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            const list = Array.isArray(data) ? data : (data.protocols || []);
+            let imported = 0;
+            for (const p of list) {
+                if (!p.id) continue;
+                const existing = await dbGet('protocols', p.id);
+                if (!existing) { await dbPut('protocols', p); imported++; }
+            }
+            showToast(`✅ ${imported} neue Protokolle importiert`);
+        } catch (e) {
+            showToast('❌ Import fehlgeschlagen – Datei prüfen');
+        }
+        event.target.value = '';
     }
 
     // ============================================================
