@@ -86,11 +86,11 @@ Desktop-App
   → Merge in localStorage
 ```
 
-#### TODO: Desktop-Import (nächster Schritt)
-- [ ] Button "Protokolle aus GitHub laden" in Desktop-App (Mazerationen-Seite)
-- [ ] Liest `mazeration-protocols/` Verzeichnis aus GitHub
-- [ ] Merged neue Protokolle in localStorage
-- [ ] Markiert importierte Protokolle als "Quelle: PWA"
+#### Desktop-Import ✅ IMPLEMENTIERT
+- ✅ Button „Aus GitHub laden" auf der Mazerationen-Seite (am Ende der Protokollliste)
+- ✅ Liest `mazeration-protocols/`-Verzeichnis aus GitHub (API)
+- ✅ Mergt neue Protokolle in `localStorage` (Duplikatschutz via ID-Vergleich)
+- ✅ Automatische Persistenz via `useEffect` → `localStorage('mazerationProtocols')`
 
 ### Phase 3.6: PWA & Desktop-App Erweiterungen ✅ IMPLEMENTIERT (September 2026)
 
