@@ -10,6 +10,7 @@
     <title>Mazeration erfassen – MazerationsMeister</title>
     <link rel="manifest" href="./mazeration-manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -84,8 +85,8 @@
                             <input id="f-name" type="text" class="field-input" placeholder="z.B. Lavendel Mazeration" autocomplete="off">
                         </div>
                         <div>
-                            <label class="field-label">Chargennummer <span class="required-star">*</span> <span class="text-gray-400 font-normal">(5-stellig)</span></label>
-                            <input id="f-batch" type="text" inputmode="numeric" class="field-input" placeholder="12345" maxlength="5" autocomplete="off">
+                            <label class="field-label">Chargennummer <span class="required-star">*</span> <span class="text-gray-400 font-normal">(4–5-stellig)</span></label>
+                            <input id="f-batch" type="text" inputmode="numeric" class="field-input" placeholder="1234" maxlength="5" autocomplete="off">
                         </div>
                         <div>
                             <label class="field-label">Erstellungsdatum</label>
@@ -316,6 +317,7 @@
             <div class="flex justify-between items-center mb-3">
                 <h2 class="text-white font-bold text-base">Sammelliste</h2>
                 <div class="flex gap-2">
+                    <button onclick="exportSammellisteXLSX()" class="bg-white text-green-700 font-bold px-3 py-2 rounded-lg text-xs shadow">📊 XLSX</button>
                     <button onclick="exportSammellistePDF()" class="bg-white text-purple-700 font-bold px-3 py-2 rounded-lg text-xs shadow">📄 PDF</button>
                     <button onclick="clearSammelliste()" class="bg-red-100 text-red-700 font-bold px-3 py-2 rounded-lg text-xs shadow">🗑 Leeren</button>
                 </div>
@@ -652,7 +654,7 @@
 
     function validateForm(data) {
         if (!data.macerationName)              return 'Bezeichnung ist erforderlich';
-        if (!/^\d{5}$/.test(data.batchNumber)) return 'Chargennummer muss genau 5 Ziffern sein';
+        if (!/^\d{4,5}$/.test(data.batchNumber)) return 'Chargennummer muss 4 oder 5 Ziffern sein';
         if (!data.plantName)                   return 'Pflanzenname ist erforderlich';
         if (!data.plantPart)                   return 'Pflanzenteil ist erforderlich';
         return null;
@@ -1144,6 +1146,82 @@
         if (!w) { showToast('❌ Popup blockiert', 3000); return; }
         w.document.write(html);
         w.document.close();
+    }
+
+    async function exportSammellisteXLSX() {
+        await loadSammelliste();
+        if (!sammellisteIds.length) { showToast('❌ Sammelliste ist leer', 2500); return; }
+        if (typeof XLSX === 'undefined') { showToast('❌ XLSX-Bibliothek nicht geladen', 2500); return; }
+
+        const protocols = [];
+        for (const id of sammellisteIds) {
+            const p = await dbGet('protocols', id);
+            if (p) protocols.push(p);
+        }
+        protocols.sort((a, b) => (a.creationDate || '').localeCompare(b.creationDate || ''));
+
+        const header = ['Datum', 'Bezeichnung', 'Charge', 'Pflanze', 'Pflanzenteil',
+            'Kraut (Menge)', 'Einheit Kraut',
+            'Alkoholtyp', 'Sprit (L)', 'Alkohol (%vol)',
+            'LA Einsatz (L abs.)',
+            'Mazerat (L)', 'Endalkohol (%vol)', 'LA Ausbeute (L abs.)',
+            'Beginn', 'Ende', 'Temp (°C)', 'Bemerkungen'];
+
+        const rows = protocols.map(p => {
+            const spritL = toL(p.alcoholVolume, p.alcoholVolumeUnit);
+            const mazeratL = toL(p.yieldVolume, p.yieldVolumeUnit);
+            const laEin = laL(p.alcoholVolume, p.alcoholVolumeUnit, p.alcoholConcentration);
+            const laAus = laL(p.yieldVolume, p.yieldVolumeUnit, p.endConcentration);
+            return [
+                p.creationDate || '',
+                p.macerationName || '',
+                p.batchNumber || '',
+                p.plantName || '',
+                p.plantPart || '',
+                p.plantWeight != null ? p.plantWeight : '',
+                p.plantWeightUnit || '',
+                p.alcoholType || '',
+                spritL != null ? spritL : '',
+                p.alcoholConcentration != null ? p.alcoholConcentration : '',
+                laEin != null ? Math.round(laEin * 1000) / 1000 : '',
+                mazeratL != null ? Math.round(mazeratL * 1000) / 1000 : '',
+                p.endConcentration != null ? p.endConcentration : '',
+                laAus != null ? Math.round(laAus * 1000) / 1000 : '',
+                p.macerationStartDate || '',
+                p.macerationEndDate || '',
+                p.roomTemperature != null ? p.roomTemperature : '',
+                p.remarks || '',
+            ];
+        });
+
+        // Summenzeile
+        let sumKrautG = 0, sumLaEin = 0, sumMaz = 0, sumLaAus = 0;
+        protocols.forEach(p => {
+            if (p.plantWeight) sumKrautG += p.plantWeightUnit === 'kg' ? p.plantWeight * 1000 : p.plantWeight;
+            const le = laL(p.alcoholVolume, p.alcoholVolumeUnit, p.alcoholConcentration);
+            const ml = toL(p.yieldVolume, p.yieldVolumeUnit);
+            const la = laL(p.yieldVolume, p.yieldVolumeUnit, p.endConcentration);
+            if (le) sumLaEin += le;
+            if (ml) sumMaz += ml;
+            if (la) sumLaAus += la;
+        });
+        const sumRow = ['∑ Gesamt', '', `${protocols.length} Chargen`, '', '',
+            sumKrautG >= 1000 ? Math.round(sumKrautG/10)/100 : sumKrautG,
+            sumKrautG >= 1000 ? 'kg' : 'g',
+            '', '', '',
+            Math.round(sumLaEin * 1000) / 1000,
+            Math.round(sumMaz * 1000) / 1000, '',
+            Math.round(sumLaAus * 1000) / 1000,
+            '', '', '', ''];
+
+        const ws = XLSX.utils.aoa_to_sheet([header, ...rows, [], sumRow]);
+        // Spaltenbreiten
+        ws['!cols'] = [10,20,10,18,16,10,8,14,10,10,12,10,12,12,12,12,8,30].map(w => ({wch:w}));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Sammelliste');
+        const today = new Date().toISOString().slice(0,10);
+        XLSX.writeFile(wb, `Sammelliste_Mazerationen_${today}.xlsx`);
+        showToast('📊 XLSX wird heruntergeladen');
     }
 
     // ============================================================

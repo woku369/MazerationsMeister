@@ -29,7 +29,8 @@ const dateSchema = z.date({invalid_type_error: "Ungültiges Datum."}).optional()
 export const mazerationFormSchema = z.object({
   macerationName: z.string().min(1, 'Name der Mazeration ist erforderlich'),
   batchNumber: z.string()
-    .length(5, 'Chargennummer muss 5-stellig sein')
+    .min(4, 'Chargennummer muss mind. 4-stellig sein')
+    .max(5, 'Chargennummer darf max. 5-stellig sein')
     .regex(/^\d+$/, 'Chargennummer darf nur Ziffern enthalten'),
   creationDate: z.date({invalid_type_error: "Ungültiges Datum."}).optional().nullable(),
   plantName: z.string().min(1, 'Pflanzenname ist erforderlich'),

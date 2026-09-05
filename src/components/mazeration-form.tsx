@@ -1388,9 +1388,9 @@ export default function MazerationForm() {
                 name="batchNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-1"><Hash className="w-4 h-4 text-muted-foreground" />Chargennummer (5-stellig)</FormLabel>
+                    <FormLabel className="flex items-center gap-1"><Hash className="w-4 h-4 text-muted-foreground" />Chargennummer (4–5-stellig)</FormLabel>
                     <FormControl>
-                      <Input type="text" maxLength={5} placeholder="00000" {...field} value={field.value ?? ""} />
+                      <Input type="text" maxLength={5} placeholder="0000" {...field} value={field.value ?? ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
