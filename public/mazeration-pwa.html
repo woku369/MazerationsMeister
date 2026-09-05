@@ -56,9 +56,10 @@
         </div>
         <!-- Tabs -->
         <div class="flex max-w-lg mx-auto">
-            <button onclick="showTab('form')" id="tab-form" class="tab-btn active flex-1 py-2.5 text-sm text-white">📝 Formular</button>
-            <button onclick="showTab('list')" id="tab-list" class="tab-btn flex-1 py-2.5 text-sm text-purple-300">📋 Protokolle</button>
-            <button onclick="showTab('settings')" id="tab-settings" class="tab-btn flex-1 py-2.5 text-sm text-purple-300">⚙️ Einstellungen</button>
+            <button onclick="showTab('form')" id="tab-form" class="tab-btn active flex-1 py-2.5 text-xs text-white">📝 Formular</button>
+            <button onclick="showTab('list')" id="tab-list" class="tab-btn flex-1 py-2.5 text-xs text-purple-300">📋 Protokolle</button>
+            <button onclick="showTab('sammelliste')" id="tab-sammelliste" class="tab-btn flex-1 py-2.5 text-xs text-purple-300">📊 Sammelliste</button>
+            <button onclick="showTab('settings')" id="tab-settings" class="tab-btn flex-1 py-2.5 text-xs text-purple-300">⚙️ Einst.</button>
         </div>
     </div>
 
@@ -310,6 +311,40 @@
             </div>
         </div>
 
+        <!-- ===== SAMMELLISTE ===== -->
+        <div id="tab-content-sammelliste" class="hidden">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-white font-bold text-base">Sammelliste</h2>
+                <div class="flex gap-2">
+                    <button onclick="exportSammellistePDF()" class="bg-white text-purple-700 font-bold px-3 py-2 rounded-lg text-xs shadow">📄 PDF</button>
+                    <button onclick="clearSammelliste()" class="bg-red-100 text-red-700 font-bold px-3 py-2 rounded-lg text-xs shadow">🗑 Leeren</button>
+                </div>
+            </div>
+            <div id="sammelliste-empty" class="card p-6 text-center text-gray-400 text-sm">Keine Einträge – Protokolle über »+« hinzufügen</div>
+            <div id="sammelliste-table-wrap" class="hidden">
+                <div class="overflow-x-auto rounded-xl shadow mb-3">
+                    <table id="sammelliste-table" class="w-full text-xs bg-white border-collapse" style="min-width:680px">
+                        <thead>
+                            <tr style="background:#f3f0ff">
+                                <th class="p-2 text-left text-purple-800 font-bold border-b border-purple-100">Datum</th>
+                                <th class="p-2 text-left text-purple-800 font-bold border-b border-purple-100">Bezeichnung / Charge</th>
+                                <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">Kraut</th>
+                                <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">Sprit (L / %)</th>
+                                <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">LA Einsatz</th>
+                                <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">Mazerat</th>
+                                <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">Alk.%</th>
+                                <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">LA Ausbeute</th>
+                                <th class="p-2 border-b border-purple-100"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="sammelliste-body"></tbody>
+                        <tfoot id="sammelliste-footer"></tfoot>
+                    </table>
+                </div>
+                <p class="text-xs text-purple-200 text-center">LA = Liter Absolut (vol × Alk%/100)</p>
+            </div>
+        </div>
+
         <!-- ===== EINSTELLUNGEN ===== -->
         <div id="tab-content-settings" class="hidden">
             <div class="card p-4 mb-4">
@@ -371,6 +406,7 @@
     document.addEventListener('DOMContentLoaded', async () => {
         await initDB();
         await loadSettings();
+        await loadSammelliste();
         setTodayDate();
         updateOnlineStatus();
         registerSW();
@@ -496,7 +532,7 @@
     // TABS
     // ============================================================
     function showTab(tab) {
-        ['form','list','settings'].forEach(t => {
+        ['form','list','sammelliste','settings'].forEach(t => {
             document.getElementById(`tab-content-${t}`).classList.toggle('hidden', t !== tab);
             const btn = document.getElementById(`tab-${t}`);
             btn.classList.toggle('active', t === tab);
@@ -504,6 +540,7 @@
             btn.classList.toggle('text-purple-300', t !== tab);
         });
         if (tab === 'list') renderProtocolList();
+        if (tab === 'sammelliste') renderSammelliste();
     }
 
     // ============================================================
@@ -868,6 +905,7 @@
                 <\/div>
                 <div class="flex gap-2 mt-3 flex-wrap">
                     <button onclick="openForEdit('${p.id}')" class="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium">✏️ Bearbeiten<\/button>
+                    <button onclick="addToSammelliste('${p.id}')" class="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-medium">📊 + Liste<\/button>
                     ${!p.synced ? `<button onclick="syncOne('${p.id}')" class="btn-primary text-white px-3 py-1.5 rounded-lg text-xs font-medium">☁️ Sync<\/button>` : ''}
                     <button onclick="exportPDFById('${p.id}')" class="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium">📄 PDF<\/button>
                     <button onclick="deleteProtocol('${p.id}')" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium">🗑 Löschen<\/button>
@@ -897,6 +935,217 @@
 
     // ============================================================
     // HILFSFUNKTIONEN
+    // ============================================================
+    // SAMMELLISTE
+    // ============================================================
+    let sammellisteIds = [];   // geordnete Liste von Protokoll-IDs
+
+    async function loadSammelliste() {
+        try {
+            const rec = await dbGet('settings', 'sammelliste');
+            sammellisteIds = rec?.value || [];
+        } catch(e) { sammellisteIds = []; }
+    }
+
+    async function saveSammellisteIds() {
+        await dbPut('settings', { key: 'sammelliste', value: sammellisteIds });
+    }
+
+    async function addToSammelliste(id) {
+        await loadSammelliste();
+        if (sammellisteIds.includes(id)) { showToast('ℹ️ Bereits in der Sammelliste'); return; }
+        sammellisteIds.push(id);
+        await saveSammellisteIds();
+        showToast('📊 Zur Sammelliste hinzugefügt');
+    }
+
+    async function removeFromSammelliste(id) {
+        await loadSammelliste();
+        sammellisteIds = sammellisteIds.filter(x => x !== id);
+        await saveSammellisteIds();
+        await renderSammelliste();
+    }
+
+    async function clearSammelliste() {
+        if (!confirm('Sammelliste wirklich leeren?')) return;
+        sammellisteIds = [];
+        await saveSammellisteIds();
+        await renderSammelliste();
+    }
+
+    function toL(vol, unit) {
+        if (!vol) return null;
+        return unit === 'ml' ? vol / 1000 : vol;
+    }
+
+    function laL(vol, unit, conc) {
+        const vL = toL(vol, unit);
+        if (!vL || !conc) return null;
+        return vL * conc / 100;
+    }
+
+    function fmtL(v) { return v != null ? v.toFixed(3) + ' L' : '–'; }
+    function fmtKraut(p) {
+        if (!p.plantWeight) return '–';
+        return String(p.plantWeight).replace('.',',') + ' ' + (p.plantWeightUnit || 'g');
+    }
+
+    async function renderSammelliste() {
+        await loadSammelliste();
+        const empty = document.getElementById('sammelliste-empty');
+        const wrap  = document.getElementById('sammelliste-table-wrap');
+        const tbody = document.getElementById('sammelliste-body');
+        const tfoot = document.getElementById('sammelliste-footer');
+
+        if (!sammellisteIds.length) {
+            empty.classList.remove('hidden');
+            wrap.classList.add('hidden');
+            return;
+        }
+        empty.classList.add('hidden');
+        wrap.classList.remove('hidden');
+
+        // Protokolle laden und chronologisch sortieren
+        const protocols = [];
+        for (const id of sammellisteIds) {
+            const p = await dbGet('protocols', id);
+            if (p) protocols.push(p);
+        }
+        protocols.sort((a, b) => (a.creationDate || '').localeCompare(b.creationDate || ''));
+
+        let sumKrautG = 0, sumLaEinsatz = 0, sumMazerat = 0, sumLaAusbeute = 0;
+
+        tbody.innerHTML = protocols.map(p => {
+            const laEin  = laL(p.alcoholVolume,  p.alcoholVolumeUnit,  p.alcoholConcentration);
+            const laAus  = laL(p.yieldVolume,    p.yieldVolumeUnit,    p.endConcentration);
+            const mazeratL = toL(p.yieldVolume, p.yieldVolumeUnit);
+            const spritL = toL(p.alcoholVolume, p.alcoholVolumeUnit);
+
+            // Summen (Kraut in g normieren)
+            if (p.plantWeight) {
+                sumKrautG += p.plantWeightUnit === 'kg' ? p.plantWeight * 1000 : p.plantWeight;
+            }
+            if (laEin)    sumLaEinsatz  += laEin;
+            if (mazeratL) sumMazerat    += mazeratL;
+            if (laAus)    sumLaAusbeute += laAus;
+
+            const datum = p.creationDate ? p.creationDate.split('-').reverse().join('.') : '–';
+            const spritStr = spritL != null
+                ? spritL.toFixed(2) + ' L' + (p.alcoholConcentration ? ' / ' + String(p.alcoholConcentration).replace('.',',') + '%' : '')
+                : '–';
+
+            return `<tr class="border-b border-gray-100 hover:bg-purple-50">
+                <td class="p-2 whitespace-nowrap">${datum}</td>
+                <td class="p-2"><div class="font-medium">${esc(p.macerationName)}<\/div><div class="text-gray-400">${esc(p.batchNumber || '')}<\/div><\/td>
+                <td class="p-2 text-right whitespace-nowrap">${fmtKraut(p)}<\/td>
+                <td class="p-2 text-right whitespace-nowrap">${spritStr}<\/td>
+                <td class="p-2 text-right whitespace-nowrap font-medium">${laEin != null ? laEin.toFixed(3) + ' L' : '–'}<\/td>
+                <td class="p-2 text-right whitespace-nowrap">${mazeratL != null ? mazeratL.toFixed(2) + ' L' : '–'}<\/td>
+                <td class="p-2 text-right whitespace-nowrap">${p.endConcentration != null ? String(p.endConcentration).replace('.',',') + ' %' : '–'}<\/td>
+                <td class="p-2 text-right whitespace-nowrap font-medium">${laAus != null ? laAus.toFixed(3) + ' L' : '–'}<\/td>
+                <td class="p-2 text-center"><button onclick="removeFromSammelliste('${p.id}')" class="text-red-400 font-bold text-base leading-none">×<\/button><\/td>
+            <\/tr>`;
+        }).join('');
+
+        // Summenzeile
+        const sumKrautStr = sumKrautG >= 1000
+            ? (sumKrautG/1000).toFixed(2) + ' kg'
+            : sumKrautG.toFixed(0) + ' g';
+        tfoot.innerHTML = `<tr style="background:#f3f0ff;font-weight:700">
+            <td class="p-2" colspan="2">∑ Gesamt (${protocols.length} Chargen)</td>
+            <td class="p-2 text-right whitespace-nowrap">${sumKrautStr}</td>
+            <td class="p-2"></td>
+            <td class="p-2 text-right whitespace-nowrap">${sumLaEinsatz.toFixed(3)} L</td>
+            <td class="p-2 text-right whitespace-nowrap">${sumMazerat.toFixed(2)} L</td>
+            <td class="p-2"></td>
+            <td class="p-2 text-right whitespace-nowrap">${sumLaAusbeute.toFixed(3)} L</td>
+            <td class="p-2"></td>
+        <\/tr>`;
+    }
+
+    async function exportSammellistePDF() {
+        await loadSammelliste();
+        if (!sammellisteIds.length) { showToast('❌ Sammelliste ist leer', 2500); return; }
+
+        const protocols = [];
+        for (const id of sammellisteIds) {
+            const p = await dbGet('protocols', id);
+            if (p) protocols.push(p);
+        }
+        protocols.sort((a, b) => (a.creationDate || '').localeCompare(b.creationDate || ''));
+
+        let sumKrautG = 0, sumLaEinsatz = 0, sumMazerat = 0, sumLaAusbeute = 0;
+
+        const rows = protocols.map(p => {
+            const laEin  = laL(p.alcoholVolume,  p.alcoholVolumeUnit,  p.alcoholConcentration);
+            const laAus  = laL(p.yieldVolume,    p.yieldVolumeUnit,    p.endConcentration);
+            const mazeratL = toL(p.yieldVolume, p.yieldVolumeUnit);
+            const spritL = toL(p.alcoholVolume, p.alcoholVolumeUnit);
+            if (p.plantWeight) sumKrautG += p.plantWeightUnit === 'kg' ? p.plantWeight * 1000 : p.plantWeight;
+            if (laEin)    sumLaEinsatz  += laEin;
+            if (mazeratL) sumMazerat    += mazeratL;
+            if (laAus)    sumLaAusbeute += laAus;
+            const datum = p.creationDate ? p.creationDate.split('-').reverse().join('.') : '–';
+            const spritStr = spritL != null
+                ? spritL.toFixed(2) + ' L' + (p.alcoholConcentration ? ' / ' + String(p.alcoholConcentration).replace('.',',') + ' %' : '')
+                : '–';
+            return `<tr>
+                <td>${datum}</td>
+                <td>${p.macerationName || '–'}<br><small>${p.batchNumber || ''}</small></td>
+                <td>${fmtKraut(p)}</td>
+                <td>${spritStr}<br><small>${esc(p.alcoholType || '')}</small></td>
+                <td>${laEin != null ? laEin.toFixed(3) + ' L' : '–'}</td>
+                <td>${mazeratL != null ? mazeratL.toFixed(2) + ' L' : '–'}</td>
+                <td>${p.endConcentration != null ? String(p.endConcentration).replace('.',',') + ' %' : '–'}</td>
+                <td>${laAus != null ? laAus.toFixed(3) + ' L' : '–'}</td>
+            </tr>`;
+        }).join('');
+
+        const sumKrautStr = sumKrautG >= 1000 ? (sumKrautG/1000).toFixed(2)+' kg' : sumKrautG.toFixed(0)+' g';
+
+        const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+<title>Sammelliste Mazerationen</title>
+<style>
+  body{font-family:Arial,sans-serif;font-size:10px;padding:20px;color:#111}
+  h1{font-size:15px;color:#4c1d95;border-bottom:2px solid #7c3aed;padding-bottom:5px;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse}
+  th{background:#f3f0ff;color:#4c1d95;font-size:9px;text-transform:uppercase;padding:5px 6px;text-align:right;border-bottom:2px solid #c4b5fd}
+  th:nth-child(1),th:nth-child(2){text-align:left}
+  td{padding:4px 6px;border-bottom:1px solid #e5e7eb;text-align:right;vertical-align:top}
+  td:nth-child(1),td:nth-child(2){text-align:left}
+  td small{color:#6b7280;font-size:9px}
+  tfoot tr{background:#f3f0ff;font-weight:700}
+  .footer{margin-top:16px;font-size:9px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:5px;display:flex;justify-content:space-between}
+  @media print{@page{margin:12mm 12mm}body{padding:0}}
+</style></head><body>
+<h1>Sammelliste Mazerationen (${protocols.length} Chargen)</h1>
+<table>
+<thead><tr>
+  <th>Datum</th><th>Bezeichnung / Ch.</th><th>Kraut</th><th>Sprit / Typ</th>
+  <th>LA Einsatz</th><th>Mazerat</th><th>Alk.%</th><th>LA Ausbeute</th>
+</tr></thead>
+<tbody>${rows}</tbody>
+<tfoot><tr>
+  <td colspan="2">∑ Gesamt</td>
+  <td>${sumKrautStr}</td><td></td>
+  <td>${sumLaEinsatz.toFixed(3)} L</td>
+  <td>${sumMazerat.toFixed(2)} L</td><td></td>
+  <td>${sumLaAusbeute.toFixed(3)} L</td>
+</tr></tfoot>
+</table>
+<div class="footer">
+  <span>Gurktaler AG · MazerationsMeister</span>
+  <span>Erstellt: ${new Date().toLocaleString('de-DE')}</span>
+</div>
+<script>window.onload=()=>window.print()<\/script>
+</body></html>`;
+
+        const w = window.open('', '_blank', 'width=900,height=700');
+        if (!w) { showToast('❌ Popup blockiert', 3000); return; }
+        w.document.write(html);
+        w.document.close();
+    }
+
     // ============================================================
     // PDF EXPORT
     // ============================================================
