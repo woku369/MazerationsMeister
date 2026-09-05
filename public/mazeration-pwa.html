@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mazeration">
+    <title>Mazeration erfassen – MazerationsMeister</title>
+    <link rel="manifest" href="./mazeration-manifest.json">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-bottom: calc(env(safe-area-inset-bottom) + 16px);
+        }
+        .card { background: rgba(255,255,255,0.97); border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+        .tab-btn { transition: all 0.2s; border-bottom: 3px solid transparent; }
+        .tab-btn.active { border-bottom-color: white; color: white !important; font-weight: 700; }
+        .section-header { cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .section-header:active { background: #f3f4f6; }
+        input, select, textarea { font-size: 16px !important; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); transition: opacity 0.2s; }
+        .btn-primary:active { opacity: 0.85; }
+        .field-label { font-weight: 600; color: #374151; margin-bottom: 4px; display: block; font-size: 14px; }
+        .field-input { width: 100%; border: 1.5px solid #d1d5db; border-radius: 8px; padding: 11px 12px; background: white; outline: none; transition: border-color 0.2s; }
+        .field-input:focus { border-color: #667eea; }
+        .toggle-btn { padding: 9px 18px; border-radius: 8px; border: 1.5px solid #d1d5db; background: white; cursor: pointer; font-size: 14px; transition: all 0.15s; font-weight: 500; }
+        .toggle-btn.selected { background: #667eea; color: white; border-color: #667eea; }
+        .protocol-item { border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; background: white; }
+        .badge-synced { background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+        .badge-pending { background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 13px 22px; border-radius: 12px; z-index: 9999; font-size: 14px; max-width: 88vw; text-align: center; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        .toast.show { opacity: 1; }
+        .calc-display { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 12px; color: #166534; font-size: 14px; }
+        .required-star { color: #ef4444; }
+        .divider { border-top: 1px solid #f3f4f6; margin: 4px 0; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="sticky top-0 z-10" style="background: rgba(88,108,220,0.97); backdrop-filter: blur(10px);">
+        <div class="px-4 py-3 flex items-center justify-between max-w-lg mx-auto">
+            <div>
+                <h1 class="text-white font-bold text-lg leading-tight">🌿 Mazeration erfassen</h1>
+                <p class="text-purple-200 text-xs" id="status-bar">Bereit</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-2.5 h-2.5 rounded-full" id="online-dot" style="background:#34d399"></div>
+                <span class="text-purple-200 text-xs" id="online-label">Online</span>
+            </div>
+        </div>
+        <!-- Tabs -->
+        <div class="flex max-w-lg mx-auto">
+            <button onclick="showTab('form')" id="tab-form" class="tab-btn active flex-1 py-2.5 text-sm text-white">📝 Formular</button>
+            <button onclick="showTab('list')" id="tab-list" class="tab-btn flex-1 py-2.5 text-sm text-purple-300">📋 Protokolle</button>
+            <button onclick="showTab('settings')" id="tab-settings" class="tab-btn flex-1 py-2.5 text-sm text-purple-300">⚙️ Einstellungen</button>
+        </div>
+    </div>
+
+    <div class="max-w-lg mx-auto px-4 py-4">
+
+        <!-- ===== FORMULAR ===== -->
+        <div id="tab-content-form">
+            <form id="mazeration-form" novalidate>
+
+                <!-- Basisdaten -->
+                <div class="card mb-4">
+                    <div class="p-4 border-b border-gray-100">
+                        <h2 class="font-bold text-gray-800 text-base">📌 Basisdaten</h2>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        <div>
+                            <label class="field-label">Bezeichnung <span class="required-star">*</span></label>
+                            <input id="f-name" type="text" class="field-input" placeholder="z.B. Lavendel Mazeration" autocomplete="off">
+                        </div>
+                        <div>
+                            <label class="field-label">Chargennummer <span class="required-star">*</span> <span class="text-gray-400 font-normal">(5-stellig)</span></label>
+                            <input id="f-batch" type="text" inputmode="numeric" class="field-input" placeholder="12345" maxlength="5" autocomplete="off">
+                        </div>
+                        <div>
+                            <label class="field-label">Erstellungsdatum</label>
+                            <input id="f-date" type="date" class="field-input">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pflanzenmaterial -->
+                <div class="card mb-4">
+                    <div class="section-header p-4 flex items-center justify-between border-b border-gray-100" onclick="toggleSection('plant')">
+                        <h2 class="font-bold text-gray-800 text-base">🌱 Pflanzenmaterial</h2>
+                        <span id="chevron-plant" class="text-gray-400 text-lg transition-transform">▾</span>
+                    </div>
+                    <div id="section-plant" class="p-4 space-y-4">
+                        <div>
+                            <label class="field-label">Pflanzenname <span class="required-star">*</span></label>
+                            <input id="f-plant" type="text" class="field-input" placeholder="z.B. Lavendel (Lavandula angustifolia)" autocomplete="off">
+                        </div>
+                        <div>
+                            <label class="field-label">Pflanzenteil <span class="required-star">*</span></label>
+                            <select id="f-plant-part" class="field-input">
+                                <option value="">– auswählen –</option>
+                                <option>Blüten</option>
+                                <option>Blätter</option>
+                                <option>Früchte / Beeren</option>
+                                <option>Rinde</option>
+                                <option>Wurzeln</option>
+                                <option>Samen</option>
+                                <option>Schalen</option>
+                                <option>Ganze Pflanze</option>
+                                <option>Sonstiges</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">Erntedatum</label>
+                            <input id="f-harvest" type="date" class="field-input">
+                        </div>
+                        <div>
+                            <label class="field-label">Qualitätsbeurteilung</label>
+                            <textarea id="f-quality" class="field-input" rows="2" placeholder="z.B. Frische Qualität, keine Schäden"></textarea>
+                        </div>
+                        <div>
+                            <label class="field-label">Gewichtseinheit</label>
+                            <div class="flex gap-2">
+                                <button type="button" class="toggle-btn selected" id="unit-g" onclick="setWeightUnit('g')">Gramm (g)</button>
+                                <button type="button" class="toggle-btn" id="unit-kg" onclick="setWeightUnit('kg')">Kilogramm (kg)</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="field-label" id="weight-label">Pflanzengewicht (g)</label>
+                            <input id="f-weight" type="text" inputmode="decimal" class="field-input" placeholder="0,0">
+                        </div>
+                        <!-- Kisten (nur bei kg) -->
+                        <div id="crate-section" class="hidden space-y-4 border-t border-gray-100 pt-4">
+                            <p class="text-sm text-gray-500 font-medium">Kistenmanagement (optional)</p>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="field-label">Anzahl Kisten</label>
+                                    <input id="f-crates" type="text" inputmode="decimal" class="field-input" placeholder="0" oninput="calcNet()">
+                                </div>
+                                <div>
+                                    <label class="field-label">Bruttogewicht (kg)</label>
+                                    <input id="f-gross" type="text" inputmode="decimal" class="field-input" placeholder="0,0" oninput="calcNet()">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="field-label">Tara / Kiste (kg)</label>
+                                <input id="f-tare" type="text" inputmode="decimal" class="field-input" placeholder="2,00" value="2,00" oninput="calcNet()">
+                            </div>
+                            <div id="net-display" class="calc-display hidden">
+                                <strong>Nettogewicht:</strong> <span id="net-weight">–</span> kg
+                                &nbsp;|  Ø/Kiste: <span id="net-per-crate">–</span> kg
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alkohol -->
+                <div class="card mb-4">
+                    <div class="section-header p-4 flex items-center justify-between border-b border-gray-100" onclick="toggleSection('alcohol')">
+                        <h2 class="font-bold text-gray-800 text-base">🍶 Alkohol</h2>
+                        <span id="chevron-alcohol" class="text-gray-400 text-lg">▾</span>
+                    </div>
+                    <div id="section-alcohol" class="p-4 space-y-4">
+                        <div>
+                            <label class="field-label">Alkoholtyp <span class="required-star">*</span></label>
+                            <select id="f-alc-type" class="field-input">
+                                <option value="">– auswählen –</option>
+                                <option>Ethanol 96%</option>
+                                <option>Weingeist</option>
+                                <option>Korn</option>
+                                <option>Wodka</option>
+                                <option>Obstbrand</option>
+                                <option>Sonstiges</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">Konzentration (% vol) <span class="required-star">*</span></label>
+                            <input id="f-alc-conc" type="text" inputmode="decimal" class="field-input" placeholder="96,0">
+                        </div>
+                        <div>
+                            <label class="field-label">Volumen <span class="required-star">*</span></label>
+                            <div class="flex gap-2 mb-2">
+                                <button type="button" class="toggle-btn" id="vol-ml" onclick="setVolUnit('ml')">ml</button>
+                                <button type="button" class="toggle-btn selected" id="vol-l" onclick="setVolUnit('l')">Liter</button>
+                            </div>
+                            <input id="f-alc-vol" type="text" inputmode="decimal" class="field-input" placeholder="0,0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Zeitraum -->
+                <div class="card mb-4">
+                    <div class="section-header p-4 flex items-center justify-between border-b border-gray-100" onclick="toggleSection('time')">
+                        <h2 class="font-bold text-gray-800 text-base">⏱ Zeitraum</h2>
+                        <span id="chevron-time" class="text-gray-400 text-lg">▾</span>
+                    </div>
+                    <div id="section-time" class="p-4 space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="field-label">Beginn Datum</label>
+                                <input id="f-start-date" type="date" class="field-input" oninput="calcDuration()">
+                            </div>
+                            <div>
+                                <label class="field-label">Beginn Zeit</label>
+                                <input id="f-start-time" type="time" class="field-input" oninput="calcDuration()">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="field-label">Ende Datum</label>
+                                <input id="f-end-date" type="date" class="field-input" oninput="calcDuration()">
+                            </div>
+                            <div>
+                                <label class="field-label">Ende Zeit</label>
+                                <input id="f-end-time" type="time" class="field-input" oninput="calcDuration()">
+                            </div>
+                        </div>
+                        <div id="duration-display" class="calc-display hidden">
+                            ⏱ Dauer: <strong id="duration-text">–</strong>
+                        </div>
+                        <div>
+                            <label class="field-label">Raumtemperatur (°C)</label>
+                            <input id="f-temp" type="text" inputmode="decimal" class="field-input" placeholder="18,0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ergebnis -->
+                <div class="card mb-4">
+                    <div class="section-header p-4 flex items-center justify-between border-b border-gray-100" onclick="toggleSection('result')">
+                        <h2 class="font-bold text-gray-800 text-base">📊 Ergebnis</h2>
+                        <span id="chevron-result" class="text-gray-400 text-lg">▾</span>
+                    </div>
+                    <div id="section-result" class="p-4 space-y-4">
+                        <div>
+                            <label class="field-label">Ausbeute</label>
+                            <div class="flex gap-2 mb-2">
+                                <button type="button" class="toggle-btn" id="yield-ml" onclick="setYieldUnit('ml')">ml</button>
+                                <button type="button" class="toggle-btn selected" id="yield-l" onclick="setYieldUnit('l')">Liter</button>
+                            </div>
+                            <input id="f-yield" type="text" inputmode="decimal" class="field-input" placeholder="0,0">
+                        </div>
+                        <div>
+                            <label class="field-label">Endkonzentration (% vol)</label>
+                            <input id="f-end-conc" type="text" inputmode="decimal" class="field-input" placeholder="0,0">
+                        </div>
+                        <div>
+                            <label class="field-label">Bemerkungen</label>
+                            <textarea id="f-remarks" class="field-input" rows="3" placeholder="Qualitätshinweise, Besonderheiten..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-3 mb-4">
+                    <button type="button" onclick="saveLocally()" class="flex-1 bg-white border-2 border-purple-400 text-purple-700 font-bold py-4 rounded-xl text-sm">
+                        💾 Lokal speichern
+                    </button>
+                    <button type="button" onclick="saveAndSync()" class="btn-primary flex-1 text-white font-bold py-4 rounded-xl text-sm">
+                        ☁️ Speichern & Sync
+                    </button>
+                </div>
+                <button type="button" onclick="resetForm()" class="w-full bg-gray-100 text-gray-500 py-3 rounded-xl text-sm mb-6">
+                    🔄 Neues Protokoll (Formular leeren)
+                </button>
+            </form>
+        </div>
+
+        <!-- ===== PROTOKOLLE ===== -->
+        <div id="tab-content-list" class="hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-white font-bold text-base">Gespeicherte Protokolle</h2>
+                <button onclick="syncAll()" class="bg-white text-purple-700 font-bold px-4 py-2 rounded-lg text-sm shadow">
+                    ☁️ Alle syncen
+                </button>
+            </div>
+            <div id="protocol-list" class="space-y-3">
+                <div class="card p-6 text-center text-gray-400 text-sm">Keine Protokolle gespeichert</div>
+            </div>
+        </div>
+
+        <!-- ===== EINSTELLUNGEN ===== -->
+        <div id="tab-content-settings" class="hidden">
+            <div class="card p-4 mb-4">
+                <h2 class="font-bold text-gray-800 mb-4">⚙️ GitHub Sync</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="field-label">GitHub Token (Personal Access Token)</label>
+                        <input id="s-token" type="password" class="field-input" placeholder="ghp_...">
+                        <p class="text-xs text-gray-400 mt-1">Benötigt: Scope »Contents: Read & Write«</p>
+                    </div>
+                    <div>
+                        <label class="field-label">Repository (owner/repo)</label>
+                        <input id="s-repo" type="text" class="field-input" placeholder="woku369/mazerationsmeister">
+                    </div>
+                    <div>
+                        <label class="field-label">Branch</label>
+                        <input id="s-branch" type="text" class="field-input" placeholder="fresh-main">
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="saveSettings()" class="btn-primary flex-1 text-white font-bold py-3 rounded-xl text-sm">
+                            💾 Speichern
+                        </button>
+                        <button onclick="testConnection()" class="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl text-sm">
+                            🔌 Testen
+                        </button>
+                    </div>
+                    <div id="connection-result" class="hidden p-3 rounded-lg text-sm font-medium"></div>
+                </div>
+            </div>
+            <div class="card p-4">
+                <h2 class="font-bold text-gray-800 mb-3">ℹ️ So funktioniert es</h2>
+                <div class="text-sm text-gray-600 space-y-3">
+                    <p>📱 <strong>Als App installieren:</strong> Chrome → Menü (⋮) → »Zum Startbildschirm hinzufügen«</p>
+                    <p>📡 <strong>Offline:</strong> Protokolle werden lokal am Gerät gespeichert – auch ohne Internet</p>
+                    <p>☁️ <strong>Sync:</strong> »Speichern & Sync« lädt das Protokoll als JSON in das GitHub-Repo hoch</p>
+                    <p>🖥 <strong>Desktop-Import:</strong> In der Desktop-App »Protokolle aus GitHub laden« verwenden</p>
+                    <p class="text-xs text-gray-400">Protokolle werden unter <code>mazeration-protocols/</code> im Repo gespeichert.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+    // ============================================================
+    // STATE
+    // ============================================================
+    let db = null;
+    let weightUnit = 'g';
+    let volUnit = 'l';
+    let yieldUnit = 'l';
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', async () => {
+        await initDB();
+        await loadSettings();
+        setTodayDate();
+        updateOnlineStatus();
+        registerSW();
+        setupAutosave();
+        await restoreDraft();
+    });
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
+    function updateOnlineStatus() {
+        const online = navigator.onLine;
+        document.getElementById('online-dot').style.background = online ? '#34d399' : '#ef4444';
+        document.getElementById('online-label').textContent = online ? 'Online' : 'Offline';
+    }
+
+    function setTodayDate() {
+        const today = new Date().toISOString().slice(0, 10);
+        document.getElementById('f-date').value = today;
+        document.getElementById('f-start-date').value = today;
+    }
+
+    function registerSW() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').catch(() => {});
+        }
+    }
+
+    // ============================================================
+    // INDEXEDDB
+    // ============================================================
+    async function initDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open('MazerationPWA', 1);
+            req.onupgradeneeded = e => {
+                const idb = e.target.result;
+                if (!idb.objectStoreNames.contains('protocols')) {
+                    idb.createObjectStore('protocols', { keyPath: 'id' });
+                }
+                if (!idb.objectStoreNames.contains('settings')) {
+                    idb.createObjectStore('settings', { keyPath: 'key' });
+                }
+                if (!idb.objectStoreNames.contains('draft')) {
+                    idb.createObjectStore('draft', { keyPath: 'key' });
+                }
+            };
+            req.onsuccess = e => { db = e.target.result; resolve(); };
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    function tx(store, mode) { return db.transaction(store, mode).objectStore(store); }
+
+    function dbGet(store, key) {
+        return new Promise((res, rej) => { const r = tx(store,'readonly').get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+    }
+    function dbPut(store, val) {
+        return new Promise((res, rej) => { const r = tx(store,'readwrite').put(val); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+    }
+    function dbGetAll(store) {
+        return new Promise((res, rej) => { const r = tx(store,'readonly').getAll(); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+    }
+    function dbDelete(store, key) {
+        return new Promise((res, rej) => { const r = tx(store,'readwrite').delete(key); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+    }
+
+    // ============================================================
+    // EINSTELLUNGEN
+    // ============================================================
+    async function loadSettings() {
+        const token  = await dbGet('settings', 'githubToken');
+        const repo   = await dbGet('settings', 'githubRepo');
+        const branch = await dbGet('settings', 'githubBranch');
+        if (token)  document.getElementById('s-token').value  = token.value;
+        if (repo)   document.getElementById('s-repo').value   = repo.value;
+        if (branch) document.getElementById('s-branch').value = branch.value;
+    }
+
+    async function saveSettings() {
+        await dbPut('settings', { key: 'githubToken',  value: document.getElementById('s-token').value.trim() });
+        await dbPut('settings', { key: 'githubRepo',   value: document.getElementById('s-repo').value.trim() });
+        await dbPut('settings', { key: 'githubBranch', value: document.getElementById('s-branch').value.trim() });
+        showToast('✅ Einstellungen gespeichert');
+    }
+
+    async function getSettings() {
+        const token  = await dbGet('settings', 'githubToken');
+        const repo   = await dbGet('settings', 'githubRepo');
+        const branch = await dbGet('settings', 'githubBranch');
+        return {
+            token:  token?.value  || '',
+            repo:   repo?.value   || 'woku369/mazerationsmeister',
+            branch: branch?.value || 'fresh-main'
+        };
+    }
+
+    async function testConnection() {
+        const el = document.getElementById('connection-result');
+        el.textContent = '⏳ Verbinde...';
+        el.className = 'p-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-700';
+        el.classList.remove('hidden');
+        const s = await getSettings();
+        if (!s.token) { el.textContent = '❌ Kein Token gespeichert'; return; }
+        try {
+            const [owner, repo] = s.repo.split('/');
+            const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+                headers: { 'Authorization': `token ${s.token}`, 'Accept': 'application/vnd.github.v3+json' }
+            });
+            if (res.ok) {
+                el.textContent = '✅ Verbindung erfolgreich!';
+                el.className = 'p-3 rounded-lg text-sm font-medium bg-green-100 text-green-800';
+            } else {
+                el.textContent = `❌ Fehler ${res.status} – Token prüfen`;
+                el.className = 'p-3 rounded-lg text-sm font-medium bg-red-100 text-red-800';
+            }
+        } catch (e) {
+            el.textContent = '❌ Netzwerkfehler';
+            el.className = 'p-3 rounded-lg text-sm font-medium bg-red-100 text-red-800';
+        }
+    }
+
+    // ============================================================
+    // TABS
+    // ============================================================
+    function showTab(tab) {
+        ['form','list','settings'].forEach(t => {
+            document.getElementById(`tab-content-${t}`).classList.toggle('hidden', t !== tab);
+            const btn = document.getElementById(`tab-${t}`);
+            btn.classList.toggle('active', t === tab);
+            btn.classList.toggle('text-white', t === tab);
+            btn.classList.toggle('text-purple-300', t !== tab);
+        });
+        if (tab === 'list') renderProtocolList();
+    }
+
+    // ============================================================
+    // SEKTIONEN (aufklappbar)
+    // ============================================================
+    function toggleSection(id) {
+        const s = document.getElementById(`section-${id}`);
+        const c = document.getElementById(`chevron-${id}`);
+        const hidden = s.classList.toggle('hidden');
+        c.textContent = hidden ? '▸' : '▾';
+    }
+
+    // ============================================================
+    // EINHEITEN
+    // ============================================================
+    function setWeightUnit(u) {
+        weightUnit = u;
+        document.getElementById('unit-g').classList.toggle('selected', u === 'g');
+        document.getElementById('unit-kg').classList.toggle('selected', u === 'kg');
+        document.getElementById('weight-label').textContent = `Pflanzengewicht (${u})`;
+        document.getElementById('crate-section').classList.toggle('hidden', u !== 'kg');
+    }
+    function setVolUnit(u) {
+        volUnit = u;
+        document.getElementById('vol-ml').classList.toggle('selected', u === 'ml');
+        document.getElementById('vol-l').classList.toggle('selected', u === 'l');
+    }
+    function setYieldUnit(u) {
+        yieldUnit = u;
+        document.getElementById('yield-ml').classList.toggle('selected', u === 'ml');
+        document.getElementById('yield-l').classList.toggle('selected', u === 'l');
+    }
+
+    // ============================================================
+    // BERECHNUNGEN
+    // ============================================================
+    function toNum(id) { return parseFloat(document.getElementById(id).value.replace(',', '.')) || 0; }
+
+    function calcNet() {
+        const crates = toNum('f-crates'), gross = toNum('f-gross'), tare = toNum('f-tare') || 2.0;
+        const disp = document.getElementById('net-display');
+        if (crates > 0 && gross > 0) {
+            const net = gross - crates * tare;
+            disp.classList.toggle('hidden', net <= 0);
+            if (net > 0) {
+                document.getElementById('net-weight').textContent = net.toFixed(2);
+                document.getElementById('net-per-crate').textContent = (net / crates).toFixed(2);
+            }
+        } else { disp.classList.add('hidden'); }
+    }
+
+    function calcDuration() {
+        const sd = document.getElementById('f-start-date').value;
+        const st = document.getElementById('f-start-time').value;
+        const ed = document.getElementById('f-end-date').value;
+        const et = document.getElementById('f-end-time').value;
+        const disp = document.getElementById('duration-display');
+        if (sd && st && ed && et) {
+            const diff = new Date(`${ed}T${et}`) - new Date(`${sd}T${st}`);
+            if (diff > 0) {
+                const d = Math.floor(diff / 86400000);
+                const h = Math.floor((diff % 86400000) / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                document.getElementById('duration-text').textContent = `${d > 0 ? d + ' Tage ' : ''}${h}h ${m}min`;
+                disp.classList.remove('hidden');
+                return;
+            }
+        }
+        disp.classList.add('hidden');
+    }
+
+    // ============================================================
+    // FORMULARDATEN
+    // ============================================================
+    function collectForm() {
+        return {
+            macerationName:      document.getElementById('f-name').value.trim(),
+            batchNumber:         document.getElementById('f-batch').value.trim(),
+            creationDate:        document.getElementById('f-date').value,
+            plantName:           document.getElementById('f-plant').value.trim(),
+            plantPart:           document.getElementById('f-plant-part').value,
+            harvestDate:         document.getElementById('f-harvest').value,
+            qualityAssessment:   document.getElementById('f-quality').value.trim(),
+            plantWeightUnit:     weightUnit,
+            plantWeight:         toNum('f-weight') || null,
+            numberOfCrates:      weightUnit === 'kg' ? (toNum('f-crates') || null) : null,
+            grossWeightKg:       weightUnit === 'kg' ? (toNum('f-gross')  || null) : null,
+            tarePerCrateKg:      weightUnit === 'kg' ? (toNum('f-tare')   || 2.0)  : null,
+            alcoholType:         document.getElementById('f-alc-type').value,
+            alcoholConcentration: toNum('f-alc-conc') || null,
+            alcoholVolumeUnit:   volUnit,
+            alcoholVolume:       toNum('f-alc-vol') || null,
+            macerationStartDate: document.getElementById('f-start-date').value,
+            macerationStartTime: document.getElementById('f-start-time').value,
+            macerationEndDate:   document.getElementById('f-end-date').value,
+            macerationEndTime:   document.getElementById('f-end-time').value,
+            roomTemperature:     toNum('f-temp') || null,
+            yieldVolumeUnit:     yieldUnit,
+            yieldVolume:         toNum('f-yield')     || null,
+            endConcentration:    toNum('f-end-conc')  || null,
+            remarks:             document.getElementById('f-remarks').value.trim(),
+        };
+    }
+
+    function validateForm(data) {
+        if (!data.macerationName)              return 'Bezeichnung ist erforderlich';
+        if (!/^\d{5}$/.test(data.batchNumber)) return 'Chargennummer muss genau 5 Ziffern sein';
+        if (!data.plantName)                   return 'Pflanzenname ist erforderlich';
+        if (!data.plantPart)                   return 'Pflanzenteil ist erforderlich';
+        return null;
+    }
+
+    // ============================================================
+    // AUTO-SAVE DRAFT
+    // ============================================================
+    function setupAutosave() {
+        document.querySelectorAll('#mazeration-form input, #mazeration-form select, #mazeration-form textarea')
+            .forEach(el => el.addEventListener('input', () => { clearTimeout(el._t); el._t = setTimeout(saveDraft, 1500); }));
+    }
+
+    async function saveDraft() {
+        try { await dbPut('draft', { key: 'current', data: { ...collectForm(), weightUnit, volUnit, yieldUnit } }); } catch (e) {}
+    }
+
+    async function restoreDraft() {
+        try {
+            const draft = await dbGet('draft', 'current');
+            if (!draft) return;
+            const d = draft.data;
+            const set = (id, val) => { if (val != null && val !== '') document.getElementById(id).value = val; };
+            set('f-name', d.macerationName);   set('f-batch', d.batchNumber);  set('f-date', d.creationDate);
+            set('f-plant', d.plantName);        set('f-plant-part', d.plantPart); set('f-harvest', d.harvestDate);
+            set('f-quality', d.qualityAssessment);
+            if (d.plantWeight)    set('f-weight',   String(d.plantWeight).replace('.',','));
+            if (d.weightUnit)     setWeightUnit(d.weightUnit);
+            if (d.numberOfCrates) set('f-crates', d.numberOfCrates);
+            if (d.grossWeightKg)  set('f-gross',  String(d.grossWeightKg).replace('.',','));
+            if (d.tarePerCrateKg) set('f-tare',   String(d.tarePerCrateKg).replace('.',','));
+            set('f-alc-type', d.alcoholType);
+            if (d.alcoholConcentration) set('f-alc-conc', String(d.alcoholConcentration).replace('.',','));
+            if (d.volUnit)   setVolUnit(d.volUnit);
+            if (d.alcoholVolume) set('f-alc-vol', String(d.alcoholVolume).replace('.',','));
+            set('f-start-date', d.macerationStartDate); set('f-start-time', d.macerationStartTime);
+            set('f-end-date',   d.macerationEndDate);   set('f-end-time',   d.macerationEndTime);
+            if (d.roomTemperature) set('f-temp', String(d.roomTemperature).replace('.',','));
+            if (d.yieldUnit) setYieldUnit(d.yieldUnit);
+            if (d.yieldVolume)    set('f-yield',    String(d.yieldVolume).replace('.',','));
+            if (d.endConcentration) set('f-end-conc', String(d.endConcentration).replace('.',','));
+            set('f-remarks', d.remarks);
+            calcNet(); calcDuration();
+            setStatus('↩ Entwurf wiederhergestellt');
+        } catch (e) {}
+    }
+
+    // ============================================================
+    // SPEICHERN
+    // ============================================================
+    function makeProtocol(data) {
+        return {
+            id:      `pwa-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+            source:  'pwa',
+            savedAt: new Date().toISOString(),
+            synced:  false,
+            ...data
+        };
+    }
+
+    async function saveLocally() {
+        const data = collectForm();
+        const err = validateForm(data);
+        if (err) { showToast('❌ ' + err, 3500); return; }
+        const p = makeProtocol(data);
+        await dbPut('protocols', p);
+        await dbDelete('draft', 'current');
+        showToast('💾 Lokal gespeichert!');
+        setStatus('Protokoll lokal gespeichert');
+    }
+
+    async function saveAndSync() {
+        const data = collectForm();
+        const err = validateForm(data);
+        if (err) { showToast('❌ ' + err, 3500); return; }
+        const p = makeProtocol(data);
+        await dbPut('protocols', p);
+        if (!navigator.onLine) {
+            showToast('💾 Gespeichert – Sync sobald online', 3000);
+            return;
+        }
+        setStatus('⏳ Synce zu GitHub...');
+        const ok = await syncProtocol(p);
+        if (ok) {
+            p.synced = true;
+            await dbPut('protocols', p);
+            await dbDelete('draft', 'current');
+            showToast('✅ Gespeichert & Gesynct!');
+            setStatus('✅ Sync erfolgreich');
+        } else {
+            showToast('⚠️ Lokal gespeichert – Sync fehlgeschlagen', 3000);
+            setStatus('⚠️ Sync fehlgeschlagen – Token prüfen');
+        }
+    }
+
+    function resetForm() {
+        if (!confirm('Formular wirklich leeren? Ungespeicherte Eingaben gehen verloren.')) return;
+        document.getElementById('mazeration-form').reset();
+        setWeightUnit('g'); setVolUnit('l'); setYieldUnit('l');
+        setTodayDate();
+        document.getElementById('net-display').classList.add('hidden');
+        document.getElementById('duration-display').classList.add('hidden');
+        dbDelete('draft', 'current').catch(() => {});
+        showToast('🔄 Formular geleert');
+    }
+
+    // ============================================================
+    // GITHUB SYNC
+    // ============================================================
+    async function syncProtocol(protocol) {
+        try {
+            const s = await getSettings();
+            if (!s.token || !s.repo) return false;
+            const [owner, repo] = s.repo.split('/');
+            const safe = protocol.macerationName.replace(/[^\w\sÄÖÜäöüß-]/g,'').replace(/\s+/g,'_').slice(0,40);
+            const date = protocol.savedAt.slice(0, 10);
+            const filename = `mazeration-protocols/${date}_${safe}_${protocol.batchNumber}.json`;
+            const content = JSON.stringify(protocol, null, 2);
+            const b64 = btoa(unescape(encodeURIComponent(content)));
+            const headers = { 'Authorization': `token ${s.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' };
+            let sha = null;
+            try {
+                const head = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filename}?ref=${s.branch}`, { headers });
+                if (head.ok) sha = (await head.json()).sha;
+            } catch (e) {}
+            const body = { message: `PWA Mazeration: ${protocol.macerationName} (${protocol.batchNumber})`, content: b64, branch: s.branch };
+            if (sha) body.sha = sha;
+            const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filename}`, {
+                method: 'PUT', headers, body: JSON.stringify(body)
+            });
+            return res.ok;
+        } catch (e) { return false; }
+    }
+
+    async function syncAll() {
+        const all = await dbGetAll('protocols');
+        const pending = all.filter(p => !p.synced);
+        if (!pending.length) { showToast('✅ Alle Protokolle bereits gesynct'); return; }
+        if (!navigator.onLine) { showToast('❌ Kein Internet verfügbar'); return; }
+        setStatus(`⏳ Synce ${pending.length} Protokoll(e)...`);
+        let ok = 0;
+        for (const p of pending) {
+            if (await syncProtocol(p)) { p.synced = true; await dbPut('protocols', p); ok++; }
+        }
+        showToast(`✅ ${ok}/${pending.length} Protokolle gesynct`);
+        setStatus(`✅ ${ok} Protokolle gesynct`);
+        await renderProtocolList();
+    }
+
+    // ============================================================
+    // PROTOKOLLLISTE
+    // ============================================================
+    async function renderProtocolList() {
+        const list = document.getElementById('protocol-list');
+        const protocols = (await dbGetAll('protocols')).sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+        if (!protocols.length) {
+            list.innerHTML = '<div class="card p-6 text-center text-gray-400 text-sm">Keine Protokolle gespeichert<\/div>';
+            return;
+        }
+        list.innerHTML = protocols.map(p => `
+            <div class="protocol-item">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0 flex-1">
+                        <div class="font-bold text-gray-800 truncate">${esc(p.macerationName)}<\/div>
+                        <div class="text-sm text-gray-500 mt-0.5">Charge: ${esc(p.batchNumber)} &middot; ${esc(p.plantName || '–')}<\/div>
+                        <div class="text-xs text-gray-400 mt-1">${new Date(p.savedAt).toLocaleString('de-DE')}<\/div>
+                    <\/div>
+                    <span class="shrink-0 ${p.synced ? 'badge-synced' : 'badge-pending'}">${p.synced ? '✅ Gesynct' : '⏳ Ausstehend'}<\/span>
+                <\/div>
+                <div class="flex gap-2 mt-3">
+                    ${!p.synced ? `<button onclick="syncOne('${p.id}')" class="btn-primary text-white px-3 py-1.5 rounded-lg text-xs font-medium">☁️ Sync<\/button>` : ''}
+                    <button onclick="deleteProtocol('${p.id}')" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium">🗑 Löschen<\/button>
+                <\/div>
+            <\/div>
+        `).join('');
+    }
+
+    async function syncOne(id) {
+        const p = await dbGet('protocols', id);
+        if (!p) return;
+        if (!navigator.onLine) { showToast('❌ Kein Internet'); return; }
+        if (await syncProtocol(p)) {
+            p.synced = true; await dbPut('protocols', p);
+            showToast('✅ Sync erfolgreich');
+        } else {
+            showToast('❌ Sync fehlgeschlagen');
+        }
+        await renderProtocolList();
+    }
+
+    async function deleteProtocol(id) {
+        if (!confirm('Protokoll wirklich löschen?')) return;
+        await dbDelete('protocols', id);
+        await renderProtocolList();
+    }
+
+    // ============================================================
+    // HILFSFUNKTIONEN
+    // ============================================================
+    function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function showToast(msg, ms = 2500) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), ms);
+    }
+    function setStatus(msg) { document.getElementById('status-bar').textContent = msg; }
+    </script>
+</body>
+</html>

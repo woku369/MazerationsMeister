@@ -1,4 +1,3 @@
-"use client";
 // Globale Platzhalter-Variablen für die gesamte Datei
 const placeholderText = "____________________";
 const placeholderDate = "__.__.____";
@@ -40,7 +39,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Leaf, TestTubeDiagonal, Weight, Percent, FlaskConical, CalendarDays, Clock, Droplets, Info, Hash, FileText, Download, MessageSquare, Box, Thermometer, Award, Printer, Archive, Sigma, TimerIcon } from 'lucide-react';
+import { Leaf, TestTubeDiagonal, Weight, Percent, FlaskConical, CalendarDays, Clock, Droplets, Info, Hash, FileText, Download, MessageSquare, Box, Thermometer, Award, Printer, Archive, Sigma, TimerIcon, Upload } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -996,6 +995,7 @@ export default function MazerationForm() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [loggedProtocols, setLoggedProtocols] = useState<MazerationFormData[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
   // LocalStorage: Protokolle beim Start laden
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -1149,6 +1149,79 @@ export default function MazerationForm() {
       description: "Ein leeres Protokoll wurde als PDF, XLSX und DOCX heruntergeladen.",
       variant: 'default',
     });
+  };
+
+
+  const handleImportFromGitHub = async () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('github-token') : null;
+    if (!token) {
+      toast({
+        title: 'Kein GitHub-Token',
+        description: 'Bitte GitHub-Token unter Einstellungen → GitHub Integration konfigurieren.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const listResp = await fetch(
+        'https://api.github.com/repos/woku369/mazerationsmeister/contents/mazeration-protocols',
+        { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' } }
+      );
+
+      if (listResp.status === 404) {
+        toast({ title: 'Keine PWA-Protokolle', description: 'Das Verzeichnis mazeration-protocols/ existiert noch nicht auf GitHub. Bitte zuerst ein Protokoll über die PWA erfassen und synchronisieren.' });
+        return;
+      }
+      if (!listResp.ok) {
+        toast({ title: 'GitHub-Fehler', description: `Fehler beim Laden des Verzeichnisses: ${listResp.status}`, variant: 'destructive' });
+        return;
+      }
+
+      const files: { name: string; download_url: string }[] = await listResp.json();
+      const jsonFiles = files.filter(f => f.name.endsWith('.json'));
+
+      if (jsonFiles.length === 0) {
+        toast({ title: 'Keine Protokolle', description: 'Keine JSON-Dateien in mazeration-protocols/ gefunden.' });
+        return;
+      }
+
+      const existingIds = new Set<string>(
+        loggedProtocols.map(p => (p as any).id).filter(Boolean)
+      );
+      const newProtocols: MazerationFormData[] = [];
+
+      for (const file of jsonFiles) {
+        try {
+          const fileResp = await fetch(file.download_url);
+          if (!fileResp.ok) continue;
+          const protocol = await fileResp.json();
+          if (protocol.id && existingIds.has(protocol.id)) continue;
+          newProtocols.push(protocol);
+          if (protocol.id) existingIds.add(protocol.id);
+        } catch {}
+      }
+
+      if (newProtocols.length === 0) {
+        toast({ title: 'Alles aktuell', description: 'Alle PWA-Protokolle sind bereits importiert.' });
+        return;
+      }
+
+      setLoggedProtocols(prev => [...prev, ...newProtocols]);
+      toast({
+        title: `${newProtocols.length} Protokoll(e) importiert`,
+        description: 'PWA-Protokolle wurden erfolgreich in die Desktop-App übernommen.',
+      });
+    } catch (err) {
+      toast({
+        title: 'Import-Fehler',
+        description: `Fehler beim Importieren: ${err instanceof Error ? err.message : String(err)}`,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const renderTimeTrackingEntry = (
@@ -1969,7 +2042,26 @@ export default function MazerationForm() {
           </Card>
 
 
-          <div className="flex justify-between items-center">
+          <div className="flex items-center justify-between p-4 border border-dashed border-accent/40 rounded-lg bg-accent/5">
+            <div>
+              <p className="text-sm font-medium text-primary">PWA-Protokolle importieren</p>
+              <p className="text-xs text-muted-foreground">Lädt synchronisierte Protokolle aus GitHub (mazeration-protocols/) in die Desktop-App</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleImportFromGitHub}
+              disabled={isImporting}
+              className="text-accent border-accent hover:bg-accent/10 ml-4 shrink-0"
+            >
+              {isImporting
+                ? <><Archive className="mr-2 h-4 w-4 animate-spin" /> Importiere...</>
+                : <><Upload className="mr-2 h-4 w-4" /> Aus GitHub laden</>
+              }
+            </Button>
+          </div>
+
+                    <div className="flex justify-between items-center">
             <Button type="button" variant="outline" onClick={handlePrintEmptyForm} className="text-accent border-accent hover:bg-accent/10" disabled={isLoading}>
                 <Printer className="mr-2 h-4 w-4" /> Leeres Protokoll Exportieren
             </Button>

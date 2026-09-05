@@ -7,8 +7,8 @@
 2. ✅ Dashboard - Entwicklung eines Dashboards mit Kennzahlen und Statistiken.
 3. ✅ Funktionsprüfung aller Seiten - Test und Review aller bestehenden Seiten.
 4. ✅ Berechnungsprüfung - Validierung aller Berechnungen und automatisierte Tests.
-5. ✅ Exporte (PDF) der Protokolle und Lagerdaten - PDF-Export für Protokolle, Lagerstände und Bewegungen.
-6. ✅ Lagerhaltung und Lagerstände - Erweiterung der Lagerlogik und Bestandsführung.
+5. ✅ Exporte (PDF) der Protokolle und Lagerdaten - PDF-Export für Protokolle, Lagerbestände und Bewegungen.
+6. ✅ Lagerhaltung und Lagerbestände - Erweiterung der Lagerlogik und Bestandsführung.
 7. ✅ Definition der Lagerbehälter (Import aus XLSX) - Importfunktion für Behälterdefinitionen aus Excel.
 8. ✅ QR-Codes für Behälter, Lagerstand über QR abrufbar - Generierung und Scan-Funktion für QR-Codes.
 
@@ -24,148 +24,121 @@
 - ✅ OneDrive-Synchronisation für lokale Backups ohne Azure-Registrierung
 
 #### System-Bereinigung ✅
-- ✅ **Entfernung veralteter Implementierungen:** 
-  - Ngrok-Integration entfernt
-  - Cloud-Services-Integration vereinfacht
-  - Azure-Abhängigkeiten entfernt
-  - Komplexe Sync-Mechanismen reduziert
-- ✅ **Fokus auf lokale OneDrive-Synchronisation:**
-  - Automatische Backup-Erstellung
-  - Keine Azure-Registrierung erforderlich
-  - Vereinfachte Daten-Synchronisation
+- ✅ Entfernung veralteter Implementierungen (Ngrok, Azure, komplexe Sync-Mechanismen)
+- ✅ Fokus auf lokale OneDrive-Synchronisation
 
-### Phase 3: KRITISCHE SYSTEM-BEREINIGUNG 🔴 DRINGEND
+### Phase 3: KRITISCHE SYSTEM-BEREINIGUNG 🔴 OFFEN
 
-#### Identifizierte Probleme (September 2025)
-1. **Inkonsistente Tank-IDs:** 
-   - QR-Code generiert "tank-fwdgp3bqt" 
-   - System erwartet "T341"
-   - tank-offline.html kann Tank nicht finden
+#### Identifizierte Probleme
+1. **Inkonsistente Tank-IDs:** QR-Code generiert UUID, System erwartet z.B. "T341"
+2. **Doppelte Token-Verwaltung:** QR-Codes und GitHub-Integration haben separate Token-Felder
+3. **Mehrfache QR-Code Implementierungen:** localhost URLs vs. GitHub Pages URLs
+4. **Navigations-Inkonsistenz:** Kein direkter Inventory-Menüpunkt
+5. **webSecurity: false** in Electron/main.js – Same-Origin-Policy deaktiviert (Sicherheitsrisiko)
+6. **113 Backup-Snapshots** im Repository-Root (tank-data-*.json) – .gitignore ergaenzt
 
-2. **Doppelte Token-Verwaltung:**
-   - Einstellungen → QR-Codes → Token-Eingabe
-   - Einstellungen → GitHub Integration → Token-Eingabe
-   - Verwirrende UX, keine Synchronisation
+#### Behobene Probleme (September 2025 – Juni 2026)
+- ✅ `.gitignore` um `tank-data-[0-9]*.json` erweitert (neue Snapshots landen nicht mehr im Repo)
+- ✅ Leere Platzhalterdateien identifiziert (electron/main-*.js, src/lib/ngrok-*.ts usw.)
 
-3. **Mehrfache QR-Code Implementierungen:**
-   - Tank-Verwaltung (unter QR-Codes) → localhost URLs
-   - Tank-Inhalte → GitHub Pages URLs
-   - Verschiedene Parameter-Schemas
+#### Offene Aufgaben
+- [ ] Tank-IDs auf einheitliches Format normalisieren
+- [ ] Token-Management vereinheitlichen (Single Point of Truth)
+- [ ] QR-Code Implementierungen konsolidieren
+- [ ] Navigation restrukturieren (Inventory als Hauptmenüpunkt)
+- [ ] `webSecurity: true` setzen in electron/main.js
+- [ ] XSS-Fix in tank-viewer.html Fallback (tankId per textContent statt innerHTML)
+- [ ] Leere Dateien entfernen
 
-4. **Navigations-Inkonsistenz:**
-   - Kein direkter "Inventory" Menüpunkt
-   - Tank-Management unter "Einstellungen" versteckt
-   - Benutzer findet Funktionen nicht
+### Phase 3.5: Mazeration PWA ✅ IMPLEMENTIERT (Juni 2026)
 
-#### BEREINIGUNGSSTRATEGIE (Priorität: KRITISCH)
+#### Ziel
+Mazerationsprotokoll direkt vor Ort im Mazerationsraum am Tablet/Smartphone erfassen – ohne doppelte Dateneingabe (Zettel → PC).
 
-##### Schritt 1: Tank-ID Normalisierung ⚡ SOFORT
-- [ ] Alle Tank-IDs auf einheitliches Format (T341, T349, etc.)
-- [ ] QR-Code Parameter-Mapping korrigieren
-- [ ] tank-offline.html Tank-Lookup reparieren
-- [ ] Konsistenz zwischen allen Komponenten sicherstellen
+#### Umsetzung
+- ✅ **`public/mazeration-pwa.html`** – Standalone HTML-PWA, unabhängig von der Desktop-App
+  - Vollständiges Mazerationsformular (mobil-optimiert, große Touch-Targets)
+  - Drei Tabs: Formular | Protokolle | Einstellungen
+  - **Offline-fähig:** IndexedDB speichert Protokolle lokal am Gerät
+  - **Auto-Save Draft:** Eingaben werden automatisch als Entwurf gesichert
+  - **GitHub-Sync:** Protokolle werden als JSON nach `mazeration-protocols/` gepusht
+  - Collapsible Sektionen: Pflanzenmaterial, Alkohol, Zeitraum, Ergebnis
+  - Automatische Berechnungen: Nettogewicht (Kisten), Mazerationsdauer
+- ✅ **`public/mazeration-manifest.json`** – PWA-Manifest für Android-Installation
+  - "Zum Startbildschirm hinzufügen" → App-Icon am Homescreen
+  - Standalone-Modus (kein Browser-UI)
+- ✅ **`public/sw.js`** – Service Worker erweitert (cached mazeration-pwa.html)
 
-##### Schritt 2: Token-Management Vereinheitlichung ⚡ SOFORT  
-- [ ] Single-Point-of-Truth für GitHub Token
-- [ ] Automatische Synchronisation zwischen Komponenten
-- [ ] Entfernung redundanter Token-Eingabefelder
-- [ ] Event-basierte Token-Updates
+#### Zugriff
+```
+https://woku369.github.io/mazerationsmeister/mazeration-pwa.html
+```
 
-##### Schritt 3: QR-Code Konsolidierung ⚡ HEUTE
-- [ ] Eine einzige QR-Code Komponente
-- [ ] Einheitliche URL-Generierung (GitHub Pages)
-- [ ] Entfernung localhost-basierter QR-Codes  
-- [ ] Konsistente Parameter-Übertragung
+#### Datenfluss
+```
+Tablet (Mazerationsraum, offline/mobile Daten)
+  → Formular ausfüllen
+  → "Speichern & Sync" → JSON in GitHub-Repo
+     mazeration-protocols/YYYY-MM-DD_Name_Charge.json
 
-##### Schritt 4: Navigation Restrukturierung ⚡ HEUTE
-- [ ] "Inventory" als Haupt-Menüpunkt
-- [ ] Tank-Management direkt zugänglich  
-- [ ] Logische Gruppierung der Funktionen
-- [ ] Benutzerfreundliche Struktur
+Desktop-App
+  → "Protokolle aus GitHub laden" (TODO: Desktop-Funktion)
+  → Merge in localStorage
+```
 
-##### Schritt 5: Testing & Validation ⚡ HEUTE
-- [ ] Ende-zu-Ende QR-Code Test
-- [ ] Mobile Offline-Funktionalität validieren
-- [ ] Token-Synchronisation testen
-- [ ] Alle Tank-IDs durchprüfen
+#### TODO: Desktop-Import (nächster Schritt)
+- [ ] Button "Protokolle aus GitHub laden" in Desktop-App (Mazerationen-Seite)
+- [ ] Liest `mazeration-protocols/` Verzeichnis aus GitHub
+- [ ] Merged neue Protokolle in localStorage
+- [ ] Markiert importierte Protokolle als "Quelle: PWA"
 
 ### Phase 4: Produktionsreife Implementierung 🚧
 
 #### 1. QR-Code Druckfunktion 🔴 AKTUELL
-**Problem:** Aktuelle Druckfunktion ohne Funktionalität
-- Tank-Auswahl per Checkbox implementieren
-- Alle verfügbaren Tanks auflisten
-- Multi-Tank-Auswahl für Batch-Druck
-- Print-Preview mit Layout-Optionen
-- PDF-Export für externe Druckerei
+- Tank-Auswahl per Checkbox, Multi-Tank-Auswahl, Print-Preview, PDF-Export
 
-#### 2. GitHub-Integration fertigstellen 🔴 NÄCHSTER SCHRITT
-**Status:** Token hardcodiert, weitere Funktionen fehlen
-- Token-Management über Einstellungen
-- Automatische Backup-Commits
-- Konfliktauflösung bei gleichzeitigen Änderungen
-- Versionsverlauf und Rollback-Funktionalität
-- Branch-Management für verschiedene Standorte
+#### 2. GitHub-Integration fertigstellen 🔴
+- Token-Management über Einstellungen, automatische Backup-Commits, Versionsverlauf
 
 #### 3. Mobile Tank-Scan Offline-Funktionalität 🔴 KERNFUNKTION
-**Ziel:** Vollständige Tank-Info auch bei Netzwerk-Trennung
-- Offline-fähige Tank-Datenbank in QR-Code
-- Anzeige: Bezeichnung, Inhalt, Kapazität, Füllmenge, %-Anzeige
-- Funktionalität auch ohne laufende Desktop-App
-- Cross-Network Zugriff (verschiedene WLANs)
-- Fallback-Mechanismen für schlechte Netzverbindung
+- Vollständige Tank-Info auch ohne Netzwerk, Cross-Network Zugriff
 
 #### 4. Anleitungen-Sektion aktualisieren
-- Neue QR-Code-Workflows dokumentieren
-- GitHub-Integration Anleitung
-- Mobile-First Bedienungshinweise
-- Troubleshooting für Offline-Szenarien
+- Neue QR-Code-Workflows, GitHub-Integration, Mobile-First Hinweise
 
 ### Phase 4: Cloud & Production-Ready 🚀
 
-#### 🔴 DRINGENDE OPTIMIERUNGEN
-1. **App-Größe drastisch reduzieren** 
-   - Aktuell: ~6GB portable EXE 
-   - Ziel: <500MB 
-   - Problem: node_modules werden vollständig gepackt
-   - Lösung: Webpack bundling oder alternative Packaging-Strategien
+#### App-Größe reduzieren
+- Aktuell: ~6GB portable EXE – Ziel: <500MB
+- Problem: node_modules vollständig gepackt
 
 #### Mobile Optimierungen
-1. **Progressive Web App (PWA)**
-   - Installierbar auf Smartphone
-   - Offline-Funktionalität
-   - Push-Notifications für Updates
+- Progressive Web App (PWA) für gesamte Desktop-App
+- Offline-Funktionalität, Push-Notifications
 
 #### Erweiterte Tank-Features
-1. **Sensor-Integration**
-   - Temperatur- und Feuchtigkeits-Sensoren Integration
-   - Automatische Füllstand-Überwachung
-   - Echtzeit-Benachrichtigungen
+- Sensor-Integration (Temperatur, Füllstand)
+- Echtzeit-Benachrichtigungen
 
 ### Phase 5: Enterprise Features 🏢
 
-#### Multi-User & Synchronisation
-- Benutzerkonten und Rollen
-- Zentrale Datenhaltung
-- Konfliktauflösung bei gleichzeitigen Änderungen
-- Audit-Log für alle Änderungen
-
-#### Erweiterte Funktionen
-- Barcode-Scanner für Produkte
-- Automatische Bestandswarnung
-- Produktionsplanung und Forecasting
+- Multi-User & Synchronisation (Benutzerkonten, Rollen, zentrales Backend)
+- Barcode-Scanner, automatische Bestandswarnung, Produktionsplanung
 
 ---
 
 ## Änderungsprotokoll
 
+### Juni 2026
+- ✅ **Mazeration PWA implementiert:** `public/mazeration-pwa.html` – Standalone offline-fähige PWA für Mazeration vor Ort am Tablet/Handy
+- ✅ **PWA-Manifest:** `public/mazeration-manifest.json` für Android-Installation
+- ✅ **Service Worker aktualisiert:** Cacht jetzt auch mazeration-pwa.html
+- ✅ **`.gitignore` erweitert:** `tank-data-[0-9]*.json` Backup-Snapshots werden nicht mehr getrackt
+- ✅ **Code-Review:** Sicherheits- und Bug-Analyse durchgeführt (webSecurity, XSS, Dead Code, Token-Speicherung)
+
 ### September 2025
-- ✅ **Build-System repariert:** Dynamische Routen-Probleme gelöst, statischer Export funktioniert
-- ✅ **Electron-Integration:** Schwarzes Fenster-Problem behoben, App startet korrekt
-- ✅ **Tank-Management System:** QR-Code-Generierung, mobile Tank-Seiten, dynamische Chargen-Verwaltung implementiert
-- ✅ **OneDrive-Integration:** Lokale Synchronisation ohne Azure-Registrierung
-- ✅ **System-Bereinigung:** Entfernung veralteter Cloud-Integration-Ansätze (ngrok, Azure-Services)
-- ✅ **Code-Cleanup:** Vereinfachung der Einstellungen-Seite, Reduzierung der Komplexität
+- ✅ Build-System repariert, Electron-Integration, Tank-Management System, OneDrive-Integration
+- ✅ System-Bereinigung: Entfernung veralteter Cloud-Integration-Ansätze
 
 ### 23.08.2025
 - Exportfunktion verwendet jetzt den einstellbaren Export-Pfad aus den Einstellungen (localStorage) für XLSX-Exporte.
