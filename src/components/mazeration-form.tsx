@@ -796,6 +796,8 @@ const getSsrSafeDefaultValues = (): MazerationFormData => {
   numberOfCrates: null,
   grossWeightKg: null,
   tarePerCrateKg: TARE_PER_CRATE_KG_FIXED,
+  numberOfPallets: null,
+  tarePerPalletKg: 20.0,
     alcoholType: '',
   alcoholConcentration: 0,
     alcoholVolume: 0,
@@ -869,6 +871,8 @@ const useCalculatedFormValues = (form: ReturnType<typeof useForm<MazerationFormD
   const numberOfCratesForm = watch('numberOfCrates');
   const grossWeightKgForm = watch('grossWeightKg');
   const tarePerCrateKgForm = watch('tarePerCrateKg');
+  const numberOfPalletsForm = watch('numberOfPallets');
+  const tarePerPalletKgForm = watch('tarePerPalletKg');
 
   const vorbereitungD = watch('vorbereitungDate');
   const vorbereitungST = watch('vorbereitungStartTime');
@@ -891,10 +895,14 @@ const useCalculatedFormValues = (form: ReturnType<typeof useForm<MazerationFormD
     const numCrates = parseFormNumber(numberOfCratesForm);
     const grossKg = parseFormNumber(grossWeightKgForm);
     const tareKg = parseFormNumber(tarePerCrateKgForm) ?? TARE_PER_CRATE_KG_FIXED;
+    const numPallets = parseFormNumber(numberOfPalletsForm);
+    const palletTareKg = parseFormNumber(tarePerPalletKgForm);
     const { calculatedNetWeightKg: netKg, averageNetWeightPerCrateKg: avgKg } = calculateNetWeightDetailsForProtocol(
       numCrates,
       grossKg,
-      tareKg
+      tareKg,
+      numPallets,
+      palletTareKg,
     );
     setCalculatedNetWeightKg(netKg);
     setAverageNetWeightPerCrateKg(avgKg);
@@ -916,7 +924,7 @@ const useCalculatedFormValues = (form: ReturnType<typeof useForm<MazerationFormD
     } catch (e) {
       // Form kann während SSR/Initialisierung manchmal noch nicht bereit sein; ignoriere dann still.
     }
-  }, [plantWeightUnit, numberOfCratesForm, grossWeightKgForm, tarePerCrateKgForm]);
+  }, [plantWeightUnit, numberOfCratesForm, grossWeightKgForm, tarePerCrateKgForm, numberOfPalletsForm, tarePerPalletKgForm]);
 
   useEffect(() => {
     const currentPlantWeightUnit = plantWeightUnit;
@@ -1622,8 +1630,52 @@ export default function MazerationForm() {
                       </FormControl>
                     </FormItem>
                   </div>
-                  <div className="md:col-span-1"> {} </div>
-
+                  {/* Paletten */}
+                  <div className="md:col-span-2 border-t pt-3 mt-1">
+                    <p className="text-sm text-muted-foreground font-medium mb-3">Palettenmanagement (optional)</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="numberOfPallets"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-1"><Weight className="w-4 h-4 text-muted-foreground"/>Anzahl Paletten</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="text"
+                                inputMode="decimal"
+                                placeholder="0"
+                                {...field}
+                                value={getNumericFieldValueForDisplay(field.value)}
+                                onChange={e => handleNumericInputChange(field, e.target.value)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="tarePerPalletKg"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-1"><Weight className="w-4 h-4 text-muted-foreground"/>Tara / Palette (kg)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="text"
+                                inputMode="decimal"
+                                placeholder="20,00"
+                                {...field}
+                                value={getNumericFieldValueForDisplay(field.value ?? 20.0)}
+                                onChange={e => handleNumericInputChange(field, e.target.value)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
 
                    <div className="md:col-span-1">
                     <FormItem>

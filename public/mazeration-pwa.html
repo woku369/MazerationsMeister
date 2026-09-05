@@ -156,6 +156,20 @@
                                 <label class="field-label">Tara / Kiste (kg)</label>
                                 <input id="f-tare" type="text" inputmode="decimal" class="field-input" placeholder="2,00" value="2,00" oninput="calcNet()">
                             </div>
+                            <!-- Paletten -->
+                            <div class="border-t border-gray-100 pt-3 space-y-3">
+                                <p class="text-sm text-gray-500 font-medium">Palettenmanagement (optional)</p>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="field-label">Anzahl Paletten</label>
+                                        <input id="f-pallets" type="text" inputmode="decimal" class="field-input" placeholder="0" oninput="calcNet()">
+                                    </div>
+                                    <div>
+                                        <label class="field-label">Tara / Palette (kg)</label>
+                                        <input id="f-pallet-tare" type="text" inputmode="decimal" class="field-input" placeholder="20,00" value="20,00" oninput="calcNet()">
+                                    </div>
+                                </div>
+                            </div>
                             <div id="net-display" class="calc-display hidden">
                                 <strong>Nettogewicht:</strong> <span id="net-weight">–</span> kg
                                 &nbsp;|  Ø/Kiste: <span id="net-per-crate">–</span> kg
@@ -530,13 +544,16 @@
 
     function calcNet() {
         const crates = toNum('f-crates'), gross = toNum('f-gross'), tare = toNum('f-tare') || 2.0;
+        const pallets = toNum('f-pallets'), palletTare = toNum('f-pallet-tare') || 20.0;
         const disp = document.getElementById('net-display');
-        if (crates > 0 && gross > 0) {
-            const net = gross - crates * tare;
+        if (gross > 0) {
+            const crateTaraTotal = crates > 0 ? crates * tare : 0;
+            const palletTaraTotal = pallets > 0 ? pallets * palletTare : 0;
+            const net = gross - crateTaraTotal - palletTaraTotal;
             disp.classList.toggle('hidden', net <= 0);
             if (net > 0) {
                 document.getElementById('net-weight').textContent = net.toFixed(2);
-                document.getElementById('net-per-crate').textContent = (net / crates).toFixed(2);
+                document.getElementById('net-per-crate').textContent = crates > 0 ? (net / crates).toFixed(2) : '–';
             }
         } else { disp.classList.add('hidden'); }
     }
@@ -578,6 +595,8 @@
             numberOfCrates:      weightUnit === 'kg' ? (toNum('f-crates') || null) : null,
             grossWeightKg:       weightUnit === 'kg' ? (toNum('f-gross')  || null) : null,
             tarePerCrateKg:      weightUnit === 'kg' ? (toNum('f-tare')   || 2.0)  : null,
+            numberOfPallets:     weightUnit === 'kg' ? (toNum('f-pallets') || null) : null,
+            tarePerPalletKg:     weightUnit === 'kg' ? (toNum('f-pallet-tare') || null) : null,
             alcoholType:         document.getElementById('f-alc-type').value,
             alcoholConcentration: toNum('f-alc-conc') || null,
             alcoholVolumeUnit:   volUnit,
@@ -643,9 +662,11 @@
             set('f-quality', d.qualityAssessment);
             if (d.plantWeight)    set('f-weight',   String(d.plantWeight).replace('.',','));
             if (d.weightUnit)     setWeightUnit(d.weightUnit);
-            if (d.numberOfCrates) set('f-crates', d.numberOfCrates);
-            if (d.grossWeightKg)  set('f-gross',  String(d.grossWeightKg).replace('.',','));
-            if (d.tarePerCrateKg) set('f-tare',   String(d.tarePerCrateKg).replace('.',','));
+            if (d.numberOfCrates)  set('f-crates',      d.numberOfCrates);
+            if (d.grossWeightKg)   set('f-gross',       String(d.grossWeightKg).replace('.',','));
+            if (d.tarePerCrateKg)  set('f-tare',        String(d.tarePerCrateKg).replace('.',','));
+            if (d.numberOfPallets) set('f-pallets',     d.numberOfPallets);
+            if (d.tarePerPalletKg) set('f-pallet-tare', String(d.tarePerPalletKg).replace('.',','));
             set('f-alc-type', d.alcoholType);
             if (d.alcoholConcentration) set('f-alc-conc', String(d.alcoholConcentration).replace('.',','));
             if (d.volUnit)   setVolUnit(d.volUnit);
@@ -685,9 +706,11 @@
         set('f-quality', p.qualityAssessment);
         if (p.plantWeightUnit) setWeightUnit(p.plantWeightUnit);
         if (p.plantWeight)    set('f-weight',   String(p.plantWeight).replace('.',','));
-        if (p.numberOfCrates) set('f-crates', p.numberOfCrates);
-        if (p.grossWeightKg)  set('f-gross',  String(p.grossWeightKg).replace('.',','));
-        if (p.tarePerCrateKg) set('f-tare',   String(p.tarePerCrateKg).replace('.',','));
+        if (p.numberOfCrates)  set('f-crates',      p.numberOfCrates);
+        if (p.grossWeightKg)   set('f-gross',       String(p.grossWeightKg).replace('.',','));
+        if (p.tarePerCrateKg)  set('f-tare',        String(p.tarePerCrateKg).replace('.',','));
+        if (p.numberOfPallets) set('f-pallets',     p.numberOfPallets);
+        if (p.tarePerPalletKg) set('f-pallet-tare', String(p.tarePerPalletKg).replace('.',','));
         set('f-alc-type', p.alcoholType);
         if (p.alcoholConcentration) set('f-alc-conc', String(p.alcoholConcentration).replace('.',','));
         if (p.alcoholVolumeUnit) setVolUnit(p.alcoholVolumeUnit);
@@ -935,6 +958,8 @@
   <div class="field"><div class="lbl">Pflanzengewicht (${fmt(p.plantWeightUnit)})</div><div class="val">${fmtNum(p.plantWeight)}</div></div>
   ${p.numberOfCrates != null ? `<div class="field"><div class="lbl">Anzahl Kisten</div><div class="val">${fmtNum(p.numberOfCrates)}</div></div>` : ''}
   ${p.grossWeightKg != null ? `<div class="field"><div class="lbl">Bruttogewicht (kg)</div><div class="val">${fmtNum(p.grossWeightKg)}</div></div>` : ''}
+  ${p.numberOfPallets != null ? `<div class="field"><div class="lbl">Anzahl Paletten</div><div class="val">${fmtNum(p.numberOfPallets)}</div></div>` : ''}
+  ${p.tarePerPalletKg != null ? `<div class="field"><div class="lbl">Tara / Palette (kg)</div><div class="val">${fmtNum(p.tarePerPalletKg)}</div></div>` : ''}
 </div>
 
 <h2>Alkohol</h2>
