@@ -1,3 +1,4 @@
+"use client";
 // Globale Platzhalter-Variablen für die gesamte Datei
 const placeholderText = "____________________";
 const placeholderDate = "__.__.____";
