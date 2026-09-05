@@ -265,6 +265,9 @@
                         ☁️ Speichern & Sync
                     </button>
                 </div>
+                <button type="button" onclick="exportFormAsPDF()" class="w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl text-sm mb-2">
+                    📄 Als PDF exportieren
+                </button>
                 <button type="button" onclick="resetForm()" class="w-full bg-gray-100 text-gray-500 py-3 rounded-xl text-sm mb-6">
                     🔄 Neues Protokoll (Formular leeren)
                 </button>
@@ -755,6 +758,7 @@
                 <\/div>
                 <div class="flex gap-2 mt-3">
                     ${!p.synced ? `<button onclick="syncOne('${p.id}')" class="btn-primary text-white px-3 py-1.5 rounded-lg text-xs font-medium">☁️ Sync<\/button>` : ''}
+                    <button onclick="exportPDFById('${p.id}')" class="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium">📄 PDF<\/button>
                     <button onclick="deleteProtocol('${p.id}')" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium">🗑 Löschen<\/button>
                 <\/div>
             <\/div>
@@ -782,6 +786,107 @@
 
     // ============================================================
     // HILFSFUNKTIONEN
+    // ============================================================
+    // PDF EXPORT
+    // ============================================================
+    function exportFormAsPDF() {
+        const data = collectForm();
+        if (!data.macerationName) { showToast('❌ Bitte zuerst Bezeichnung eingeben', 3000); return; }
+        exportPDF({ ...data, savedAt: new Date().toISOString(), id: '–', synced: false });
+    }
+
+    async function exportPDFById(id) {
+        const p = await dbGet('protocols', id);
+        if (p) exportPDF(p);
+    }
+
+    function exportPDF(p) {
+        const fmt = v => (v != null && v !== '' && v !== 0) ? String(v) : '–';
+        const fmtDate = s => s ? s.split('-').reverse().join('.') : '–';
+        const fmtNum = v => (v != null && v !== 0) ? String(v).replace('.', ',') : '–';
+        const savedStr = p.savedAt ? new Date(p.savedAt).toLocaleString('de-DE') : '–';
+
+        const html = `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Mazeration – ${p.macerationName || ''}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 24px 28px; }
+  h1 { font-size: 17px; color: #4c1d95; border-bottom: 2px solid #7c3aed; padding-bottom: 6px; margin-bottom: 18px; }
+  h2 { font-size: 12px; font-weight: bold; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.05em;
+       border-bottom: 1px solid #e5e7eb; padding-bottom: 3px; margin-bottom: 10px; margin-top: 16px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; margin-bottom: 4px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px 20px; margin-bottom: 4px; }
+  .field .lbl { font-size: 9px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
+  .field .val { font-size: 11px; font-weight: 600; border-bottom: 1px dotted #d1d5db; padding-bottom: 1px; min-height: 16px; }
+  .remarks { border: 1px solid #e5e7eb; padding: 8px; border-radius: 4px; min-height: 40px; font-size: 11px; margin-top: 6px; white-space: pre-wrap; }
+  .footer { margin-top: 24px; font-size: 9px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 6px; display: flex; justify-content: space-between; }
+  @media print { @page { margin: 15mm 15mm; } body { padding: 0; } }
+</style>
+</head>
+<body>
+<h1>Mazerationsprotokoll – ${p.macerationName || ''} (Charge ${p.batchNumber || '–'})</h1>
+
+<h2>Allgemein</h2>
+<div class="grid">
+  <div class="field"><div class="lbl">Bezeichnung</div><div class="val">${p.macerationName || '–'}</div></div>
+  <div class="field"><div class="lbl">Chargennummer</div><div class="val">${fmt(p.batchNumber)}</div></div>
+  <div class="field"><div class="lbl">Erstellungsdatum</div><div class="val">${fmtDate(p.creationDate)}</div></div>
+</div>
+
+<h2>Pflanzenmaterial</h2>
+<div class="grid">
+  <div class="field"><div class="lbl">Pflanzenname</div><div class="val">${fmt(p.plantName)}</div></div>
+  <div class="field"><div class="lbl">Pflanzenteil</div><div class="val">${fmt(p.plantPart)}</div></div>
+  <div class="field"><div class="lbl">Erntedatum</div><div class="val">${fmtDate(p.harvestDate)}</div></div>
+  <div class="field"><div class="lbl">Qualitätsbewertung</div><div class="val">${fmt(p.qualityAssessment)}</div></div>
+</div>
+<div class="grid3">
+  <div class="field"><div class="lbl">Pflanzengewicht (${fmt(p.plantWeightUnit)})</div><div class="val">${fmtNum(p.plantWeight)}</div></div>
+  ${p.numberOfCrates != null ? `<div class="field"><div class="lbl">Anzahl Kisten</div><div class="val">${fmtNum(p.numberOfCrates)}</div></div>` : ''}
+  ${p.grossWeightKg != null ? `<div class="field"><div class="lbl">Bruttogewicht (kg)</div><div class="val">${fmtNum(p.grossWeightKg)}</div></div>` : ''}
+</div>
+
+<h2>Alkohol</h2>
+<div class="grid3">
+  <div class="field"><div class="lbl">Alkoholtyp</div><div class="val">${fmt(p.alcoholType)}</div></div>
+  <div class="field"><div class="lbl">Konzentration (% vol)</div><div class="val">${fmtNum(p.alcoholConcentration)}</div></div>
+  <div class="field"><div class="lbl">Menge (${fmt(p.alcoholVolumeUnit)})</div><div class="val">${fmtNum(p.alcoholVolume)}</div></div>
+</div>
+
+<h2>Mazerationszeitraum</h2>
+<div class="grid">
+  <div class="field"><div class="lbl">Beginn</div><div class="val">${fmtDate(p.macerationStartDate)} ${fmt(p.macerationStartTime)}</div></div>
+  <div class="field"><div class="lbl">Ende</div><div class="val">${fmtDate(p.macerationEndDate)} ${fmt(p.macerationEndTime)}</div></div>
+  <div class="field"><div class="lbl">Raumtemperatur (°C)</div><div class="val">${fmtNum(p.roomTemperature)}</div></div>
+</div>
+
+<h2>Ausbeute</h2>
+<div class="grid">
+  <div class="field"><div class="lbl">Ausbeute (${fmt(p.yieldVolumeUnit)})</div><div class="val">${fmtNum(p.yieldVolume)}</div></div>
+  <div class="field"><div class="lbl">Endkonzentration (% vol)</div><div class="val">${fmtNum(p.endConcentration)}</div></div>
+</div>
+
+<h2>Bemerkungen</h2>
+<div class="remarks">${p.remarks || ''}</div>
+
+<div class="footer">
+  <span>Gurktaler AG · MazerationsMeister PWA</span>
+  <span>Gespeichert: ${savedStr} · ID: ${p.id || '–'}</span>
+</div>
+
+<script>window.onload = () => { window.print(); }<\/script>
+</body>
+</html>`;
+
+        const w = window.open('', '_blank', 'width=800,height=900');
+        if (!w) { showToast('❌ Popup blockiert – bitte Popups erlauben', 3500); return; }
+        w.document.write(html);
+        w.document.close();
+    }
+
     // ============================================================
     function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
     function showToast(msg, ms = 2500) {
