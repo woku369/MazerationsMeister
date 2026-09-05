@@ -1,0 +1,27 @@
+{
+  "name": "Mazeration erfassen",
+  "short_name": "Mazeration",
+  "description": "Mazerationsprotokoll vor Ort am Tablet/Handy erfassen und per GitHub mit der Desktop-App synchronisieren",
+  "start_url": "./mazeration-pwa.html",
+  "display": "standalone",
+  "background_color": "#667eea",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "./icon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Neues Protokoll",
+      "short_name": "Neu",
+      "description": "Neues Mazerationsprotokoll erfassen",
+      "url": "./mazeration-pwa.html",
+      "icons": [{ "src": "./icon.ico", "sizes": "any" }]
+    }
+  ]
+}
