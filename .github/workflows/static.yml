@@ -4,13 +4,15 @@ name: Deploy Tank Viewer to Pages
 on:
   # Nur triggern bei Änderungen an relevanten Dateien
   push:
-    branches: ["main-pages"]
+    branches: ["main-pages", "pages-clean"]
     paths:
       - 'tank-data.json'
       - 'tank-data-*.json'
       - 'public/tank-viewer*.html'
       - 'public/static-qr-codes.html'
       - 'public/tank-offline.html'
+      - 'public/mazeration-pwa.html'
+      - 'public/mazeration-manifest.json'
       - '.github/workflows/static.yml'
 
   # Manueller Trigger möglich
