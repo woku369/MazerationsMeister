@@ -92,6 +92,49 @@ Desktop-App
 - [ ] Merged neue Protokolle in localStorage
 - [ ] Markiert importierte Protokolle als "Quelle: PWA"
 
+### Phase 3.6: PWA & Desktop-App Erweiterungen ✅ IMPLEMENTIERT (September 2026)
+
+#### PWA – Neue Features
+
+- ✅ **Primasprit 60%vol.** als erste Option in der Alkohol-Dropdown-Liste
+- ✅ **Zwei-Phasen-Workflow:** Entwurf speichern (Tag X) → Protokoll erneut öffnen und abschließen (Tag X+4)
+  - Explizite „Entwurf speichern"-Schaltfläche (auch ohne vollständige Daten)
+  - Amberfarbener Bearbeitungsbanner zeigt aktive Bearbeitung an
+  - Entwurf-Badge (`📂 Entwurf`) in der Protokollliste
+  - „Bearbeiten"-Button öffnet Protokoll zur Weiterbearbeitung
+- ✅ **„Oberirdische Pflanze"** als erste Option im Pflanzenteil-Dropdown
+- ✅ **Palettentara:** Felder „Anzahl Paletten" + „Tara / Palette (kg, Standard 20 kg)"
+  - Nettogewicht = Brutto − Kistentara − Palettentara
+- ✅ **PDF-Export** für einzelne Protokolle direkt aus der Protokollliste
+- ✅ **Sammelliste (Tab 4):** Ausgewählte Mazerationen chronologisch zusammenführen
+  - Spalten: Datum, Bezeichnung/Charge, Kraut, Sprit, LA Einsatz, Mazerat, Alk.%, LA Ausbeute
+  - Summenzeile mit Gesamtwerten
+  - PDF- und XLSX-Export der Sammelliste
+  - Persistenz in IndexedDB
+- ✅ **Chargennummer:** 4- oder 5-stellig zulässig (war: nur 5-stellig)
+- ✅ **Ausbeute-% + Kraut:Sprit-Verhältnis** live im Ergebnis-Abschnitt
+  - Ausbeute = Mazerat / Sprit × 100
+  - Verhältnis = 1 : (Sprit / Kraut)
+- ✅ **Suche & Filter** in der Protokollliste
+  - Volltextsuche nach Name, Chargennummer, Pflanzenname
+  - Filterbuttons: Alle / Entwurf / Fertig
+- ✅ **JSON-Datensicherung:** Export aller Protokolle als `.json`, Import mit Duplikatschutz
+- ✅ **Push-Benachrichtigungen:** App erinnert beim Öffnen an Mazerationen, deren Enddatum erreicht ist
+- ✅ **Steigrohranzeige:** Anfangs- und Endstand am Tank eingeben → Alkoholmenge wird automatisch berechnet
+  - Felder: Anfangsstand (L) + Endstand (L)
+  - Setzt Volumenfeld automatisch auf die Differenz (in Liter)
+
+#### Desktop-App – Neue Features
+
+- ✅ **Sammelliste-Seite** (`/mazerationen/sammelliste`) mit Sidebar-Link
+  - Protokollauswahl per Checkbox, gleiche Tabellenspalten wie PWA
+  - XLSX-Export, Auswahl wird in `localStorage` gespeichert
+- ✅ **„Oberirdische Pflanze"** als erste Option im Pflanzenteil-Dropdown (Freitext → Select)
+- ✅ **Palettentara:** Felder in der Desktop-Form, Berechnung via `mazeration-calc.ts`
+- ✅ **Chargennummer 4–5-stellig:** Zod-Schema angepasst (`min(4).max(5)`)
+- ✅ **Steigrohranzeige:** Felder `Anfangsstand (L)` + `Endstand (L)` in der Alkohol-Card
+  - `useEffect` berechnet `alcoholVolume` automatisch, schaltet Einheit auf Liter
+
 ### Phase 4: Produktionsreife Implementierung 🚧
 
 #### 1. QR-Code Druckfunktion 🔴 AKTUELL
@@ -128,6 +171,20 @@ Desktop-App
 ---
 
 ## Änderungsprotokoll
+
+### September 2026
+- ✅ **PWA: Primasprit 60%vol.** in Alkohol-Dropdown ergänzt
+- ✅ **PWA: Zwei-Phasen-Workflow** – Entwurf speichern + Protokoll erneut öffnen/abschließen
+- ✅ **PWA + Desktop: „Oberirdische Pflanze"** als erste Pflanzenteil-Option
+- ✅ **PWA + Desktop: Palettentara** – Anzahl Paletten + Tara/Palette, Nettogewicht-Formel erweitert
+- ✅ **PWA: PDF-Export** für einzelne Protokolle aus der Protokollliste
+- ✅ **PWA + Desktop: Sammelliste** – chronologische Übersicht mit LA-Berechnungen, PDF + XLSX
+- ✅ **PWA + Desktop: Chargennummer 4–5-stellig** (war: nur 5-stellig)
+- ✅ **PWA: Ausbeute-% und Kraut:Sprit-Verhältnis** live im Formular
+- ✅ **PWA: Suche & Filter** in der Protokollliste (Volltext + Statusfilter)
+- ✅ **PWA: JSON-Datensicherung** – Export und Import aller Protokolle
+- ✅ **PWA: Push-Benachrichtigungen** bei fälligem Mazeratende
+- ✅ **PWA + Desktop: Steigrohranzeige** – Alkoholmenge aus Anfangs-/Endstand berechnen
 
 ### Juni 2026
 - ✅ **Mazeration PWA implementiert:** `public/mazeration-pwa.html` – Standalone offline-fähige PWA für Mazeration vor Ort am Tablet/Handy

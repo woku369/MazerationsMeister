@@ -13,13 +13,17 @@ Die operativen Daten der Lagerverwaltung (Artikelstamm, Chargen, Transaktionen, 
 
 ### Hauptfunktionen
 
-*   **Mazerationsprotokollierung:**
-    *   Detaillierte Eingabemasken für Basisdaten (Name, Charge, Datum), Pflanzeninformationen (Art, Teil, Ernte, Qualität, Gewicht in g/kg, Kistenmanagement bei kg-Einwaage), Alkoholinformationen (Typ, Konzentration, Volumen in ml/l).
+*   **Mazerationsprotokollierung (Desktop-App):**
+    *   Detaillierte Eingabemasken für Basisdaten (Name, Charge 4–5-stellig, Datum), Pflanzeninformationen (Art, Pflanzenteil-Dropdown inkl. „Oberirdische Pflanze", Ernte, Qualität, Gewicht in g/kg).
+    *   **Kistenmanagement** bei kg-Einwaage: Anzahl Kisten, Bruttogewicht, Tara/Kiste.
+    *   **Palettenmanagement** (optional): Anzahl Paletten, Tara/Palette (Standard 20 kg); Nettogewicht = Brutto − Kistentara − Palettentara.
+    *   Alkoholinformationen: Typ (inkl. Primasprit 60%vol.), Konzentration, Volumen in ml/l.
+    *   **Steigrohranzeige** (optional): Anfangs- und Endstand am Tank eingeben → Alkoholmenge wird automatisch berechnet und eingetragen.
     *   Erfassung des Mazerationszeitraums (Beginn/Ende mit Datum und Uhrzeit, Raumtemperatur).
     *   Erfassung der Ergebnisse (Ausbeute, Endkonzentration, Bemerkungen).
     *   Automatische Berechnungen:
-        *   Nettogewicht der Pflanzen bei Kisteneinwaage.
-        *   Verhältnis Pflanze zu Alkohol.
+        *   Nettogewicht der Pflanzen (Kisten- und Palettentara).
+        *   Verhältnis Pflanze zu Alkohol (1:X).
         *   Mazerationsdauer in Tagen und Stunden.
         *   Verlust (absolut und prozentual) basierend auf eingesetztem Alkohol und Ausbeute.
         *   Eingesetzter Liter Absolutalkohol (LA), Ausbeute LA, Verlust LA.
@@ -27,6 +31,39 @@ Die operativen Daten der Lagerverwaltung (Artikelstamm, Chargen, Transaktionen, 
     *   Export des aktuellen Mazerationsprotokolls als PDF, DOCX und XLSX.
     *   Export eines leeren Protokollformulars (PDF, DOCX, XLSX).
     *   Kontinuierliche Speicherung aller erstellten Protokolle in einer kumulativen XLSX-Log-Datei (spaltenweise), die bei jeder Protokollerstellung aktualisiert und heruntergeladen wird.
+    *   **Sammelliste** (`/mazerationen/sammelliste`): Protokolle per Checkbox auswählen, chronologische Übersichtstabelle mit Kraut, Sprit, LA Einsatz, Mazerat, Alk.%, LA Ausbeute, Summenzeile; XLSX-Export.
+
+*   **Mazeration PWA (`mazeration-pwa.html`):**
+    *   Standalone mobil-optimierte Progressive Web App – läuft am Tablet/Smartphone im Mazerationsraum auch offline.
+    *   Zugang: `https://woku369.github.io/mazerationsmeister/mazeration-pwa.html`
+    *   Als Android-App installierbar: Chrome → Menü → „Zum Startbildschirm hinzufügen"
+    *   **4 Tabs:**
+        1.  📝 **Formular** – vollständige Protokollerfassung (gleiche Felder wie Desktop-App)
+        2.  📋 **Protokolle** – gespeicherte Protokolle mit Suche, Filter und Aktionsbuttons
+        3.  📊 **Sammelliste** – ausgewählte Mazerationen als Übersichtstabelle
+        4.  ⚙️ **Einstellungen** – GitHub-Sync, Benachrichtigungen, Datensicherung
+    *   **Zwei-Phasen-Workflow:**
+        *   Tag X (Ernte): Formular ausfüllen, „Entwurf speichern" (auch ohne Abzugsdaten)
+        *   Tag X+4 (Abzug): Entwurf in der Protokollliste öffnen, Ausbeute/Konzentration nachtragen, abschließen
+    *   **Automatische Berechnungen im Formular:**
+        *   Nettogewicht (Kisten- + Palettentara)
+        *   Mazerationsdauer
+        *   Ausbeute-% (Mazerat / Sprit × 100)
+        *   Kraut:Sprit-Verhältnis (1:X)
+        *   Steigrohranzeige: Differenz Anfangs-/Endstand → Alkoholvolumen
+    *   **Protokollliste:**
+        *   Suche nach Name, Chargennummer, Pflanze
+        *   Filter: Alle / Entwurf / Fertig
+        *   Aktionen: Bearbeiten, zur Sammelliste, Sync, PDF, Löschen
+    *   **Sammelliste:**
+        *   Protokolle über „📊 + Liste"-Button chronologisch einreihen
+        *   Spalten: Datum, Bezeichnung/Charge, Kraut, Sprit (L/%), LA Einsatz, Mazerat, Alk.%, LA Ausbeute
+        *   Summenzeile; PDF- und XLSX-Export
+    *   **Datensicherung:**
+        *   JSON-Export aller Protokolle, JSON-Import (Duplikatschutz)
+        *   GitHub-Sync: Protokolle als JSON nach `mazeration-protocols/` pushen
+    *   **Push-Benachrichtigungen:** App erinnert beim Öffnen an Mazerationen, deren Enddatum erreicht ist
+    *   **Offline-fähig:** IndexedDB, Service Worker, Auto-Save Draft
 
 *   **Lagerverwaltung:**
     *   **Artikelstamm (Master Data):**
