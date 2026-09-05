@@ -802,6 +802,8 @@ const getSsrSafeDefaultValues = (): MazerationFormData => {
   alcoholConcentration: 0,
     alcoholVolume: 0,
     alcoholVolumeUnit: 'ml',
+    tankStartL: null,
+    tankEndL: null,
     macerationStart: null,
     macerationStartTime: '',
     macerationEnd: null,
@@ -861,6 +863,8 @@ const useCalculatedFormValues = (form: ReturnType<typeof useForm<MazerationFormD
   const plantWeightUnit = watch('plantWeightUnit');
   const alcoholVolumeForm = watch('alcoholVolume');
   const alcoholVolumeUnit = watch('alcoholVolumeUnit');
+  const tankStartLForm = watch('tankStartL');
+  const tankEndLForm   = watch('tankEndL');
   const alcoholConcentrationForm = watch('alcoholConcentration');
   const yieldVolumeValue = watch('yieldVolume');
   const endConcentrationForm = watch('endConcentration');
@@ -945,6 +949,15 @@ const useCalculatedFormValues = (form: ReturnType<typeof useForm<MazerationFormD
   useEffect(() => {
     setRatio(calculateRatioDetails(Number(plantWeightForm), plantWeightUnit, Number(alcoholVolumeForm), alcoholVolumeUnit));
   }, [plantWeightForm, plantWeightUnit, alcoholVolumeForm, alcoholVolumeUnit]);
+
+  useEffect(() => {
+    const start = Number(tankStartLForm);
+    const end   = Number(tankEndLForm);
+    if (start > 0 && end >= 0 && start > end) {
+      form.setValue('alcoholVolume', parseFloat((start - end).toFixed(3)), { shouldValidate: false });
+      form.setValue('alcoholVolumeUnit', 'l', { shouldValidate: false });
+    }
+  }, [tankStartLForm, tankEndLForm, form]);
 
   useEffect(() => {
     setMacerationDuration(calculateMacerationDurationDetails(startDate, startTime, endDate, endTime));
@@ -1830,6 +1843,55 @@ export default function MazerationForm() {
                     )}
                   />
                 </div>
+              </div>
+              <div className="md:col-span-2 border-t pt-4 space-y-3">
+                <p className="text-sm text-muted-foreground font-medium">📏 Steigrohranzeige (optional) — Anfangs- und Endstand ablesen, Menge wird berechnet</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="tankStartL"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Anfangsstand (L)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="z.B. 4020"
+                            {...field}
+                            value={getNumericFieldValueForDisplay(field.value)}
+                            onChange={e => handleNumericInputChange(field, e.target.value)}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="tankEndL"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Endstand (L)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="z.B. 3010"
+                            {...field}
+                            value={getNumericFieldValueForDisplay(field.value)}
+                            onChange={e => handleNumericInputChange(field, e.target.value)}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                {Number(tankStartLForm) > 0 && Number(tankEndLForm) >= 0 && Number(tankStartLForm) > Number(tankEndLForm) && (
+                  <p className="text-sm text-green-700 bg-green-50 rounded-lg p-2">
+                    🧮 Eingesetzt: <strong>{(Number(tankStartLForm) - Number(tankEndLForm)).toFixed(3).replace('.', ',')} L</strong>
+                    &nbsp;({String(tankStartLForm).replace('.', ',')} − {String(tankEndLForm).replace('.', ',')} L)
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

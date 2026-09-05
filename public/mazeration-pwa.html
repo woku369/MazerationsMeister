@@ -212,6 +212,21 @@
                             </div>
                             <input id="f-alc-vol" type="text" inputmode="decimal" class="field-input" placeholder="0,0" oninput="calcAusbeute()">
                         </div>
+                        <!-- Steigrohranzeige -->
+                        <div class="border-t border-gray-100 pt-3 space-y-3">
+                            <p class="text-sm text-gray-500 font-medium">📏 Steigrohranzeige (optional)</p>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="field-label">Anfangsstand (L)</label>
+                                    <input id="f-tank-start" type="text" inputmode="decimal" class="field-input" placeholder="z.B. 4020" oninput="calcTankDiff()">
+                                </div>
+                                <div>
+                                    <label class="field-label">Endstand (L)</label>
+                                    <input id="f-tank-end" type="text" inputmode="decimal" class="field-input" placeholder="z.B. 3010" oninput="calcTankDiff()">
+                                </div>
+                            </div>
+                            <div id="tank-diff-display" class="calc-display hidden text-sm"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -635,6 +650,22 @@
         } else { disp.classList.add('hidden'); }
     }
 
+    function calcTankDiff() {
+        const start = parseFloat(document.getElementById('f-tank-start').value.replace(',', '.')) || 0;
+        const end   = parseFloat(document.getElementById('f-tank-end').value.replace(',', '.'))   || 0;
+        const disp  = document.getElementById('tank-diff-display');
+        if (start > 0 && end >= 0 && start > end) {
+            const diff = start - end;
+            document.getElementById('f-alc-vol').value = diff.toFixed(0);
+            if (volUnit !== 'l') setVolUnit('l');
+            disp.textContent = `🧮 Eingesetzt: ${diff.toFixed(0).replace('.', ',')} L (${start.toFixed(0)} − ${end.toFixed(0)} L)`;
+            disp.classList.remove('hidden');
+            calcAusbeute();
+        } else {
+            disp.classList.add('hidden');
+        }
+    }
+
     function calcAusbeute() {
         const weightG = weightUnit === 'kg' ? toNum('f-weight') * 1000 : toNum('f-weight');
         const spritMl = volUnit   === 'l'  ? toNum('f-alc-vol') * 1000 : toNum('f-alc-vol');
@@ -699,6 +730,8 @@
             alcoholConcentration: toNum('f-alc-conc') || null,
             alcoholVolumeUnit:   volUnit,
             alcoholVolume:       toNum('f-alc-vol') || null,
+            tankStartL:          parseFloat(document.getElementById('f-tank-start').value.replace(',','.')) || null,
+            tankEndL:            parseFloat(document.getElementById('f-tank-end').value.replace(',','.'))   || null,
             macerationStartDate: document.getElementById('f-start-date').value,
             macerationStartTime: document.getElementById('f-start-time').value,
             macerationEndDate:   document.getElementById('f-end-date').value,
@@ -769,6 +802,9 @@
             if (d.alcoholConcentration) set('f-alc-conc', String(d.alcoholConcentration).replace('.',','));
             if (d.volUnit)   setVolUnit(d.volUnit);
             if (d.alcoholVolume) set('f-alc-vol', String(d.alcoholVolume).replace('.',','));
+            if (d.tankStartL) set('f-tank-start', String(d.tankStartL).replace('.',','));
+            if (d.tankEndL)   set('f-tank-end',   String(d.tankEndL).replace('.',','));
+            calcTankDiff();
             set('f-start-date', d.macerationStartDate); set('f-start-time', d.macerationStartTime);
             set('f-end-date',   d.macerationEndDate);   set('f-end-time',   d.macerationEndTime);
             if (d.roomTemperature) set('f-temp', String(d.roomTemperature).replace('.',','));
@@ -813,6 +849,9 @@
         if (p.alcoholConcentration) set('f-alc-conc', String(p.alcoholConcentration).replace('.',','));
         if (p.alcoholVolumeUnit) setVolUnit(p.alcoholVolumeUnit);
         if (p.alcoholVolume) set('f-alc-vol', String(p.alcoholVolume).replace('.',','));
+        if (p.tankStartL) set('f-tank-start', String(p.tankStartL).replace('.',','));
+        if (p.tankEndL)   set('f-tank-end',   String(p.tankEndL).replace('.',','));
+        calcTankDiff();
         set('f-start-date', p.macerationStartDate); set('f-start-time', p.macerationStartTime);
         set('f-end-date',   p.macerationEndDate);   set('f-end-time',   p.macerationEndTime);
         if (p.roomTemperature) set('f-temp', String(p.roomTemperature).replace('.',','));

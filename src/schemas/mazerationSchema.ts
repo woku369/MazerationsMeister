@@ -75,6 +75,14 @@ export const mazerationFormSchema = z.object({
     z.coerce.number({invalid_type_error: "Ungültiger Zahlenwert für Alkoholvolumen."}).positive('Alkoholvolumen muss positiv sein')
   ),
   alcoholVolumeUnit: z.enum(['ml', 'l'], { required_error: "Einheit für Alkoholvolumen ist erforderlich."}),
+  tankStartL: z.preprocess(
+    numberPreprocess,
+    z.coerce.number({invalid_type_error: "Ungültiger Zahlenwert."}).optional().nullable()
+  ),
+  tankEndL: z.preprocess(
+    numberPreprocess,
+    z.coerce.number({invalid_type_error: "Ungültiger Zahlenwert."}).optional().nullable()
+  ),
   macerationStart: z.date({invalid_type_error: "Ungültiges Datum."}).optional().nullable(),
   macerationStartTime: z.string().refine(val => val === "" || /^([01]\d|2[0-3]):([0-5]\d)$/.test(val), "Ungültige Uhrzeit (HH:MM)").optional(), // Allows empty string or valid time
   macerationEnd: z.date({invalid_type_error: "Ungültiges Datum."}).optional().nullable(),
