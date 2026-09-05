@@ -33,6 +33,7 @@
         .protocol-item { border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; background: white; }
         .badge-synced { background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
         .badge-pending { background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+        .badge-draft   { background: #fff7ed; color: #9a3412; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid #fdba74; }
         .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 13px 22px; border-radius: 12px; z-index: 9999; font-size: 14px; max-width: 88vw; text-align: center; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
         .toast.show { opacity: 1; }
         .calc-display { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 12px; color: #166534; font-size: 14px; }
@@ -65,6 +66,10 @@
 
         <!-- ===== FORMULAR ===== -->
         <div id="tab-content-form">
+            <div id="editing-banner" class="hidden mb-3 px-4 py-2 bg-amber-50 border border-amber-300 rounded-xl text-sm text-amber-800 flex items-center justify-between">
+                <span>✏️ Bearbeitung: <strong id="editing-name"></strong></span>
+                <button type="button" onclick="cancelEdit()" class="text-amber-600 font-bold text-xs">Abbrechen ✕</button>
+            </div>
             <form id="mazeration-form" novalidate>
 
                 <!-- Basisdaten -->
@@ -257,12 +262,15 @@
                 </div>
 
                 <!-- Action Buttons -->
+                <button type="button" onclick="saveDraft(true)" class="w-full bg-amber-50 border border-amber-300 text-amber-700 font-bold py-3 rounded-xl text-sm mb-2">
+                    📂 Entwurf speichern (unvollständig)
+                </button>
                 <div class="flex gap-3 mb-4">
                     <button type="button" onclick="saveLocally()" class="flex-1 bg-white border-2 border-purple-400 text-purple-700 font-bold py-4 rounded-xl text-sm">
-                        💾 Lokal speichern
+                        💾 Abschließen & speichern
                     </button>
                     <button type="button" onclick="saveAndSync()" class="btn-primary flex-1 text-white font-bold py-4 rounded-xl text-sm">
-                        ☁️ Speichern & Sync
+                        ☁️ Abschließen & Sync
                     </button>
                 </div>
                 <button type="button" onclick="exportFormAsPDF()" class="w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl text-sm mb-2">
@@ -340,6 +348,7 @@
     let weightUnit = 'g';
     let volUnit = 'l';
     let yieldUnit = 'l';
+    let editingId = null;
 
     // ============================================================
     // INIT
@@ -600,8 +609,26 @@
             .forEach(el => el.addEventListener('input', () => { clearTimeout(el._t); el._t = setTimeout(saveDraft, 1500); }));
     }
 
-    async function saveDraft() {
+    async function saveDraft(explicit = false) {
         try { await dbPut('draft', { key: 'current', data: { ...collectForm(), weightUnit, volUnit, yieldUnit } }); } catch (e) {}
+        if (!explicit) return;
+        // Explizites "Entwurf speichern": als Protokoll-Eintrag sichern (auch unvollständig)
+        const data = collectForm();
+        if (!data.macerationName) { showToast('❌ Mindestens Bezeichnung angeben', 3000); return; }
+        if (editingId) {
+            const existing = await dbGet('protocols', editingId);
+            const p = { ...existing, ...data, savedAt: new Date().toISOString(), synced: false, draft: true };
+            await dbPut('protocols', p);
+            showToast('📂 Entwurf aktualisiert');
+        } else {
+            const p = { ...makeProtocol(data), draft: true };
+            await dbPut('protocols', p);
+            editingId = p.id;
+            document.getElementById('editing-banner').classList.remove('hidden');
+            document.getElementById('editing-name').textContent = data.macerationName;
+            showToast('📂 Entwurf gespeichert – Bearbeitung läuft weiter');
+        }
+        setStatus('Entwurf gespeichert');
     }
 
     async function restoreDraft() {
@@ -647,14 +674,63 @@
         };
     }
 
+    async function openForEdit(id) {
+        const p = await dbGet('protocols', id);
+        if (!p) return;
+        // Felder befüllen
+        const set = (elId, val) => { const el = document.getElementById(elId); if (el && val != null && val !== '') el.value = val; };
+        set('f-name', p.macerationName);   set('f-batch', p.batchNumber);  set('f-date', p.creationDate);
+        set('f-plant', p.plantName);       set('f-plant-part', p.plantPart); set('f-harvest', p.harvestDate);
+        set('f-quality', p.qualityAssessment);
+        if (p.plantWeightUnit) setWeightUnit(p.plantWeightUnit);
+        if (p.plantWeight)    set('f-weight',   String(p.plantWeight).replace('.',','));
+        if (p.numberOfCrates) set('f-crates', p.numberOfCrates);
+        if (p.grossWeightKg)  set('f-gross',  String(p.grossWeightKg).replace('.',','));
+        if (p.tarePerCrateKg) set('f-tare',   String(p.tarePerCrateKg).replace('.',','));
+        set('f-alc-type', p.alcoholType);
+        if (p.alcoholConcentration) set('f-alc-conc', String(p.alcoholConcentration).replace('.',','));
+        if (p.alcoholVolumeUnit) setVolUnit(p.alcoholVolumeUnit);
+        if (p.alcoholVolume) set('f-alc-vol', String(p.alcoholVolume).replace('.',','));
+        set('f-start-date', p.macerationStartDate); set('f-start-time', p.macerationStartTime);
+        set('f-end-date',   p.macerationEndDate);   set('f-end-time',   p.macerationEndTime);
+        if (p.roomTemperature) set('f-temp', String(p.roomTemperature).replace('.',','));
+        if (p.yieldVolumeUnit) setYieldUnit(p.yieldVolumeUnit);
+        if (p.yieldVolume)    set('f-yield',    String(p.yieldVolume).replace('.',','));
+        if (p.endConcentration) set('f-end-conc', String(p.endConcentration).replace('.',','));
+        set('f-remarks', p.remarks);
+        calcNet(); calcDuration();
+        // Bearbeitungs-Modus aktivieren
+        editingId = id;
+        document.getElementById('editing-banner').classList.remove('hidden');
+        document.getElementById('editing-name').textContent = p.macerationName || id;
+        showTab('form');
+        window.scrollTo(0, 0);
+        showToast('✏️ Protokoll zur Bearbeitung geöffnet');
+    }
+
+    function cancelEdit() {
+        editingId = null;
+        document.getElementById('editing-banner').classList.add('hidden');
+        showToast('Bearbeitung abgebrochen');
+    }
+
     async function saveLocally() {
         const data = collectForm();
         const err = validateForm(data);
         if (err) { showToast('❌ ' + err, 3500); return; }
-        const p = makeProtocol(data);
-        await dbPut('protocols', p);
-        await dbDelete('draft', 'current');
-        showToast('💾 Lokal gespeichert!');
+        if (editingId) {
+            const existing = await dbGet('protocols', editingId);
+            const p = { ...existing, ...data, savedAt: new Date().toISOString(), synced: false };
+            await dbPut('protocols', p);
+            editingId = null;
+            document.getElementById('editing-banner').classList.add('hidden');
+            showToast('💾 Protokoll aktualisiert!');
+        } else {
+            const p = makeProtocol(data);
+            await dbPut('protocols', p);
+            await dbDelete('draft', 'current');
+            showToast('💾 Lokal gespeichert!');
+        }
         setStatus('Protokoll lokal gespeichert');
     }
 
@@ -662,7 +738,15 @@
         const data = collectForm();
         const err = validateForm(data);
         if (err) { showToast('❌ ' + err, 3500); return; }
-        const p = makeProtocol(data);
+        let p;
+        if (editingId) {
+            const existing = await dbGet('protocols', editingId);
+            p = { ...existing, ...data, savedAt: new Date().toISOString(), synced: false };
+            editingId = null;
+            document.getElementById('editing-banner').classList.add('hidden');
+        } else {
+            p = makeProtocol(data);
+        }
         await dbPut('protocols', p);
         if (!navigator.onLine) {
             showToast('💾 Gespeichert – Sync sobald online', 3000);
@@ -690,6 +774,8 @@
         document.getElementById('net-display').classList.add('hidden');
         document.getElementById('duration-display').classList.add('hidden');
         dbDelete('draft', 'current').catch(() => {});
+        editingId = null;
+        document.getElementById('editing-banner').classList.add('hidden');
         showToast('🔄 Formular geleert');
     }
 
@@ -754,9 +840,10 @@
                         <div class="text-sm text-gray-500 mt-0.5">Charge: ${esc(p.batchNumber)} &middot; ${esc(p.plantName || '–')}<\/div>
                         <div class="text-xs text-gray-400 mt-1">${new Date(p.savedAt).toLocaleString('de-DE')}<\/div>
                     <\/div>
-                    <span class="shrink-0 ${p.synced ? 'badge-synced' : 'badge-pending'}">${p.synced ? '✅ Gesynct' : '⏳ Ausstehend'}<\/span>
+                    <span class="shrink-0 ${p.synced ? 'badge-synced' : p.draft ? 'badge-draft' : 'badge-pending'}">${p.synced ? '✅ Gesynct' : p.draft ? '📂 Entwurf' : '⏳ Ausstehend'}<\/span>
                 <\/div>
-                <div class="flex gap-2 mt-3">
+                <div class="flex gap-2 mt-3 flex-wrap">
+                    <button onclick="openForEdit('${p.id}')" class="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium">✏️ Bearbeiten<\/button>
                     ${!p.synced ? `<button onclick="syncOne('${p.id}')" class="btn-primary text-white px-3 py-1.5 rounded-lg text-xs font-medium">☁️ Sync<\/button>` : ''}
                     <button onclick="exportPDFById('${p.id}')" class="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium">📄 PDF<\/button>
                     <button onclick="deleteProtocol('${p.id}')" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium">🗑 Löschen<\/button>
