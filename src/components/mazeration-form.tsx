@@ -1477,9 +1477,25 @@ export default function MazerationForm() {
                 render={({ field }) => (
                   <FormItem className="md:col-span-2">
                     <FormLabel className="flex items-center gap-1"><TestTubeDiagonal className="w-4 h-4 text-muted-foreground" />Verwendeter Pflanzenteil</FormLabel>
-                    <FormControl>
-                      <Input placeholder="z.B. Blütenblätter" {...field} value={field.value ?? ""} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value ?? ""}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="– auswählen –" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Oberirdische Pflanze">Oberirdische Pflanze</SelectItem>
+                        <SelectItem value="Blüten">Blüten</SelectItem>
+                        <SelectItem value="Blätter">Blätter</SelectItem>
+                        <SelectItem value="Früchte / Beeren">Früchte / Beeren</SelectItem>
+                        <SelectItem value="Rinde">Rinde</SelectItem>
+                        <SelectItem value="Wurzeln">Wurzeln</SelectItem>
+                        <SelectItem value="Samen">Samen</SelectItem>
+                        <SelectItem value="Schalen">Schalen</SelectItem>
+                        <SelectItem value="Ganze Pflanze">Ganze Pflanze</SelectItem>
+                        <SelectItem value="Sonstiges">Sonstiges</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
