@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { Home, FlaskConical, Warehouse, Settings, BookOpen } from 'lucide-react';
+import { Home, FlaskConical, Warehouse, Settings, BookOpen, TableProperties } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: Home },
   { href: '/mazerationen', label: 'Mazerationen', icon: FlaskConical },
+  { href: '/mazerationen/sammelliste', label: 'Sammelliste', icon: TableProperties },
   { href: '/inventory', label: 'Lagerverwaltung', icon: Warehouse },
   { href: '/anleitungen', label: 'Anleitungen', icon: BookOpen },
   { href: '/einstellungen', label: 'Einstellungen', icon: Settings },
