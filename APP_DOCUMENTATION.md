@@ -9,6 +9,58 @@
 2.  **Lagerverwaltung:** Verwaltung der Bestände von Rohmaterialien (z.B. Einsatzalkohol), Zwischenprodukten (Mazerate, Destillate) und Endprodukten.
 3.  **Tank-Management mit QR-Codes:** Mobile-optimierte Tank-Überwachung mit dynamischen Füllständen und QR-Code-basiertem Zugriff.
 
+---
+
+## 1a. Betrieblicher Ablauf und Messprinzipien
+
+### Produktionszyklus einer Mazeration
+
+**Phase 1 – Einsatz (Tag X):**
+- Frisch geerntete Kräuter werden gewogen (Brutto auf Kisten/Paletten, Netto berechnet)
+- Mazerationsbehälter befüllen, mit Primasprit 60%vol. überschichten
+- Alkoholeinsatz: Ablesung am **Steigrohr** – Anfangsstand (L) minus Endstand (L) = eingesetzte Menge
+- Protokoll wird als **Entwurf** gespeichert (Abzugsdaten noch nicht bekannt)
+
+**Phase 2 – Abzug (Tag X+4, ca.):**
+- Mazerat wird abgezogen und gespindelt
+- Protokoll wird erneut geöffnet, Ausbeute und Messwerte nachgetragen, dann abgeschlossen
+
+**Phase 3 – Pooling in Lagertanks:**
+- Mazerate werden **sortenrein gepoolt**: Tank X enthält Mazerat der Sorte Y aus mehreren Chargen
+- Einzelchargen sind im Lagertank-System als separate Einträge geführt
+
+**Phase 4 – Inventur / LA-Jahresbilanz:**
+- Vor der Inventur: Alkoholgehalt und Dichte je Lagertank messen
+- Diese Inventurwerte sind die **einzigen bilanziell relevanten Messwerte** für die LA-Jahresbilanz
+
+---
+
+### Genauigkeit der Messwerte – wichtige Hinweise
+
+#### Alkoholgehalt (Spindelmessung / Aräometer)
+Der mit der Spindel gemessene Alkoholgehalt bei Mazeraten ist ein **Näherungswert**. Ursache: Der Extraktgehalt (gelöste Pflanzenstoffe) erhöht die Dichte der Flüssigkeit und täuscht der Spindel eine höhere Dichte vor, als reiner Alkohol/Wasser-Gemische bei gleichem Alkoholgehalt hätten. Die Spindel „liest" daher einen zu niedrigen Alkoholgehalt ab.
+
+> Konsequenz: Alkoholgehalt und Dichte der Einzelmazerate sind während des Wirtschaftsjahres Näherungswerte. Für die amtliche LA-Bilanz werden die Inventurwerte aus den Lagertanks herangezogen.
+
+#### Alkoholeinsatz (Primasprit 60%vol.)
+Der eingesetzte Alkohol wird über die **Steigrohranzeige** am Vorratstank abgelesen (Anfangsstand − Endstand in Liter). Dieser Wert ist die **einzige absolute Konstante** im System, da:
+- Konzentration des Primasprit bekannt und konstant: **60,0%vol.**
+- Messung in Liter direkt am Tank, keine Umrechnung erforderlich
+
+> Hinweis: Auf eine Temperaturkompensation der Steigrohranzeige wurde bewusst verzichtet (alle Ablesungen unter annähernd gleichen Bedingungen im Betrieb). Eine Temperaturkorrektur ist für einen späteren Zeitpunkt vorgesehen (→ Roadmap).
+
+#### Dichte-Umrechnung (kg → Liter)
+Wird die Ausbeute in **kg** gewogen (z.B. auf der Plattformwaage), kann mit der gemessenen Dichte in Liter umgerechnet werden. Die App unterstützt eine **Temperaturkorrektur auf 20°C**:
+
+```
+ρ₂₀ = ρT + 0,00066 × (T − 20)   [g/cm³]
+V(L) = m(kg) ÷ ρ₂₀
+```
+
+Koeffizient 0,00066 g/cm³/°C gilt als Näherung für wässrig-alkoholische Lösungen (praktisch ausreichend für Betriebsmessungen).
+
+---
+
 Die operativen Daten der Lagerverwaltung (Artikelstamm, Chargen, Transaktionen, Tank-Daten) werden clientseitig im LocalStorage des Browsers gespeichert. Zusätzlich bietet das System eine optionale OneDrive-Synchronisation für lokale Backups ohne Azure-Registrierung. Mazerationsprotokolle werden als Dateien (PDF, XLSX, DOCX) auf den Computer des Benutzers heruntergeladen.
 
 ### Hauptfunktionen
