@@ -810,6 +810,9 @@ const getSsrSafeDefaultValues = (): MazerationFormData => {
     macerationEndTime: '',
     roomTemperature: null,
     yieldVolume: null,
+    yieldMassKg: null,
+    yieldDensityAt: null,
+    yieldSpindelTemp: null,
     endConcentration: null,
     remarks: '',
     vorbereitungDate: null,
@@ -863,8 +866,11 @@ const useCalculatedFormValues = (form: ReturnType<typeof useForm<MazerationFormD
   const plantWeightUnit = watch('plantWeightUnit');
   const alcoholVolumeForm = watch('alcoholVolume');
   const alcoholVolumeUnit = watch('alcoholVolumeUnit');
-  const tankStartLForm = watch('tankStartL');
-  const tankEndLForm   = watch('tankEndL');
+  const tankStartLForm    = watch('tankStartL');
+  const tankEndLForm      = watch('tankEndL');
+  const yieldMassKgForm   = watch('yieldMassKg');
+  const yieldDensityForm  = watch('yieldDensityAt');
+  const yieldTempForm     = watch('yieldSpindelTemp');
   const alcoholConcentrationForm = watch('alcoholConcentration');
   const yieldVolumeValue = watch('yieldVolume');
   const endConcentrationForm = watch('endConcentration');
@@ -958,6 +964,17 @@ const useCalculatedFormValues = (form: ReturnType<typeof useForm<MazerationFormD
       form.setValue('alcoholVolumeUnit', 'l', { shouldValidate: false });
     }
   }, [tankStartLForm, tankEndLForm, form]);
+
+  useEffect(() => {
+    const massKg = Number(yieldMassKgForm);
+    const rhoT   = Number(yieldDensityForm);
+    const temp   = yieldTempForm != null && yieldTempForm !== '' ? Number(yieldTempForm) : NaN;
+    if (massKg > 0 && rhoT > 0) {
+      const rho20 = !isNaN(temp) ? rhoT + 0.00066 * (temp - 20) : rhoT;
+      const volL  = parseFloat((massKg / rho20).toFixed(3));
+      form.setValue('yieldVolume', volL, { shouldValidate: false });
+    }
+  }, [yieldMassKgForm, yieldDensityForm, yieldTempForm, form]);
 
   useEffect(() => {
     setMacerationDuration(calculateMacerationDurationDetails(startDate, startTime, endDate, endTime));
@@ -2142,6 +2159,76 @@ export default function MazerationForm() {
                     />
                   </FormControl>
                 </FormItem>
+              </div>
+              <div className="md:col-span-2 border-t pt-4 space-y-3">
+                <p className="text-sm text-muted-foreground font-medium">⚗️ Ausbeute aus kg + Dichte (optional) — kg eingeben, Volumen wird berechnet</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="yieldMassKg"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Masse Mazerat (kg)</FormLabel>
+                        <FormControl>
+                          <Input type="text" inputMode="decimal" placeholder="0,000"
+                            {...field}
+                            value={getNumericFieldValueForDisplay(field.value)}
+                            onChange={e => handleNumericInputChange(field, e.target.value)}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="yieldDensityAt"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Dichte bei Spindeltemp. (g/cm³)</FormLabel>
+                        <FormControl>
+                          <Input type="text" inputMode="decimal" placeholder="1,0000"
+                            {...field}
+                            value={field.value != null ? String(field.value).replace('.', ',') : ''}
+                            onChange={e => {
+                              const v = e.target.value.replace(',', '.');
+                              field.onChange(v === '' ? null : parseFloat(v) || null);
+                            }}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="yieldSpindelTemp"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Spindeltemperatur (°C)</FormLabel>
+                        <FormControl>
+                          <Input type="text" inputMode="decimal" placeholder="20,0"
+                            {...field}
+                            value={getNumericFieldValueForDisplay(field.value)}
+                            onChange={e => handleNumericInputChange(field, e.target.value)}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                {Number(yieldMassKgForm) > 0 && Number(yieldDensityForm) > 0 && (() => {
+                  const rhoT  = Number(yieldDensityForm);
+                  const temp  = yieldTempForm != null && yieldTempForm !== '' ? Number(yieldTempForm) : NaN;
+                  const rho20 = !isNaN(temp) ? rhoT + 0.00066 * (temp - 20) : rhoT;
+                  const volL  = Number(yieldMassKgForm) / rho20;
+                  return (
+                    <p className="text-sm text-green-700 bg-green-50 rounded-lg p-2">
+                      🧮 <strong>{String(yieldMassKgForm).replace('.', ',')} kg</strong>
+                      {' ÷ ρ₂₀ '}<strong>{rho20.toFixed(4).replace('.', ',')} g/cm³</strong>
+                      {' = '}<strong>{volL.toFixed(3).replace('.', ',')} L</strong>
+                      {!isNaN(temp) && temp !== 20 && ` (Korr. ${rhoT.toFixed(4).replace('.', ',')} bei ${temp}°C → ${rho20.toFixed(4).replace('.', ',')} bei 20°C)`}
+                    </p>
+                  );
+                })()}
               </div>
             </CardContent>
           </Card>

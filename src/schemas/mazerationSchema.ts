@@ -95,6 +95,18 @@ export const mazerationFormSchema = z.object({
     numberPreprocess,
     z.coerce.number({invalid_type_error: "Ungültiger Zahlenwert für Ausbeute."}).min(0,'Ausbeute darf nicht negativ sein').optional().nullable()
   ),
+  yieldMassKg: z.preprocess(
+    numberPreprocess,
+    z.coerce.number({invalid_type_error: "Ungültiger Zahlenwert."}).min(0).optional().nullable()
+  ),
+  yieldDensityAt: z.preprocess(
+    numberPreprocess,
+    z.coerce.number({invalid_type_error: "Ungültiger Zahlenwert."}).min(0).optional().nullable()
+  ),
+  yieldSpindelTemp: z.preprocess(
+    numberPreprocess,
+    z.coerce.number({invalid_type_error: "Ungültiger Zahlenwert."}).optional().nullable()
+  ),
   endConcentration: z.preprocess(
     numberPreprocess,
     z.coerce.number({invalid_type_error: "Ungültiger Zahlenwert für Endkonzentration."}).min(0, 'Konzentration muss mind. 0 sein.').max(100, 'Konzentration darf max. 100 sein.').optional().nullable()

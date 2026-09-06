@@ -283,6 +283,25 @@
                             <input id="f-yield" type="text" inputmode="decimal" class="field-input" placeholder="0,0" oninput="calcAusbeute()">
                             <div id="ausbeute-display" class="calc-display hidden mt-2 text-sm"></div>
                         </div>
+                        <!-- Dichte-Umrechnung kg → L -->
+                        <div class="border-t border-gray-100 pt-3 space-y-3">
+                            <p class="text-sm text-gray-500 font-medium">⚗️ Ausbeute aus kg + Dichte (optional)</p>
+                            <div>
+                                <label class="field-label">Masse Mazerat (kg)</label>
+                                <input id="f-yield-kg" type="text" inputmode="decimal" class="field-input" placeholder="0,000" oninput="calcYieldFromKg()">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="field-label">Dichte bei Spindeltemp. (g/cm³)</label>
+                                    <input id="f-yield-density" type="text" inputmode="decimal" class="field-input" placeholder="1,0000" oninput="calcYieldFromKg()">
+                                </div>
+                                <div>
+                                    <label class="field-label">Spindeltemperatur (°C)</label>
+                                    <input id="f-yield-temp" type="text" inputmode="decimal" class="field-input" placeholder="20,0" oninput="calcYieldFromKg()">
+                                </div>
+                            </div>
+                            <div id="yield-kg-display" class="calc-display hidden text-sm"></div>
+                        </div>
                         <div>
                             <label class="field-label">Endkonzentration (% vol)</label>
                             <input id="f-end-conc" type="text" inputmode="decimal" class="field-input" placeholder="0,0">
@@ -650,6 +669,28 @@
         } else { disp.classList.add('hidden'); }
     }
 
+    function calcYieldFromKg() {
+        const massKg = parseFloat(document.getElementById('f-yield-kg').value.replace(',', '.')) || 0;
+        const rhoT   = parseFloat(document.getElementById('f-yield-density').value.replace(',', '.')) || 0;
+        const tempRaw = document.getElementById('f-yield-temp').value.replace(',', '.');
+        const temp   = tempRaw !== '' ? parseFloat(tempRaw) : NaN;
+        const disp   = document.getElementById('yield-kg-display');
+        if (massKg > 0 && rhoT > 0) {
+            // Temperaturkorrektur auf 20 °C (Koeffizient 0,00066 g/cm³/°C)
+            const rho20 = !isNaN(temp) ? rhoT + 0.00066 * (temp - 20) : rhoT;
+            const volL  = massKg / rho20;
+            document.getElementById('f-yield').value = volL.toFixed(3).replace('.', ',');
+            if (yieldUnit !== 'l') setYieldUnit('l');
+            let msg = `🧮 ${massKg.toFixed(3).replace('.', ',')} kg ÷ ρ₂₀ ${rho20.toFixed(4).replace('.', ',')} g/cm³ = ${volL.toFixed(3).replace('.', ',')} L`;
+            if (!isNaN(temp) && temp !== 20) msg += ` (Korr.: ρ${temp}°C ${rhoT.toFixed(4).replace('.', ',')} → ρ20°C ${rho20.toFixed(4).replace('.', ',')})`;
+            disp.textContent = msg;
+            disp.classList.remove('hidden');
+            calcAusbeute();
+        } else {
+            disp.classList.add('hidden');
+        }
+    }
+
     function calcTankDiff() {
         const start = parseFloat(document.getElementById('f-tank-start').value.replace(',', '.')) || 0;
         const end   = parseFloat(document.getElementById('f-tank-end').value.replace(',', '.'))   || 0;
@@ -739,6 +780,9 @@
             roomTemperature:     toNum('f-temp') || null,
             yieldVolumeUnit:     yieldUnit,
             yieldVolume:         toNum('f-yield')     || null,
+            yieldMassKg:         parseFloat(document.getElementById('f-yield-kg').value.replace(',','.')) || null,
+            yieldDensityAt:      parseFloat(document.getElementById('f-yield-density').value.replace(',','.')) || null,
+            yieldSpindelTemp:    parseFloat(document.getElementById('f-yield-temp').value.replace(',','.')) || null,
             endConcentration:    toNum('f-end-conc')  || null,
             remarks:             document.getElementById('f-remarks').value.trim(),
         };
@@ -810,6 +854,10 @@
             if (d.roomTemperature) set('f-temp', String(d.roomTemperature).replace('.',','));
             if (d.yieldUnit) setYieldUnit(d.yieldUnit);
             if (d.yieldVolume)    set('f-yield',    String(d.yieldVolume).replace('.',','));
+            if (d.yieldMassKg)    set('f-yield-kg', String(d.yieldMassKg).replace('.',','));
+            if (d.yieldDensityAt) set('f-yield-density', String(d.yieldDensityAt).replace('.',','));
+            if (d.yieldSpindelTemp != null) set('f-yield-temp', String(d.yieldSpindelTemp).replace('.',','));
+            calcYieldFromKg();
             if (d.endConcentration) set('f-end-conc', String(d.endConcentration).replace('.',','));
             set('f-remarks', d.remarks);
             calcNet(); calcDuration(); calcAusbeute();
@@ -857,6 +905,10 @@
         if (p.roomTemperature) set('f-temp', String(p.roomTemperature).replace('.',','));
         if (p.yieldVolumeUnit) setYieldUnit(p.yieldVolumeUnit);
         if (p.yieldVolume)    set('f-yield',    String(p.yieldVolume).replace('.',','));
+        if (p.yieldMassKg)    set('f-yield-kg', String(p.yieldMassKg).replace('.',','));
+        if (p.yieldDensityAt) set('f-yield-density', String(p.yieldDensityAt).replace('.',','));
+        if (p.yieldSpindelTemp != null) set('f-yield-temp', String(p.yieldSpindelTemp).replace('.',','));
+        calcYieldFromKg();
         if (p.endConcentration) set('f-end-conc', String(p.endConcentration).replace('.',','));
         set('f-remarks', p.remarks);
         calcNet(); calcDuration(); calcAusbeute();
