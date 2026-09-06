@@ -1470,9 +1470,18 @@
 </div>
 
 <h2>Ausbeute</h2>
-<div class="grid">
+<div class="grid3">
   <div class="field"><div class="lbl">Ausbeute (${fmt(p.yieldVolumeUnit)})</div><div class="val">${fmtNum(p.yieldVolume)}</div></div>
   <div class="field"><div class="lbl">Endkonzentration (% vol)</div><div class="val">${fmtNum(p.endConcentration)}</div></div>
+  ${(() => {
+    const weightG  = p.plantWeightUnit === 'kg' ? (p.plantWeight || 0) * 1000 : (p.plantWeight || 0);
+    const alcMl    = p.alcoholVolumeUnit === 'l' ? (p.alcoholVolume || 0) * 1000 : (p.alcoholVolume || 0);
+    const yieldMl  = p.yieldVolumeUnit === 'l' ? (p.yieldVolume || 0) * 1000 : (p.yieldVolume || 0);
+    const ratio    = weightG > 0 && alcMl > 0 ? `1:${(alcMl / weightG).toFixed(2).replace('.', ',')}` : '–';
+    const ausbPct  = alcMl > 0 && yieldMl > 0 ? `${(yieldMl / alcMl * 100).toFixed(1).replace('.', ',')} %` : '–';
+    return `<div class="field"><div class="lbl">Kraut:Sprit</div><div class="val">${ratio}</div></div>
+  <div class="field"><div class="lbl">Ausbeute (%)</div><div class="val">${ausbPct}</div></div>`;
+  })()}
 </div>
 
 <h2>Bemerkungen</h2>
