@@ -149,10 +149,10 @@ Desktop-App
 #### 4. Anleitungen-Sektion aktualisieren
 - Neue QR-Code-Workflows, GitHub-Integration, Mobile-First Hinweise
 
-#### 5. Temperaturkompensation für Steigrohranzeige
-- Beim Alkoholeinsatz (Steigrohrablesung) wird derzeit keine Temperaturkorrektur vorgenommen
-- Zukünftig: Umrechnung des abgelesenen Volumens auf 20°C (VBA-Tabelle oder vereinfachte Formel)
-- Hintergrund: Alkoholdichte und damit Volumen sind temperaturabhängig; bei 60%vol. Primasprit kann die Abweichung je nach Raumtemperatur 1–2 % betragen
+#### 5. Temperaturkompensation für Steigrohranzeige — ✅ Bewusst nicht implementiert
+- Ablesegenauigkeit ±10 L; thermische Abweichung ≈ 0,48 % bei 4,5°C Temperaturdelta → ±4,8 L bei 1 000 L, d.h. innerhalb der Messtoleranz
+- Alkoholverlust durch Restatalkohol im Pflanzenmaterial ist die dominante und unkontrollierbare Fehlerquelle
+- **Entscheidung:** Temperaturkompensation nicht implementieren; sie verbessert die Gesamtgenauigkeit nicht nennenswert
 
 ### Phase 4: Cloud & Production-Ready 🚀
 

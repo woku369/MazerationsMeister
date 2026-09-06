@@ -47,7 +47,14 @@ Der eingesetzte Alkohol wird über die **Steigrohranzeige** am Vorratstank abgel
 - Konzentration des Primasprit bekannt und konstant: **60,0%vol.**
 - Messung in Liter direkt am Tank, keine Umrechnung erforderlich
 
-> Hinweis: Auf eine Temperaturkompensation der Steigrohranzeige wurde bewusst verzichtet (alle Ablesungen unter annähernd gleichen Bedingungen im Betrieb). Eine Temperaturkorrektur ist für einen späteren Zeitpunkt vorgesehen (→ Roadmap).
+> **Bewusste Entscheidung gegen Temperaturkompensation:** Eine rechnerische Korrektur der Steigrohranzeige auf 20°C wurde nach Abwägung nicht implementiert. Die Begründung:
+> - Ablesegenauigkeit des Steigrohrs: **±10 L** (Tanks 1 000–6 000 L)
+> - Temperaturbereich im Mazerationsraum: 13–21,5°C; in aktiven Phasen (Frühjahr–Herbst) ca. 17–21,5°C → effektive Spanne **≈ 4,5°C**
+> - Thermische Volumenabweichung bei 60%vol. Ethanol (Ausdehnungskoeff. ≈ 0,00106/°C): 4,5°C × 0,106% ≈ **0,48%** → bei 1 000 L ca. ±4,8 L — *innerhalb der Ablesegenauigkeit*
+> - Der **Alkoholverlust durch Absorption im Pflanzenmaterial** ist variabel und deutlich größer als dieser Temperatureffekt; er dominiert die Gesamtungenauigkeit
+> - Eine Temperaturkorrektur würde eine kleinere Fehlerquelle beseitigen, während die größere (Restatalkohol im Kraut) ohnehin unkontrollierbar bleibt
+>
+> Fazit: Temperaturkompensation verbessert die Messgenauigkeit in diesem Kontext nicht nennenswert und wird nicht vorgesehen.
 
 #### Dichte-Umrechnung (kg → Liter)
 Wird die Ausbeute in **kg** gewogen (z.B. auf der Plattformwaage), kann mit der gemessenen Dichte in Liter umgerechnet werden. Die App unterstützt eine **Temperaturkorrektur auf 20°C**:
