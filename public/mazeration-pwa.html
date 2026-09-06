@@ -374,6 +374,7 @@
                                 <th class="p-2 text-left text-purple-800 font-bold border-b border-purple-100">Datum</th>
                                 <th class="p-2 text-left text-purple-800 font-bold border-b border-purple-100">Bezeichnung / Charge</th>
                                 <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">Kraut</th>
+                                <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">K:S</th>
                                 <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">Sprit (L / %)</th>
                                 <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">LA Einsatz</th>
                                 <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">Mazerat</th>
@@ -1067,6 +1068,15 @@
                     <div class="min-w-0 flex-1">
                         <div class="font-bold text-gray-800 truncate">${esc(p.macerationName)}<\/div>
                         <div class="text-sm text-gray-500 mt-0.5">Charge: ${esc(p.batchNumber)} &middot; ${esc(p.plantName || '–')}<\/div>
+                        ${(() => {
+                            const wG  = p.plantWeightUnit === 'kg' ? (p.plantWeight || 0)*1000 : (p.plantWeight || 0);
+                            const aMl = p.alcoholVolumeUnit === 'l' ? (p.alcoholVolume || 0)*1000 : (p.alcoholVolume || 0);
+                            const yMl = p.yieldVolumeUnit === 'l' ? (p.yieldVolume || 0)*1000 : (p.yieldVolume || 0);
+                            const ratio = wG > 0 && aMl > 0 ? '1:' + (aMl/wG).toFixed(2).replace('.',',') : null;
+                            const ausb  = aMl > 0 && yMl > 0 ? (yMl/aMl*100).toFixed(1).replace('.',',') + ' %' : null;
+                            const parts = [ratio ? '⚗️ ' + ratio : null, ausb ? '📊 ' + ausb : null].filter(Boolean);
+                            return parts.length ? `<div class="text-xs text-purple-600 mt-0.5 font-medium">${parts.join(' · ')}<\/div>` : '';
+                        })()}
                         <div class="text-xs text-gray-400 mt-1">${new Date(p.savedAt).toLocaleString('de-DE')}<\/div>
                     <\/div>
                     <span class="shrink-0 ${p.synced ? 'badge-synced' : p.draft ? 'badge-draft' : 'badge-pending'}">${p.synced ? '✅ Gesynct' : p.draft ? '📂 Entwurf' : '⏳ Ausstehend'}<\/span>
@@ -1206,6 +1216,7 @@
                 <td class="p-2 whitespace-nowrap">${datum}</td>
                 <td class="p-2"><div class="font-medium">${esc(p.macerationName)}<\/div><div class="text-gray-400">${esc(p.batchNumber || '')}<\/div><\/td>
                 <td class="p-2 text-right whitespace-nowrap">${fmtKraut(p)}<\/td>
+                <td class="p-2 text-right whitespace-nowrap text-purple-700">${(() => { const wG = p.plantWeightUnit==='kg'?(p.plantWeight||0)*1000:(p.plantWeight||0); const aMl = p.alcoholVolumeUnit==='l'?(p.alcoholVolume||0)*1000:(p.alcoholVolume||0); return wG>0&&aMl>0?'1:'+(aMl/wG).toFixed(2).replace('.',','):'–'; })()}<\/td>
                 <td class="p-2 text-right whitespace-nowrap">${spritStr}<\/td>
                 <td class="p-2 text-right whitespace-nowrap font-medium">${laEin != null ? laEin.toFixed(3) + ' L' : '–'}<\/td>
                 <td class="p-2 text-right whitespace-nowrap">${mazeratL != null ? mazeratL.toFixed(2) + ' L' : '–'}<\/td>
@@ -1222,6 +1233,7 @@
         tfoot.innerHTML = `<tr style="background:#f3f0ff;font-weight:700">
             <td class="p-2" colspan="2">∑ Gesamt (${protocols.length} Chargen)</td>
             <td class="p-2 text-right whitespace-nowrap">${sumKrautStr}</td>
+            <td class="p-2"></td>
             <td class="p-2"></td>
             <td class="p-2 text-right whitespace-nowrap">${sumLaEinsatz.toFixed(3)} L</td>
             <td class="p-2 text-right whitespace-nowrap">${sumMazerat.toFixed(2)} L</td>
@@ -1257,10 +1269,14 @@
             const spritStr = spritL != null
                 ? spritL.toFixed(2) + ' L' + (p.alcoholConcentration ? ' / ' + String(p.alcoholConcentration).replace('.',',') + ' %' : '')
                 : '–';
+            const wG  = p.plantWeightUnit === 'kg' ? (p.plantWeight || 0)*1000 : (p.plantWeight || 0);
+            const aMl = p.alcoholVolumeUnit === 'l' ? (p.alcoholVolume || 0)*1000 : (p.alcoholVolume || 0);
+            const ratioStr = wG > 0 && aMl > 0 ? '1:' + (aMl/wG).toFixed(2).replace('.',',') : '–';
             return `<tr>
                 <td>${datum}</td>
                 <td>${p.macerationName || '–'}<br><small>${p.batchNumber || ''}</small></td>
                 <td>${fmtKraut(p)}</td>
+                <td style="color:#6d28d9">${ratioStr}</td>
                 <td>${spritStr}<br><small>${esc(p.alcoholType || '')}</small></td>
                 <td>${laEin != null ? laEin.toFixed(3) + ' L' : '–'}</td>
                 <td>${mazeratL != null ? mazeratL.toFixed(2) + ' L' : '–'}</td>
@@ -1289,13 +1305,13 @@
 <h1>Sammelliste Mazerationen (${protocols.length} Chargen)</h1>
 <table>
 <thead><tr>
-  <th>Datum</th><th>Bezeichnung / Ch.</th><th>Kraut</th><th>Sprit / Typ</th>
+  <th>Datum</th><th>Bezeichnung / Ch.</th><th>Kraut</th><th>K:S</th><th>Sprit / Typ</th>
   <th>LA Einsatz</th><th>Mazerat</th><th>Alk.%</th><th>LA Ausbeute</th>
 </tr></thead>
 <tbody>${rows}</tbody>
 <tfoot><tr>
   <td colspan="2">∑ Gesamt</td>
-  <td>${sumKrautStr}</td><td></td>
+  <td>${sumKrautStr}</td><td></td><td></td>
   <td>${sumLaEinsatz.toFixed(3)} L</td>
   <td>${sumMazerat.toFixed(2)} L</td><td></td>
   <td>${sumLaAusbeute.toFixed(3)} L</td>
@@ -1327,7 +1343,7 @@
         protocols.sort((a, b) => (a.creationDate || '').localeCompare(b.creationDate || ''));
 
         const header = ['Datum', 'Bezeichnung', 'Charge', 'Pflanze', 'Pflanzenteil',
-            'Kraut (Menge)', 'Einheit Kraut',
+            'Kraut (Menge)', 'Einheit Kraut', 'Kraut:Sprit',
             'Alkoholtyp', 'Sprit (L)', 'Alkohol (%vol)',
             'LA Einsatz (L abs.)',
             'Mazerat (L)', 'Endalkohol (%vol)', 'LA Ausbeute (L abs.)',
@@ -1338,6 +1354,9 @@
             const mazeratL = toL(p.yieldVolume, p.yieldVolumeUnit);
             const laEin = laL(p.alcoholVolume, p.alcoholVolumeUnit, p.alcoholConcentration);
             const laAus = laL(p.yieldVolume, p.yieldVolumeUnit, p.endConcentration);
+            const wG  = p.plantWeightUnit === 'kg' ? (p.plantWeight || 0)*1000 : (p.plantWeight || 0);
+            const aMl = p.alcoholVolumeUnit === 'l' ? (p.alcoholVolume || 0)*1000 : (p.alcoholVolume || 0);
+            const ratioNum = wG > 0 && aMl > 0 ? Math.round(aMl/wG * 100) / 100 : '';
             return [
                 p.creationDate || '',
                 p.macerationName || '',
@@ -1346,6 +1365,7 @@
                 p.plantPart || '',
                 p.plantWeight != null ? p.plantWeight : '',
                 p.plantWeightUnit || '',
+                ratioNum !== '' ? '1:' + String(ratioNum).replace('.',',') : '',
                 p.alcoholType || '',
                 spritL != null ? spritL : '',
                 p.alcoholConcentration != null ? p.alcoholConcentration : '',
