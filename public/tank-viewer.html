@@ -71,6 +71,16 @@
             </button>
         </div>
 
+        <!-- All-Tanks Overview -->
+        <div id="all-tanks" class="hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h1 class="text-white text-xl font-bold">🏭 Alle Lagertanks</h1>
+                <button onclick="refreshData()" class="bg-white bg-opacity-20 text-white px-3 py-1.5 rounded-lg text-sm font-medium">🔄</button>
+            </div>
+            <div id="all-tanks-grid" class="space-y-3"></div>
+            <p class="text-white text-opacity-60 text-xs text-center mt-4" id="all-tanks-updated"></p>
+        </div>
+
         <!-- Tank Data Display -->
         <div id="tank-data" class="tank-card p-6 hidden">
             <!-- Header -->
@@ -153,6 +163,7 @@
         // Get parameters from URL
         const urlParams = new URLSearchParams(window.location.search);
         const tankId = urlParams.get('tank');
+        const viewMode = urlParams.get('view');
         const dataUrl = urlParams.get('dataUrl');
         const backupUrl = urlParams.get('backupUrl');
         const fallbackData = urlParams.get('fallback');
@@ -399,10 +410,10 @@
         }
 
         function refreshData() {
-            console.log('🔄 Aktualisiere Daten...');
             document.getElementById('tank-data').classList.add('hidden');
+            document.getElementById('all-tanks').classList.add('hidden');
             document.getElementById('loading').classList.remove('hidden');
-            setTimeout(loadTankData, 1000);
+            setTimeout(viewMode === 'all' ? loadAllTanks : loadTankData, 1000);
         }
 
         function openApp() {
@@ -416,17 +427,91 @@
             }, 1000);
         }
 
+        // ── All-Tanks Übersicht ─────────────────────────────────────
+        async function loadAllTanks() {
+            let data = null;
+
+            // dieselbe Ladestrategie wie loadTankData
+            if (dataUrl) {
+                try { const r = await fetch(dataUrl); if (r.ok) data = await r.json(); } catch(e) {}
+            }
+            if (!data && backupUrl) {
+                try { const r = await fetch(backupUrl); if (r.ok) data = await r.json(); } catch(e) {}
+            }
+            if (!data) {
+                const fb = parseFallbackData();
+                if (fb) data = fb;
+            }
+            if (!data) {
+                try { const r = await fetch('./tank-data.json'); if (r.ok) data = await r.json(); } catch(e) {}
+            }
+
+            if (!data || !data.tanks) {
+                showError('Keine Tank-Daten verfügbar. Bitte dataUrl-Parameter prüfen.');
+                return;
+            }
+
+            displayAllTanks(data);
+        }
+
+        function displayAllTanks(data) {
+            const tanks     = data.tanks     || [];
+            const inventory = data.inventory || [];
+            const lastExport = data.lastExport ? new Date(data.lastExport).toLocaleString('de-DE') : '–';
+
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('all-tanks').classList.remove('hidden');
+            document.getElementById('all-tanks-updated').textContent = 'Stand: ' + lastExport;
+
+            const grid = document.getElementById('all-tanks-grid');
+            if (!tanks.length) {
+                grid.innerHTML = '<div class="tank-card p-6 text-center text-gray-500">Keine Tanks gefunden</div>';
+                return;
+            }
+
+            grid.innerHTML = tanks.map(t => {
+                const vol   = t.volumen || t.volumenLiter || 0;
+                const items = inventory.filter(i => i.tankNr === t.tankNr);
+                const fill  = items.reduce((s, i) => s + (i.currentQuantityLiters || 0), 0);
+                const pct   = vol > 0 ? Math.min(Math.round(fill / vol * 100), 100) : 0;
+                const color = pct >= 80 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#6b7280';
+                const inhalt = items.length
+                    ? items.map(i => `${i.produktName || '–'} (${(i.currentQuantityLiters||0).toFixed(0)} L, ${i.alcoholVolProzent||'–'}%)`).join('<br>')
+                    : '<span class="text-gray-400">Leer</span>';
+
+                return `<div class="tank-card p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <span class="font-bold text-gray-800">${t.tankNr || t.id}</span>
+                            ${t.bezeichnung && t.bezeichnung !== t.tankNr ? `<span class="text-gray-500 text-sm ml-1">· ${t.bezeichnung}</span>` : ''}
+                        </div>
+                        <span class="text-sm font-semibold" style="color:${color}">${pct}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                        <div class="h-2 rounded-full" style="width:${pct}%;background:${color};transition:width .3s"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500 mb-2">
+                        <span>${fill.toFixed(0)} L</span>
+                        <span>${vol} L</span>
+                    </div>
+                    <div class="text-xs text-gray-600">${inhalt}</div>
+                </div>`;
+            }).join('');
+        }
+
         // Initialize
-        if (!tankId) {
-            showError('Tank-ID nicht angegeben. Bitte scannen Sie einen gültigen QR-Code.');
+        if (viewMode === 'all') {
+            loadAllTanks();
+        } else if (!tankId) {
+            showError('Tank-ID nicht angegeben. URL sollte sein: ?tank=T341 oder ?view=all');
         } else {
             loadTankData();
         }
 
         // Auto-refresh every 5 minutes
         setInterval(() => {
-            console.log('⏰ Auto-Refresh...');
-            loadTankData();
+            if (viewMode === 'all') loadAllTanks();
+            else loadTankData();
         }, 5 * 60 * 1000);
     </script>
 </body>
