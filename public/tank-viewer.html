@@ -73,9 +73,13 @@
 
         <!-- All-Tanks Overview -->
         <div id="all-tanks" class="hidden">
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-between mb-3">
                 <h1 class="text-white text-xl font-bold">🏭 Alle Lagertanks</h1>
                 <button onclick="refreshData()" class="bg-white bg-opacity-20 text-white px-3 py-1.5 rounded-lg text-sm font-medium">🔄</button>
+            </div>
+            <div class="flex gap-2 mb-4">
+                <button id="sort-size" onclick="setSort('size')" class="sort-btn active flex-1 bg-white bg-opacity-20 text-white px-3 py-1.5 rounded-lg text-xs font-medium">↕ Grösse</button>
+                <button id="sort-article" onclick="setSort('article')" class="sort-btn flex-1 bg-white bg-opacity-10 text-white px-3 py-1.5 rounded-lg text-xs font-medium">↕ Artikel</button>
             </div>
             <div id="all-tanks-grid" class="space-y-3"></div>
             <p class="text-white text-opacity-60 text-xs text-center mt-4" id="all-tanks-updated"></p>
@@ -427,6 +431,28 @@
             }, 1000);
         }
 
+        // ── Sortierung ──────────────────────────────────────────────
+        let _allTanksData = null;
+        let _currentSort  = 'size';
+
+        function setSort(mode) {
+            _currentSort = mode;
+            document.querySelectorAll('.sort-btn').forEach(b => {
+                b.classList.toggle('bg-white',      b.id === 'sort-' + mode);
+                b.classList.toggle('bg-opacity-20', b.id === 'sort-' + mode);
+                b.classList.toggle('bg-opacity-10', b.id !== 'sort-' + mode);
+            });
+            if (_allTanksData) displayAllTanks(_allTanksData);
+        }
+
+        function getContentLabel(t, inventory) {
+            if (t.hasUniqueNumber) {
+                const items = inventory.filter(i => i.tankNr === t.tankNr);
+                return items.map(i => i.produktName || '').join(', ').toLowerCase();
+            }
+            return (t.currentContent || '').toLowerCase();
+        }
+
         // ── All-Tanks Übersicht ─────────────────────────────────────
         async function loadAllTanks() {
             let data = null;
@@ -455,8 +481,15 @@
         }
 
         function displayAllTanks(data) {
-            const tanks      = data.tanks     || [];
+            _allTanksData = data;
             const inventory  = data.inventory || [];
+
+            let tanks = [...(data.tanks || [])];
+            if (_currentSort === 'size') {
+                tanks.sort((a, b) => (b.volumenLiter || 0) - (a.volumenLiter || 0));
+            } else {
+                tanks.sort((a, b) => getContentLabel(a, inventory).localeCompare(getContentLabel(b, inventory), 'de'));
+            }
             const lastExport = data.lastExport ? new Date(data.lastExport).toLocaleString('de-DE') : '–';
 
             document.getElementById('loading').classList.add('hidden');
