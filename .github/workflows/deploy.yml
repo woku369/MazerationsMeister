@@ -44,9 +44,13 @@ jobs:
           cp -r public/*.css out/ || true
           cp -r public/images out/ || true
           
+          # Tank-Daten für tank-viewer.html?view=all (und Einzel-Tank ohne dataUrl)
+          cp tank-data.json out/ || true
+          cp tank-data-live.json out/ || true
+
           # Erstelle .nojekyll (wichtig für GitHub Pages)
           touch out/.nojekyll
-          
+
           echo "✅ Static files copied"
           ls -la out/
           
