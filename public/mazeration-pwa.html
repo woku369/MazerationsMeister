@@ -306,6 +306,17 @@
                             <label class="field-label">Endkonzentration (% vol)</label>
                             <input id="f-end-conc" type="text" inputmode="decimal" class="field-input" placeholder="0,0">
                         </div>
+                        <!-- Abfüllung in Tank(s) -->
+                        <div class="border-t border-gray-100 pt-3 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <p class="text-sm text-gray-500 font-medium">🏺 Abfüllung in Tank(s)</p>
+                                <button type="button" onclick="addTargetTank()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-lg font-medium">+ Tank</button>
+                            </div>
+                            <datalist id="tank-options"></datalist>
+                            <div id="target-tanks-list" class="space-y-3"></div>
+                            <div id="target-tanks-total" class="calc-display hidden text-sm"></div>
+                        </div>
+
                         <div>
                             <label class="field-label">Bemerkungen</label>
                             <textarea id="f-remarks" class="field-input" rows="3" placeholder="Qualitätshinweise, Besonderheiten..."></textarea>
@@ -479,6 +490,7 @@
         setTodayDate();
         updateOnlineStatus();
         registerSW();
+        loadTankOptions();
         setupAutosave();
         await restoreDraft();
         if ('Notification' in window) updateNotifStatus(Notification.permission);
@@ -707,6 +719,118 @@
         }
     }
 
+    // ── Tankzuordnung Mazerat ────────────────────────────────────
+    let _tankOptions = [];
+
+    async function loadTankOptions() {
+        try {
+            const urls = ['./tank-data.json', '../tank-data.json', '/tank-data.json'];
+            let data = null;
+            for (const url of urls) {
+                try { const r = await fetch(url); if (r.ok) { data = await r.json(); break; } } catch (_) {}
+            }
+            if (!data?.tanks) return;
+            _tankOptions = data.tanks.map(t => t.bezeichnung || t.id || t.tankNr).filter(Boolean);
+            const dl = document.getElementById('tank-options');
+            dl.innerHTML = _tankOptions.map(n => `<option value="${n}">`).join('');
+        } catch (_) {}
+    }
+
+    let _ttIdx = 0;
+
+    function addTargetTank(entry) {
+        const idx = _ttIdx++;
+        const div = document.createElement('div');
+        div.className = 'target-tank-entry bg-purple-50 border border-purple-100 rounded-xl p-3 space-y-2';
+        div.dataset.idx = idx;
+        const startVal = entry?.startL != null ? String(entry.startL).replace('.',',') : '';
+        const endVal   = entry?.endL   != null ? String(entry.endL).replace('.',',')   : '';
+        div.innerHTML = `
+            <div class="flex items-center gap-2">
+                <input type="text" list="tank-options" value="${entry?.tankLabel || ''}"
+                    placeholder="Tank-Bezeichnung (z.B. T 341)"
+                    class="field-input flex-1 text-sm tt-label" oninput="updateTargetTankTotal()">
+                <button type="button" onclick="removeTargetTank(this)"
+                    class="text-gray-400 hover:text-red-400 text-xl leading-none px-1">×</button>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="field-label text-xs">Anfangsstand (L)</label>
+                    <input type="text" inputmode="decimal" value="${startVal}"
+                        class="field-input text-sm tt-start" placeholder="z.B. 4020"
+                        oninput="calcTargetTankDiff(this.closest('.target-tank-entry'))">
+                </div>
+                <div>
+                    <label class="field-label text-xs">Endstand (L)</label>
+                    <input type="text" inputmode="decimal" value="${endVal}"
+                        class="field-input text-sm tt-end" placeholder="z.B. 3010"
+                        oninput="calcTargetTankDiff(this.closest('.target-tank-entry'))">
+                </div>
+            </div>
+            <div class="tt-diff calc-display hidden text-xs"></div>`;
+        document.getElementById('target-tanks-list').appendChild(div);
+        if (startVal && endVal) calcTargetTankDiff(div);
+        updateTargetTankTotal();
+    }
+
+    function removeTargetTank(btn) {
+        btn.closest('.target-tank-entry').remove();
+        updateTargetTankTotal();
+    }
+
+    function calcTargetTankDiff(entry) {
+        const s = parseFloat(entry.querySelector('.tt-start').value.replace(',','.')) || 0;
+        const e = parseFloat(entry.querySelector('.tt-end').value.replace(',','.'))   || 0;
+        const disp = entry.querySelector('.tt-diff');
+        if (s > 0 && e >= 0 && s !== e) {
+            const diff = Math.abs(s - e);
+            disp.textContent = `🧮 Menge: ${diff.toFixed(1).replace('.',',')} L (${s.toFixed(0)} → ${e.toFixed(0)} L)`;
+            disp.classList.remove('hidden');
+        } else {
+            disp.classList.add('hidden');
+        }
+        updateTargetTankTotal();
+    }
+
+    function updateTargetTankTotal() {
+        const entries = document.querySelectorAll('.target-tank-entry');
+        let total = 0;
+        let allHaveValues = true;
+        entries.forEach(e => {
+            const s = parseFloat(e.querySelector('.tt-start').value.replace(',','.')) || 0;
+            const en = parseFloat(e.querySelector('.tt-end').value.replace(',','.'))  || 0;
+            if (s > 0 && en >= 0 && s !== en) total += Math.abs(s - en);
+            else if (s === 0 && en === 0) allHaveValues = false;
+        });
+        const totalEl = document.getElementById('target-tanks-total');
+        if (entries.length > 1 && total > 0) {
+            totalEl.textContent = `Σ Gesamt abgefüllt: ${total.toFixed(1).replace('.',',')} L`;
+            totalEl.classList.remove('hidden');
+        } else {
+            totalEl.classList.add('hidden');
+        }
+    }
+
+    function collectTargetTanks() {
+        return Array.from(document.querySelectorAll('.target-tank-entry')).map(e => {
+            const s = parseFloat(e.querySelector('.tt-start').value.replace(',','.')) || null;
+            const en = parseFloat(e.querySelector('.tt-end').value.replace(',','.'))  || null;
+            return {
+                tankLabel: e.querySelector('.tt-label').value.trim(),
+                startL:    s,
+                endL:      en,
+                quantityL: (s != null && en != null && s !== en) ? parseFloat(Math.abs(s - en).toFixed(3)) : null,
+            };
+        }).filter(t => t.tankLabel || t.startL != null);
+    }
+
+    function restoreTargetTanks(tanks) {
+        document.getElementById('target-tanks-list').innerHTML = '';
+        _ttIdx = 0;
+        if (Array.isArray(tanks)) tanks.forEach(t => addTargetTank(t));
+        updateTargetTankTotal();
+    }
+
     function calcAusbeute() {
         const weightG = weightUnit === 'kg' ? toNum('f-weight') * 1000 : toNum('f-weight');
         const spritMl = volUnit   === 'l'  ? toNum('f-alc-vol') * 1000 : toNum('f-alc-vol');
@@ -785,6 +909,7 @@
             yieldSpindelTemp:    parseFloat(document.getElementById('f-yield-temp').value.replace(',','.')) || null,
             endConcentration:    toNum('f-end-conc')  || null,
             remarks:             document.getElementById('f-remarks').value.trim(),
+            targetTanks:         collectTargetTanks(),
         };
     }
 
@@ -860,6 +985,7 @@
             calcYieldFromKg();
             if (d.endConcentration) set('f-end-conc', String(d.endConcentration).replace('.',','));
             set('f-remarks', d.remarks);
+            restoreTargetTanks(d.targetTanks);
             calcNet(); calcDuration(); calcAusbeute();
             setStatus('↩ Entwurf wiederhergestellt');
         } catch (e) {}
@@ -911,6 +1037,7 @@
         calcYieldFromKg();
         if (p.endConcentration) set('f-end-conc', String(p.endConcentration).replace('.',','));
         set('f-remarks', p.remarks);
+        restoreTargetTanks(p.targetTanks);
         calcNet(); calcDuration(); calcAusbeute();
         // Bearbeitungs-Modus aktivieren
         editingId = id;
@@ -986,6 +1113,7 @@
         setTodayDate();
         document.getElementById('net-display').classList.add('hidden');
         document.getElementById('duration-display').classList.add('hidden');
+        restoreTargetTanks([]);
         dbDelete('draft', 'current').catch(() => {});
         editingId = null;
         document.getElementById('editing-banner').classList.add('hidden');
