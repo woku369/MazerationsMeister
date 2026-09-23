@@ -36,19 +36,21 @@
 4. **Navigations-Inkonsistenz:** Kein direkter Inventory-Menüpunkt
 5. **webSecurity: false** in Electron/main.js – Same-Origin-Policy deaktiviert (Sicherheitsrisiko)
 6. **113 Backup-Snapshots** im Repository-Root (tank-data-*.json) – .gitignore ergaenzt
+   > ⚠️ **Korrektur (Review September 2026):** Nur die *neuen* Snapshots werden durch `.gitignore` verhindert. Die bereits committeten Alt-Snapshots wurden **nie entfernt** – Stand heute liegen **117 `tank-data-*.json`-Dateien weiterhin im Git-Tracking**. Siehe `docs/REVIEW-2026-09-lagerbestand-buchungslogik.md`, Abschnitt A5. Als „behoben" markiert unten war verfrüht.
 
 #### Behobene Probleme (September 2025 – Juni 2026)
-- ✅ `.gitignore` um `tank-data-[0-9]*.json` erweitert (neue Snapshots landen nicht mehr im Repo)
-- ✅ Leere Platzhalterdateien identifiziert (electron/main-*.js, src/lib/ngrok-*.ts usw.)
+- ⚠️ `.gitignore` um `tank-data-[0-9]*.json` erweitert (neue Snapshots landen nicht mehr im Repo) — **Repo-Bloat selbst besteht weiter**, siehe Korrektur oben und Aufgabe 6 in der Review
+- ✅ Leere Platzhalterdateien identifiziert (electron/main-*.js, src/lib/ngrok-*.ts usw.) — Dateien sind weiterhin vorhanden, nur identifiziert, nicht gelöscht (siehe Aufgabe 8 in der Review)
 
 #### Offene Aufgaben
-- [ ] Tank-IDs auf einheitliches Format normalisieren
-- [ ] Token-Management vereinheitlichen (Single Point of Truth)
+- [ ] Tank-IDs auf einheitliches Format normalisieren — bestätigt offen, nur Workarounds vorhanden (Review A3 / Aufgabe 4)
+- [ ] Token-Management vereinheitlichen (Single Point of Truth) — bestätigt offen, 4 unabhängige Lese-/Schreibstellen (Review Teil B)
 - [ ] QR-Code Implementierungen konsolidieren
 - [ ] Navigation restrukturieren (Inventory als Hauptmenüpunkt)
-- [ ] `webSecurity: true` setzen in electron/main.js
+- [ ] `webSecurity: true` setzen in electron/main.js — bestätigt offen, betrifft 4 Electron-Dateien (Review A7 / Aufgabe 8)
 - [ ] XSS-Fix in tank-viewer.html Fallback (tankId per textContent statt innerHTML)
-- [ ] Leere Dateien entfernen
+   > ⚠️ **Korrektur (Review September 2026):** Für den ursprünglichen Einzeltank-Pfad wurde das korrekt gefixt. Die neue `?view=all`-Ansicht (September 2026) hat denselben Fehlertyp erneut eingeführt (unescaped `innerHTML`), ebenso der Inline-Fallback in `github-service.ts`. Der Fix war ein Einzelfall-Patch, keine systemische Regel — siehe Review A6 / Aufgabe 7.
+- [ ] Leere Dateien entfernen — bestätigt weiterhin offen
 
 ### Phase 3.5: Mazeration PWA ✅ IMPLEMENTIERT (Juni 2026)
 
@@ -135,6 +137,36 @@ Desktop-App
 - ✅ **Steigrohranzeige:** Felder `Anfangsstand (L)` + `Endstand (L)` in der Alkohol-Card
   - `useEffect` berechnet `alcoholVolume` automatisch, schaltet Einheit auf Liter
 
+### Phase 3.7: Lagerbestand & Buchungslogik – Architektur-Review 🔴 KRITISCH (September 2026)
+
+Unvoreingenommene Review der Lagerbestandsverwaltung und Buchungslogik, ausgelöst durch den Eindruck, das System sei "umständlich, organisch gewachsen". Vollständiger Befund inkl. Datei-/Zeilenreferenzen, Code-Belegen und Roadmap-Abgleich:
+
+📄 **`docs/REVIEW-2026-09-lagerbestand-buchungslogik.md`**
+
+#### Wichtigster Befund
+🔴 **Der Buchungsdialog verändert den Lagerbestand nicht.** `handleSaveTransaction` (`inventory-management.tsx:604-623`) schreibt nur einen Log-Eintrag in `inventoryTransactions` – `currentQuantityLiters` des Artikels wird nie angepasst. Der einzige Weg, den Bestand zu ändern, ist manuelles Überschreiben über „Artikel bearbeiten". Buchungsjournal und tatsächlicher Bestand sind strukturell entkoppelt. Zusätzlich: fertige Mazerationen (Desktop + PWA-Tankzuordnung) schreiben nicht automatisch in den Lagerbestand zurück – das Einbuchen ist ein manueller Zusatzschritt.
+
+#### Weitere bestätigte Probleme
+- 5 unabhängige, unsynchronisierte Persistenzmechanismen für dieselben Bestandsdaten (localStorage, tote "Universal Storage"-Schicht, XLSX-Export, GitHub-`tank-data.json`, PWA-IndexedDB)
+- Tank-ID-Inkonsistenz (`id` vs. `tankNr`) nur durch Laufzeit-Reparatur (`fixTankIds()`) und 7-fache Rate-Heuristik in `tank-viewer.html` kaschiert, nie an der Quelle normalisiert
+- LA-/Ausbeute-%-/Dichtekorrektur-Formeln 4–5× unabhängig dupliziert (Desktop, PWA, Inventory-Tabelle/-Summary, Tank-Content-Manager, Sammelliste ×2)
+- GitHub-Sync ohne Konflikthandling (DELETE+CREATE bei SHA-Konflikt, kein Merge) und mit weiterhin ungelöstem Snapshot-Bloat (117 Dateien, siehe Korrektur oben)
+- ~280 Zeilen toter Code in `inventory-management.tsx` (unerreichbarer zweiter Return-Block), orphaned `tank-management-backup.tsx`, 3+ parallele Tank-Viewer-HTML-Varianten
+- Minimal Testabdeckung (1 Testdatei im gesamten `src/components`-Baum)
+
+#### Offene Aufgaben (Priorität, siehe Review-Datei Teil C für Details/Checklisten)
+- [ ] **Aufgabe 1 – Buchungslogik reparieren:** `handleSaveTransaction` muss `currentQuantityLiters` tatsächlich anpassen (Zugang/Abgang), inkl. Test
+- [ ] **Aufgabe 2 – Mazeration → Lager verbinden:** Protokollabschluss soll (mit Bestätigung) einen Zugangs-Datensatz im Lager erzeugen, basierend auf `targetTanks`
+- [ ] **Aufgabe 3 – `stock-service.ts` einführen:** einzige Stelle für alle Bestandsmutationen, alle direkten `setInventoryItems`-Aufrufe darauf umstellen
+- [ ] **Aufgabe 4 – Tank-ID-Normalisierung an der Quelle:** `id`/`tankNr` im Schema sauber trennen, `fixTankIds()` und alle Matching-Heuristiken danach entfernen
+- [ ] **Aufgabe 5 – Formeln konsolidieren:** LA/Ausbeute/Dichte in `mazeration-calc.ts` zentralisieren, alle Duplikate ersetzen, Tests ergänzen
+- [ ] **Aufgabe 6 – GitHub-Sync aufräumen:** 117 Alt-Snapshots per `git rm --cached` entfernen, Sync ohne neue Timestamp-Datei pro Lauf
+- [ ] **Aufgabe 7 – XSS-Fix systemisch machen:** gemeinsame `escapeHtml()`-Helper einführen, `?view=all`-Grid und `github-service.ts`-Fallback fixen
+- [ ] **Aufgabe 8 – Aufräumen (Quick Wins):** toter Code, orphaned Komponenten, leere Platzhalterdateien, `webSecurity: true`, „Universal Storage"-Schicht entweder anbinden oder entfernen
+- [ ] **Aufgabe 9 – Strukturelle Aufteilung (mittelfristig):** `mazeration-form.tsx`/`inventory-management.tsx` in kleinere Einheiten aufteilen, Token-Verwaltung konsolidieren, Navigation restrukturieren
+
+> Arbeitsweise: ein Branch pro Aufgabe von `fresh-main`, lokal mit `npm run dev` testen, erst dann mergen. Reihenfolge 1→2→3 empfohlen, da 2 und 3 auf dem in 1 etablierten Buchungsmechanismus aufbauen. Aufgabe 7 und 8 sind jederzeit unabhängig als Lückenfüller machbar.
+
 ### Phase 4: Produktionsreife Implementierung 🚧
 
 #### 1. QR-Code Druckfunktion 🔴 AKTUELL
@@ -173,6 +205,7 @@ Desktop-App
 ## Änderungsprotokoll
 
 ### September 2026
+- 🔴 **Architektur-Review Lagerbestand & Buchungslogik:** kritischer Befund – Buchungsdialog aktualisiert `currentQuantityLiters` nicht, 5 unsynchronisierte Persistenzmechanismen, Tank-ID-Inkonsistenz nur kaschiert, Formeln 4–5× dupliziert. Details und Aufgabenliste in `docs/REVIEW-2026-09-lagerbestand-buchungslogik.md` und Phase 3.7 oben. Zwei Phase-3-Punkte als „behoben" korrigiert (Backup-Snapshots weiterhin 117 Dateien im Repo; XSS-Fix in `?view=all` regressiert).
 - ✅ **PWA: Primasprit 60%vol.** in Alkohol-Dropdown ergänzt
 - ✅ **PWA: Zwei-Phasen-Workflow** – Entwurf speichern + Protokoll erneut öffnen/abschließen
 - ✅ **PWA + Desktop: „Oberirdische Pflanze"** als erste Pflanzenteil-Option
