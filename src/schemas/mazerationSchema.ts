@@ -111,6 +111,7 @@ export const mazerationFormSchema = z.object({
     numberPreprocess,
     z.coerce.number({invalid_type_error: "Ungültiger Zahlenwert für Endkonzentration."}).min(0, 'Konzentration muss mind. 0 sein.').max(100, 'Konzentration darf max. 100 sein.').optional().nullable()
   ),
+  targetTankNr: z.string().optional(),
   remarks: z.string().optional(),
 
   // Zeitaufzeichnung fields

@@ -26,6 +26,8 @@ import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, PageOrientation, SectionType, Table, TableRow, TableCell, WidthType } from 'docx';
 import { saveAs } from 'file-saver';
+import { v4 as uuidv4 } from 'uuid';
+import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 
 
 import { Button } from '@/components/ui/button';
@@ -40,7 +42,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Leaf, TestTubeDiagonal, Weight, Percent, FlaskConical, CalendarDays, Clock, Droplets, Info, Hash, FileText, Download, MessageSquare, Box, Thermometer, Award, Printer, Archive, Sigma, TimerIcon, Upload } from 'lucide-react';
+import { Leaf, TestTubeDiagonal, Weight, Percent, FlaskConical, CalendarDays, Clock, Droplets, Info, Hash, FileText, Download, MessageSquare, Box, Thermometer, Award, Printer, Archive, Sigma, TimerIcon, Upload, Warehouse } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -814,6 +821,7 @@ const getSsrSafeDefaultValues = (): MazerationFormData => {
     yieldDensityAt: null,
     yieldSpindelTemp: null,
     endConcentration: null,
+    targetTankNr: '',
     remarks: '',
     vorbereitungDate: null,
     vorbereitungStartTime: "",
@@ -1035,6 +1043,7 @@ export default function MazerationForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [loggedProtocols, setLoggedProtocols] = useState<MazerationFormData[]>([]);
   const [isImporting, setIsImporting] = useState(false);
+  const [pendingInventoryItem, setPendingInventoryItem] = useState<StoredInventoryItem | null>(null);
   // LocalStorage: Protokolle beim Start laden
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -1144,6 +1153,26 @@ export default function MazerationForm() {
           variant: 'default',
         });
 
+        // Lager-Zugang vorschlagen wenn Zieltank und Ausbeute vorhanden
+        if (values.targetTankNr && values.yieldVolume) {
+          const { yieldUnit } = getDerivedUnitsForProtocol(values.plantWeightUnit);
+          const yieldInLiters = yieldUnit === 'ml' ? values.yieldVolume / 1000 : values.yieldVolume;
+          const proposed: StoredInventoryItem = {
+            id: uuidv4(),
+            artikelNummer: values.batchNumber,
+            produktName: values.macerationName,
+            chargenNummer: values.batchNumber,
+            category: 'M',
+            tankNr: values.targetTankNr,
+            currentQuantityLiters: yieldInLiters,
+            alcoholVolProzent: values.endConcentration ?? 0,
+            lastInventoryDate: new Date(),
+            bemerkungen: values.remarks ?? '',
+            kennzeichen: 'S',
+          };
+          setPendingInventoryItem(proposed);
+        }
+
     } catch (error) {
         console.error("Error submitting form for export:", error);
         toast({
@@ -1153,6 +1182,24 @@ export default function MazerationForm() {
         });
     } finally {
         setIsLoading(false);
+    }
+  }
+
+  function handleConfirmInventoryEntry() {
+    if (!pendingInventoryItem) return;
+    try {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('inventoryItems') : null;
+      const existing: StoredInventoryItem[] = stored ? JSON.parse(stored) : [];
+      const updated = [...existing, pendingInventoryItem];
+      localStorage.setItem('inventoryItems', JSON.stringify(updated));
+      toast({
+        title: 'Lager-Zugang gebucht',
+        description: `${pendingInventoryItem.currentQuantityLiters.toFixed(2)} L ${pendingInventoryItem.produktName} in ${pendingInventoryItem.tankNr} eingebucht.`,
+      });
+    } catch (err) {
+      toast({ title: 'Fehler beim Einbuchen', variant: 'destructive' });
+    } finally {
+      setPendingInventoryItem(null);
     }
   }
 
@@ -2136,6 +2183,24 @@ export default function MazerationForm() {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="targetTankNr"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel className="flex items-center gap-1"><Warehouse className="w-4 h-4 text-muted-foreground" />Zieltank (für Lagereinbuchung)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="text"
+                        placeholder="z.B. T 341, Fass-3 — leer lassen um Einbuchung zu überspringen"
+                        {...field}
+                        value={field.value ?? ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <div className="md:col-span-1">
                 <FormItem>
                   <FormLabel className="flex items-center gap-1"><FileText className="w-4 h-4 text-muted-foreground" />Verlust (absolut)</FormLabel>
@@ -2290,6 +2355,29 @@ export default function MazerationForm() {
         </form>
       </Form>
       <Toaster />
+
+      <AlertDialog open={!!pendingInventoryItem} onOpenChange={(open) => { if (!open) setPendingInventoryItem(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mazerat ins Lager einbuchen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingInventoryItem && (
+                <>
+                  <strong>{pendingInventoryItem.currentQuantityLiters.toFixed(2)} L</strong>{' '}
+                  <strong>{pendingInventoryItem.produktName}</strong>{' '}
+                  (Charge {pendingInventoryItem.chargenNummer},{' '}
+                  {pendingInventoryItem.alcoholVolProzent > 0 ? `${pendingInventoryItem.alcoholVolProzent} %vol.` : 'kein Alkoholgehalt angegeben'}){' '}
+                  in Tank <strong>{pendingInventoryItem.tankNr}</strong> als Zugang einbuchen?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Überspringen</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmInventoryEntry}>Einbuchen</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
