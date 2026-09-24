@@ -154,8 +154,10 @@ Unvoreingenommene Review der Lagerbestandsverwaltung und Buchungslogik, ausgelö
 - ~280 Zeilen toter Code in `inventory-management.tsx` (unerreichbarer zweiter Return-Block), orphaned `tank-management-backup.tsx`, 3+ parallele Tank-Viewer-HTML-Varianten
 - Minimal Testabdeckung (1 Testdatei im gesamten `src/components`-Baum)
 
+> **Hinweis zu Branches (September 2026):** Es existiert ein dritter, unabhängiger Branch `pages-clean` ohne gemeinsamen Vorfahren mit `fresh-main` (`git merge-base` liefert nichts – zwei getrennte Historien). `pages-clean` enthält u.a. eine bereits funktionierende Version von Aufgabe 1 sowie ~93 weitere Commits (FIFO-Logik, Dashboard-Erweiterungen, Container-Assignment-Fixes), die in `fresh-main` fehlen. Umgekehrt fehlen in `pages-clean` die aktuellen Tank-Viewer-/PWA-Ergänzungen aus `fresh-main`. Eine Zusammenführung wurde bewusst zurückgestellt (kein normaler Merge möglich, da unrelated histories) – Aufgabe 1 wurde stattdessen direkt auf `fresh-main` nachgezogen, mit der bereits geprüften Logik aus `pages-clean`. `pages-clean` bleibt vorerst unangetastet als Fundus für später.
+
 #### Offene Aufgaben (Priorität, siehe Review-Datei Teil C für Details/Checklisten)
-- [ ] **Aufgabe 1 – Buchungslogik reparieren:** `handleSaveTransaction` muss `currentQuantityLiters` tatsächlich anpassen (Zugang/Abgang), inkl. Test
+- [x] **Aufgabe 1 – Buchungslogik reparieren:** `handleSaveTransaction` passt `currentQuantityLiters` jetzt bei Zugang/Abgang an (Fix aus `pages-clean` übernommen, negative Bestände abgefangen). Test steht noch aus.
 - [ ] **Aufgabe 2 – Mazeration → Lager verbinden:** Protokollabschluss soll (mit Bestätigung) einen Zugangs-Datensatz im Lager erzeugen, basierend auf `targetTanks`
 - [ ] **Aufgabe 3 – `stock-service.ts` einführen:** einzige Stelle für alle Bestandsmutationen, alle direkten `setInventoryItems`-Aufrufe darauf umstellen
 - [ ] **Aufgabe 4 – Tank-ID-Normalisierung an der Quelle:** `id`/`tankNr` im Schema sauber trennen, `fixTankIds()` und alle Matching-Heuristiken danach entfernen

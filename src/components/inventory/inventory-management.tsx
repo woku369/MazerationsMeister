@@ -602,22 +602,43 @@ export default function InventoryManagement() {
     setCurrentTransactionType(null);
   };
   const handleSaveTransaction = (transaction: InventoryTransactionCoreData) => {
-    // Beispiel: Transaktion speichern
+    if (!itemForTransaction || !currentTransactionType) return;
+
+    // 1. Transaktion speichern
     const newTransaction: InventoryTransaction = {
       ...transaction,
       id: uuidv4(),
       transactionDate: new Date(),
-      type: currentTransactionType || 'Zugang',
-      itemId: itemForTransaction?.id || '',
-      artikelNummer: itemForTransaction?.artikelNummer || '',
-      produktName: itemForTransaction?.produktName || '',
-      chargenNummer: itemForTransaction?.chargenNummer || '',
+      type: currentTransactionType,
+      itemId: itemForTransaction.id,
+      artikelNummer: itemForTransaction.artikelNummer,
+      produktName: itemForTransaction.produktName,
+      chargenNummer: itemForTransaction.chargenNummer || '',
       notes: transaction.notes || '',
     };
     setInventoryTransactions(prev => [...prev, newTransaction]);
+
+    // 2. Lagerbestand aktualisieren
+    setInventoryItems(prevItems => prevItems.map(item => {
+      if (item.id === itemForTransaction.id) {
+        const currentQty = item.currentQuantityLiters || 0;
+        const transactionQty = transaction.quantityLiters;
+        const newQty = currentTransactionType === 'Zugang'
+          ? currentQty + transactionQty
+          : currentQty - transactionQty;
+
+        return {
+          ...item,
+          currentQuantityLiters: Math.max(0, newQty), // Verhindere negative Bestände
+          lastInventoryDate: new Date(),
+        };
+      }
+      return item;
+    }));
+
     toast({
       title: 'Transaktion gespeichert',
-      description: `Die Transaktion wurde erfolgreich protokolliert.`
+      description: `${currentTransactionType} von ${transaction.quantityLiters}L wurde gebucht. Lagerbestand aktualisiert.`
     });
     handleCloseTransactionDialog();
   };
