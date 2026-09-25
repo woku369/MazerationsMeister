@@ -23,6 +23,7 @@ import type { StoredInventoryItem, InventoryTransaction, InventoryTransactionCor
 import type { ArtikelDefinition, ArtikelDefinitionFormInput } from '@/schemas/artikelDefinitionSchema';
 import { format } from 'date-fns';
 import { syncTankDefinitionsWithInventory } from '@/lib/tank-sync';
+import * as StockService from '@/lib/stock-service';
 
 export default function InventoryManagement() {
   // State für erkannte Spalten und Import-Warnungen
@@ -285,7 +286,7 @@ export default function InventoryManagement() {
     setIsAddEditDialogOpen(true);
   };
   const handleDeleteItem = (itemId: string) => {
-    setInventoryItems(prevItems => prevItems.filter(item => item.id !== itemId));
+    setInventoryItems(prev => StockService.removeEntry(prev, itemId));
     toast({
       title: 'Artikelcharge gelöscht',
       description: `Die Artikelcharge wurde aus dem Lagerbestand entfernt. Zugehörige Transaktionen bleiben im Protokoll.`,
@@ -489,9 +490,7 @@ export default function InventoryManagement() {
           return def ? def.kennzeichen : '';
         })(),
       };
-      setInventoryItems(prevItems =>
-        prevItems.map(item => (item.id === updatedItem.id ? updatedItem : item))
-      );
+      setInventoryItems(prev => StockService.updateEntry(prev, updatedItem));
       toast({
         title: 'Artikelcharge aktualisiert',
         description: `${updatedItem.produktName} (${updatedItem.artikelNummer} / ${updatedItem.chargenNummer || 'N/A'}) wurde erfolgreich aktualisiert.`,
@@ -509,7 +508,7 @@ export default function InventoryManagement() {
           return def ? def.kennzeichen : '';
         })(),
       };
-      setInventoryItems(prevItems => [...prevItems, newItem]);
+      setInventoryItems(prev => StockService.addEntry(prev, newItem));
       toast({
         title: 'Artikelcharge hinzugefügt',
         description: `${newItem.produktName} (${newItem.artikelNummer} / ${newItem.chargenNummer || 'N/A'}) wurde zum Lagerbestand hinzugefügt.`,
@@ -619,22 +618,9 @@ export default function InventoryManagement() {
     setInventoryTransactions(prev => [...prev, newTransaction]);
 
     // 2. Lagerbestand aktualisieren
-    setInventoryItems(prevItems => prevItems.map(item => {
-      if (item.id === itemForTransaction.id) {
-        const currentQty = item.currentQuantityLiters || 0;
-        const transactionQty = transaction.quantityLiters;
-        const newQty = currentTransactionType === 'Zugang'
-          ? currentQty + transactionQty
-          : currentQty - transactionQty;
-
-        return {
-          ...item,
-          currentQuantityLiters: Math.max(0, newQty), // Verhindere negative Bestände
-          lastInventoryDate: new Date(),
-        };
-      }
-      return item;
-    }));
+    setInventoryItems(prev =>
+      StockService.applyTransaction(prev, itemForTransaction.id, currentTransactionType, transaction.quantityLiters)
+    );
 
     toast({
       title: 'Transaktion gespeichert',

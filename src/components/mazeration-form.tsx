@@ -28,6 +28,7 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Page
 import { saveAs } from 'file-saver';
 import { v4 as uuidv4 } from 'uuid';
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
+import * as StockService from '@/lib/stock-service';
 
 
 import { Button } from '@/components/ui/button';
@@ -1188,10 +1189,7 @@ export default function MazerationForm() {
   function handleConfirmInventoryEntry() {
     if (!pendingInventoryItem) return;
     try {
-      const stored = typeof window !== 'undefined' ? localStorage.getItem('inventoryItems') : null;
-      const existing: StoredInventoryItem[] = stored ? JSON.parse(stored) : [];
-      const updated = [...existing, pendingInventoryItem];
-      localStorage.setItem('inventoryItems', JSON.stringify(updated));
+      StockService.persistAddEntry(pendingInventoryItem);
       toast({
         title: 'Lager-Zugang gebucht',
         description: `${pendingInventoryItem.currentQuantityLiters.toFixed(2)} L ${pendingInventoryItem.produktName} in ${pendingInventoryItem.tankNr} eingebucht.`,

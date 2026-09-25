@@ -159,7 +159,7 @@ Unvoreingenommene Review der Lagerbestandsverwaltung und Buchungslogik, ausgelö
 #### Offene Aufgaben (Priorität, siehe Review-Datei Teil C für Details/Checklisten)
 - [x] **Aufgabe 1 – Buchungslogik reparieren:** `handleSaveTransaction` passt `currentQuantityLiters` jetzt bei Zugang/Abgang an (Fix aus `pages-clean` übernommen, negative Bestände abgefangen). Test steht noch aus.
 - [x] **Aufgabe 2 – Mazeration → Lager verbinden:** Protokollabschluss erzeugt (mit Bestätigungsdialog) einen Zugangs-Datensatz im Lager. Neues Feld „Zieltank" im Ergebnis-Abschnitt des Desktop-Formulars; beim Abschluss wird `localStorage['inventoryItems']` direkt geschrieben.
-- [ ] **Aufgabe 3 – `stock-service.ts` einführen:** einzige Stelle für alle Bestandsmutationen, alle direkten `setInventoryItems`-Aufrufe darauf umstellen
+- [x] **Aufgabe 3 – `stock-service.ts` einführen:** `src/lib/stock-service.ts` mit reinen Transformationsfunktionen (`addEntry`, `removeEntry`, `updateEntry`, `applyTransaction`) + localStorage-Helpers (`readAll`, `writeAll`, `persistAddEntry`). `inventory-management.tsx` und `mazeration-form.tsx` verwenden den Service.
 - [ ] **Aufgabe 4 – Tank-ID-Normalisierung an der Quelle:** `id`/`tankNr` im Schema sauber trennen, `fixTankIds()` und alle Matching-Heuristiken danach entfernen
 - [ ] **Aufgabe 5 – Formeln konsolidieren:** LA/Ausbeute/Dichte in `mazeration-calc.ts` zentralisieren, alle Duplikate ersetzen, Tests ergänzen
 - [ ] **Aufgabe 6 – GitHub-Sync aufräumen:** 117 Alt-Snapshots per `git rm --cached` entfernen, Sync ohne neue Timestamp-Datei pro Lauf
