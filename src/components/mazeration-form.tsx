@@ -17,7 +17,7 @@ const getDerivedUnitsForProtocol = (plantWeightUnit?: 'g' | 'kg') => {
 };
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { calculateNetWeightDetailsForProtocol } from '@/lib/mazeration-calc';
+import { calculateNetWeightDetailsForProtocol, korrDichte20, calcVolumeFromMassAndDensity } from '@/lib/mazeration-calc';
 import { useForm } from 'react-hook-form';
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -979,8 +979,7 @@ const useCalculatedFormValues = (form: ReturnType<typeof useForm<MazerationFormD
     const rhoT   = Number(yieldDensityForm);
     const temp   = yieldTempForm != null && yieldTempForm !== '' ? Number(yieldTempForm) : NaN;
     if (massKg > 0 && rhoT > 0) {
-      const rho20 = !isNaN(temp) ? rhoT + 0.00066 * (temp - 20) : rhoT;
-      const volL  = parseFloat((massKg / rho20).toFixed(3));
+      const volL  = parseFloat(calcVolumeFromMassAndDensity(massKg, rhoT, isNaN(temp) ? undefined : temp).toFixed(3));
       form.setValue('yieldVolume', volL, { shouldValidate: false });
     }
   }, [yieldMassKgForm, yieldDensityForm, yieldTempForm, form]);
@@ -2281,8 +2280,8 @@ export default function MazerationForm() {
                 {Number(yieldMassKgForm) > 0 && Number(yieldDensityForm) > 0 && (() => {
                   const rhoT  = Number(yieldDensityForm);
                   const temp  = yieldTempForm != null && yieldTempForm !== '' ? Number(yieldTempForm) : NaN;
-                  const rho20 = !isNaN(temp) ? rhoT + 0.00066 * (temp - 20) : rhoT;
-                  const volL  = Number(yieldMassKgForm) / rho20;
+                  const rho20 = korrDichte20(rhoT, isNaN(temp) ? 20 : temp);
+                  const volL  = calcVolumeFromMassAndDensity(Number(yieldMassKgForm), rhoT, isNaN(temp) ? undefined : temp);
                   return (
                     <p className="text-sm text-green-700 bg-green-50 rounded-lg p-2">
                       🧮 <strong>{String(yieldMassKgForm).replace('.', ',')} kg</strong>

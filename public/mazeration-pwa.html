@@ -1269,6 +1269,7 @@
         await renderSammelliste();
     }
 
+    // Formeln: TS-Quelle in src/lib/mazeration-calc.ts (toVolumeLiters, calcLA)
     function toL(vol, unit) {
         if (!vol) return null;
         return unit === 'ml' ? vol / 1000 : vol;

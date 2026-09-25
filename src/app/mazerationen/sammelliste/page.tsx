@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { TableIcon, FileSpreadsheet, Trash2 } from 'lucide-react';
+import { toVolumeLiters, calcLA } from '@/lib/mazeration-calc';
 
 interface Protocol {
   id?: string;
@@ -31,13 +32,13 @@ interface Protocol {
 
 function toL(vol: number | null | undefined, unit: string | undefined): number | null {
   if (!vol) return null;
-  return unit === 'ml' ? vol / 1000 : vol;
+  return toVolumeLiters(vol, unit ?? 'l');
 }
 
 function laL(vol: number | null | undefined, unit: string | undefined, conc: number | null | undefined): number | null {
   const vL = toL(vol, unit);
   if (!vL || !conc) return null;
-  return vL * conc / 100;
+  return calcLA(vL, conc);
 }
 
 function fmtN(v: number | null | undefined, dec = 3) {

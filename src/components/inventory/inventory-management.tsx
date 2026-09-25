@@ -24,6 +24,7 @@ import type { ArtikelDefinition, ArtikelDefinitionFormInput } from '@/schemas/ar
 import { format } from 'date-fns';
 import { syncTankDefinitionsWithInventory } from '@/lib/tank-sync';
 import * as StockService from '@/lib/stock-service';
+import { calcLA } from '@/lib/mazeration-calc';
 
 export default function InventoryManagement() {
   // State für erkannte Spalten und Import-Warnungen
@@ -346,7 +347,7 @@ export default function InventoryManagement() {
         };
       }
       acc[key].totalQuantityLiters += item.currentQuantityLiters;
-      acc[key].totalAbsoluteAlcoholLiters += item.currentQuantityLiters * (item.alcoholVolProzent / 100);
+      acc[key].totalAbsoluteAlcoholLiters += calcLA(item.currentQuantityLiters, item.alcoholVolProzent);
       return acc;
     }, {});
     Object.values(productSummaries).forEach(summary => {

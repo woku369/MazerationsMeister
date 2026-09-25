@@ -1,3 +1,31 @@
+/** Konvertiert ein Volumen von ml oder l nach Liter. */
+export function toVolumeLiters(volume: number, unit: string): number {
+  return unit === 'ml' ? volume / 1000 : volume;
+}
+
+/** Liter Absolutalkohol: Volumen (L) × Alkohol% ÷ 100. */
+export function calcLA(volumeLiters: number, alcoholVolProzent: number): number {
+  return volumeLiters * (alcoholVolProzent / 100);
+}
+
+/**
+ * Dichtekorrektur auf 20 °C.
+ * Koeffizient 0,00066 g/cm³/°C (lineare Näherung für Ethanollösungen).
+ */
+export function korrDichte20(rhoT: number, tempC: number): number {
+  return isNaN(tempC) || tempC === 20 ? rhoT : rhoT + 0.00066 * (tempC - 20);
+}
+
+/** Volumen (L) aus Masse (kg) und Dichte; optional mit Temperaturkorrektur auf 20 °C. */
+export function calcVolumeFromMassAndDensity(
+  massKg: number,
+  rhoT: number,
+  tempC?: number,
+): number {
+  const rho20 = tempC !== undefined ? korrDichte20(rhoT, tempC) : rhoT;
+  return massKg / rho20;
+}
+
 export const calculateNetWeightDetailsForProtocol = (
   numberOfCrates?: number | null,
   grossWeightKg?: number | null,

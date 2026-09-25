@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { calcLA } from '@/lib/mazeration-calc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -69,8 +70,8 @@ export default function TankContentManager() {
         const tankDef = tankDefinitions.find(t => t.tankNr === tankNr);
         
         const totalVolume = items.reduce((sum, item) => sum + item.currentQuantityLiters, 0);
-        const totalAlcohol = items.reduce((sum, item) => 
-          sum + (item.currentQuantityLiters * item.alcoholVolProzent / 100), 0
+        const totalAlcohol = items.reduce((sum, item) =>
+          sum + calcLA(item.currentQuantityLiters, item.alcoholVolProzent), 0
         );
         const averageAlcoholPercent = totalVolume > 0 ? (totalAlcohol / totalVolume) * 100 : 0;
 
@@ -359,8 +360,8 @@ export default function TankContentManager() {
                           </div>
                           <p className="font-semibold">{item.produktName}</p>
                           <p className="text-sm text-muted-foreground">
-                            {item.currentQuantityLiters.toLocaleString()} L • {item.alcoholVolProzent}% • 
-                            {((item.currentQuantityLiters * item.alcoholVolProzent) / 100).toFixed(1)} LA • 
+                            {item.currentQuantityLiters.toLocaleString()} L • {item.alcoholVolProzent}% •
+                            {calcLA(item.currentQuantityLiters, item.alcoholVolProzent).toFixed(1)} LA •
                             Inventur: {new Date(item.lastInventoryDate).toLocaleDateString()}
                           </p>
                           {item.bemerkungen && (

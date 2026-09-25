@@ -1,6 +1,7 @@
 "use client";
 
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
+import { calcLA } from '@/lib/mazeration-calc';
 // Dynamische Kategorien aus localStorage
 import {
   Table,
@@ -62,11 +63,6 @@ export default function InventoryTable({ items, onDeleteItem, onEditItem, onReco
   return '#e5e7eb'; // hellgrau für andere
   }
 
-  const calculateLA = (liters: number, alcoholVol: number): number | null => {
-    if (isNaN(liters) || isNaN(alcoholVol)) return null;
-    return liters * (alcoholVol / 100);
-  };
-
   const requestSort = (key: SortableKeys) => {
     let direction: 'ascending' | 'descending' = 'ascending';
     if (sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -98,8 +94,8 @@ export default function InventoryTable({ items, onDeleteItem, onEditItem, onReco
         const key = sortConfig.key;
 
         if (key === 'literAbsolut') {
-          valA = calculateLA(a.currentQuantityLiters, a.alcoholVolProzent) ?? -Infinity;
-          valB = calculateLA(b.currentQuantityLiters, b.alcoholVolProzent) ?? -Infinity;
+          valA = calcLA(a.currentQuantityLiters, a.alcoholVolProzent) ?? -Infinity;
+          valB = calcLA(b.currentQuantityLiters, b.alcoholVolProzent) ?? -Infinity;
         } else {
           valA = a[key as keyof StoredInventoryItem];
           valB = b[key as keyof StoredInventoryItem];
@@ -250,7 +246,7 @@ export default function InventoryTable({ items, onDeleteItem, onEditItem, onReco
                   <TableCell className="text-right">{
                     item.literAbsolutalkohol !== undefined && item.literAbsolutalkohol !== null
                       ? formatNumber(item.literAbsolutalkohol)
-                      : formatNumber(calculateLA(item.currentQuantityLiters, item.alcoholVolProzent))
+                      : formatNumber(calcLA(item.currentQuantityLiters, item.alcoholVolProzent))
                   }</TableCell>
                   <TableCell>{format(item.lastInventoryDate, 'dd.MM.yyyy')}</TableCell>
                   <TableCell>

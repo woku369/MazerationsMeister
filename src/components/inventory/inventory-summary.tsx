@@ -2,6 +2,7 @@
 "use client";
 
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
+import { calcLA } from '@/lib/mazeration-calc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -43,7 +44,7 @@ export default function InventorySummary({ items }: InventorySummaryProps) {
       };
     }
     acc[key].totalQuantityLiters += item.currentQuantityLiters || 0;
-    acc[key].totalAbsoluteAlcoholLiters += (item.currentQuantityLiters || 0) * ((item.alcoholVolProzent || 0) / 100);
+    acc[key].totalAbsoluteAlcoholLiters += calcLA(item.currentQuantityLiters || 0, item.alcoholVolProzent || 0);
     return acc;
   }, {});
 
