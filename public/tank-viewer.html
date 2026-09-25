@@ -164,6 +164,15 @@
     </div>
 
     <script>
+        function escapeHtml(s) {
+            return String(s ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         // Get parameters from URL
         const urlParams = new URLSearchParams(window.location.search);
         const tankId = urlParams.get('tank');
@@ -471,7 +480,7 @@
             }
 
             grid.innerHTML = tanks.map(t => {
-                const name    = t.bezeichnung || t.id || t.tankNr;
+                const name    = escapeHtml(t.bezeichnung || t.id || t.tankNr);
                 const isUniq  = t.hasUniqueNumber === true;
                 let fill, vol, pct, color, inhalt, barHtml;
 
@@ -483,7 +492,7 @@
                     pct   = vol > 0 ? Math.min(Math.round(fill / vol * 100), 100) : 0;
                     color = pct >= 80 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#6b7280';
                     inhalt = items.length
-                        ? items.map(i => `${i.produktName || '–'} (${(i.currentQuantityLiters||0).toFixed(0)} L, ${i.alcoholVolProzent||'–'}%)`).join('<br>')
+                        ? items.map(i => `${escapeHtml(i.produktName || '–')} (${(i.currentQuantityLiters||0).toFixed(0)} L, ${escapeHtml(String(i.alcoholVolProzent||'–'))}%)`).join('<br>')
                         : '<span class="text-gray-400">Leer</span>';
                     barHtml = `
                     <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
@@ -497,9 +506,9 @@
                     // Grouped containers (Fass, Fl, B …): content stored directly on tank
                     fill  = t.volumenLiter || 0;
                     color = t.status === 'empty' ? '#6b7280' : '#10b981';
-                    const alcText = t.alcoholVolProzent ? `, ${t.alcoholVolProzent}%` : '';
+                    const alcText = t.alcoholVolProzent ? `, ${escapeHtml(String(t.alcoholVolProzent))}%` : '';
                     inhalt = t.currentContent
-                        ? `${t.currentContent} (${fill.toFixed(1)} L${alcText})`
+                        ? `${escapeHtml(t.currentContent)} (${fill.toFixed(1)} L${alcText})`
                         : '<span class="text-gray-400">Leer</span>';
                     pct = t.status === 'filled' ? 100 : (t.status === 'empty' ? 0 : 50);
                     barHtml = `

@@ -342,69 +342,73 @@ export class TankDataGitHubSync {
     </div>
     
     <script>
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+
         async function loadTankData() {
             try {
                 const urlParams = new URLSearchParams(window.location.search);
                 const tankId = urlParams.get('tank');
-                
+
                 const response = await fetch('./tank-data.json');
                 const data = await response.json();
-                
+
                 if (tankId) {
                     displayTankData(data, tankId);
                 } else {
                     displayAllTanks(data);
                 }
             } catch (error) {
-                document.getElementById('content').innerHTML = 
-                    '<div class="error">Fehler beim Laden der Tank-Daten: ' + error.message + '</div>';
+                document.getElementById('content').innerHTML =
+                    '<div class="error">Fehler beim Laden der Tank-Daten: ' + escapeHtml(error.message) + '</div>';
             }
         }
-        
+
         function displayTankData(data, tankId) {
             const tank = data.tanks?.find(t => t.id === tankId);
             if (!tank) {
-                document.getElementById('content').innerHTML = 
-                    '<div class="error">Tank nicht gefunden: ' + tankId + '</div>';
+                document.getElementById('content').innerHTML =
+                    '<div class="error">Tank nicht gefunden: ' + escapeHtml(tankId) + '</div>';
                 return;
             }
-            
+
             const inventory = data.inventory?.filter(item => item.tankNr === tank.tankNr) || [];
             const totalQuantity = inventory.reduce((sum, item) => sum + (item.menge || 0), 0);
-            
+
             document.getElementById('content').innerHTML = \`
                 <div class="tank-card">
-                    <h2>Tank \${tank.tankNr}: \${tank.bezeichnung}</h2>
-                    <p><strong>Kapazität:</strong> \${tank.volumenLiter} Liter</p>
+                    <h2>Tank \${escapeHtml(tank.tankNr)}: \${escapeHtml(tank.bezeichnung)}</h2>
+                    <p><strong>Kapazität:</strong> \${Number(tank.volumenLiter) || 0} Liter</p>
                     <p><strong>Aktueller Inhalt:</strong> \${totalQuantity} Liter</p>
-                    <p><strong>Frei:</strong> \${tank.volumenLiter - totalQuantity} Liter</p>
+                    <p><strong>Frei:</strong> \${(Number(tank.volumenLiter) || 0) - totalQuantity} Liter</p>
                     <p><strong>Letztes Update:</strong> \${new Date(data.lastUpdated).toLocaleString()}</p>
                 </div>
             \`;
         }
-        
+
         function displayAllTanks(data) {
             const tanksHtml = data.tanks?.map(tank => {
                 const inventory = data.inventory?.filter(item => item.tankNr === tank.tankNr) || [];
                 const totalQuantity = inventory.reduce((sum, item) => sum + (item.menge || 0), 0);
-                
+
                 return \`
                     <div class="tank-card">
-                        <h3>Tank \${tank.tankNr}: \${tank.bezeichnung}</h3>
-                        <p><strong>Kapazität:</strong> \${tank.volumenLiter} Liter</p>
+                        <h3>Tank \${escapeHtml(tank.tankNr)}: \${escapeHtml(tank.bezeichnung)}</h3>
+                        <p><strong>Kapazität:</strong> \${Number(tank.volumenLiter) || 0} Liter</p>
                         <p><strong>Aktueller Inhalt:</strong> \${totalQuantity} Liter</p>
-                        <p><strong>Frei:</strong> \${tank.volumenLiter - totalQuantity} Liter</p>
+                        <p><strong>Frei:</strong> \${(Number(tank.volumenLiter) || 0) - totalQuantity} Liter</p>
                     </div>
                 \`;
             }).join('') || '<p>Keine Tanks gefunden</p>';
-            
+
             document.getElementById('content').innerHTML = \`
                 <h1>Alle Tanks</h1>
                 \${tanksHtml}
                 <p><small>Letztes Update: \${new Date(data.lastUpdated).toLocaleString()}</small></p>
             \`;
         }
-        
+
         loadTankData();
     </script>
 </body>
