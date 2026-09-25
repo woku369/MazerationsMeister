@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, shell } from 'electron';
 import * as path from 'path';
 import { createServer } from 'http';
 import { readFileSync, existsSync } from 'fs';
@@ -223,7 +223,7 @@ app.on('activate', () => {
 app.on('web-contents-created', (event, contents) => {
   contents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('http') && !url.startsWith('http://localhost:')) {
-      require('electron').shell.openExternal(url);
+      shell.openExternal(url);
       return { action: 'deny' };
     }
     return { action: 'allow' };

@@ -65,6 +65,18 @@ export const mazerationFormSchema = z.object({
       z.undefined(),
     ])
   ),
+  numberOfPallets: z.preprocess(
+    numberPreprocess,
+    z.coerce.number({invalid_type_error: "Ungültiger Zahlenwert für Anzahl Paletten."}).positive().optional().nullable()
+  ),
+  tarePerPalletKg: z.preprocess(
+    numberPreprocess,
+    z.union([
+      z.coerce.number({invalid_type_error: "Ungültiger Zahlenwert für Tara pro Palette."}).min(0),
+      z.null(),
+      z.undefined(),
+    ])
+  ),
   alcoholType: z.string().min(1, 'Alkoholtyp ist erforderlich'),
   alcoholConcentration: z.preprocess(
     numberPreprocess,

@@ -68,7 +68,7 @@
 
         <!-- ===== FORMULAR ===== -->
         <div id="tab-content-form">
-            <div id="editing-banner" class="hidden mb-3 px-4 py-2 bg-amber-50 border border-amber-300 rounded-xl text-sm text-amber-800 flex items-center justify-between">
+            <div id="editing-banner" style="display:none" class="mb-3 px-4 py-2 bg-amber-50 border border-amber-300 rounded-xl text-sm text-amber-800 flex items-center justify-between">
                 <span>✏️ Bearbeitung: <strong id="editing-name"></strong></span>
                 <button type="button" onclick="cancelEdit()" class="text-amber-600 font-bold text-xs">Abbrechen ✕</button>
             </div>
@@ -732,7 +732,7 @@
             if (!data?.tanks) return;
             _tankOptions = data.tanks.map(t => t.bezeichnung || t.id || t.tankNr).filter(Boolean);
             const dl = document.getElementById('tank-options');
-            dl.innerHTML = _tankOptions.map(n => `<option value="${n}">`).join('');
+            dl.innerHTML = _tankOptions.map(n => `<option value="${esc(n)}">`).join('');
         } catch (_) {}
     }
 
@@ -747,7 +747,7 @@
         const endVal   = entry?.endL   != null ? String(entry.endL).replace('.',',')   : '';
         div.innerHTML = `
             <div class="flex items-center gap-2">
-                <input type="text" list="tank-options" value="${entry?.tankLabel || ''}"
+                <input type="text" list="tank-options" value="${esc(entry?.tankLabel || '')}"
                     placeholder="Tank-Bezeichnung (z.B. T 341)"
                     class="field-input flex-1 text-sm tt-label" oninput="updateTargetTankTotal()">
                 <button type="button" onclick="removeTargetTank(this)"
@@ -944,7 +944,7 @@
             const p = { ...makeProtocol(data), draft: true };
             await dbPut('protocols', p);
             editingId = p.id;
-            document.getElementById('editing-banner').classList.remove('hidden');
+            document.getElementById('editing-banner').style.display = '';
             document.getElementById('editing-name').textContent = data.macerationName;
             showToast('📂 Entwurf gespeichert – Bearbeitung läuft weiter');
         }
@@ -1041,7 +1041,7 @@
         calcNet(); calcDuration(); calcAusbeute();
         // Bearbeitungs-Modus aktivieren
         editingId = id;
-        document.getElementById('editing-banner').classList.remove('hidden');
+        document.getElementById('editing-banner').style.display = '';
         document.getElementById('editing-name').textContent = p.macerationName || id;
         showTab('form');
         window.scrollTo(0, 0);
@@ -1050,7 +1050,7 @@
 
     function cancelEdit() {
         editingId = null;
-        document.getElementById('editing-banner').classList.add('hidden');
+        document.getElementById('editing-banner').style.display = 'none';
         showToast('Bearbeitung abgebrochen');
     }
 
@@ -1063,7 +1063,7 @@
             const p = { ...existing, ...data, savedAt: new Date().toISOString(), synced: false };
             await dbPut('protocols', p);
             editingId = null;
-            document.getElementById('editing-banner').classList.add('hidden');
+            document.getElementById('editing-banner').style.display = 'none';
             showToast('💾 Protokoll aktualisiert!');
         } else {
             const p = makeProtocol(data);
@@ -1083,7 +1083,7 @@
             const existing = await dbGet('protocols', editingId);
             p = { ...existing, ...data, savedAt: new Date().toISOString(), synced: false };
             editingId = null;
-            document.getElementById('editing-banner').classList.add('hidden');
+            document.getElementById('editing-banner').style.display = 'none';
         } else {
             p = makeProtocol(data);
         }
@@ -1116,7 +1116,7 @@
         restoreTargetTanks([]);
         dbDelete('draft', 'current').catch(() => {});
         editingId = null;
-        document.getElementById('editing-banner').classList.add('hidden');
+        document.getElementById('editing-banner').style.display = 'none';
         showToast('🔄 Formular geleert');
     }
 
@@ -1437,10 +1437,10 @@
 <script>window.onload=()=>window.print()<\/script>
 </body></html>`;
 
-        const w = window.open('', '_blank', 'width=900,height=700');
-        if (!w) { showToast('❌ Popup blockiert', 3000); return; }
-        w.document.write(html);
-        w.document.close();
+        const blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+        const w = window.open(blobUrl, '_blank', 'width=900,height=700');
+        if (!w) { URL.revokeObjectURL(blobUrl); showToast('❌ Popup blockiert', 3000); return; }
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
     }
 
     async function exportSammellisteXLSX() {
@@ -1534,7 +1534,7 @@
     }
 
     function exportPDF(p) {
-        const fmt = v => (v != null && v !== '' && v !== 0) ? String(v) : '–';
+        const fmt = v => esc((v != null && v !== '' && v !== 0) ? String(v) : '–');
         const fmtDate = s => s ? s.split('-').reverse().join('.') : '–';
         const fmtNum = v => (v != null && v !== 0) ? String(v).replace('.', ',') : '–';
         const savedStr = p.savedAt ? new Date(p.savedAt).toLocaleString('de-DE') : '–';
@@ -1543,7 +1543,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Mazeration – ${p.macerationName || ''}</title>
+<title>Mazeration – ${esc(p.macerationName || '')}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 24px 28px; }
@@ -1560,7 +1560,7 @@
 </style>
 </head>
 <body>
-<h1>Mazerationsprotokoll – ${p.macerationName || ''} (Charge ${p.batchNumber || '–'})</h1>
+<h1>Mazerationsprotokoll – ${esc(p.macerationName || '')} (Charge ${esc(p.batchNumber || '–')})</h1>
 
 <h2>Allgemein</h2>
 <div class="grid">
@@ -1605,7 +1605,7 @@
 </div>
 
 <h2>Bemerkungen</h2>
-<div class="remarks">${p.remarks || ''}</div>
+<div class="remarks">${esc(p.remarks || '')}</div>
 
 <div class="footer">
   <span>Gurktaler AG · MazerationsMeister PWA</span>
@@ -1616,10 +1616,10 @@
 </body>
 </html>`;
 
-        const w = window.open('', '_blank', 'width=800,height=900');
-        if (!w) { showToast('❌ Popup blockiert – bitte Popups erlauben', 3500); return; }
-        w.document.write(html);
-        w.document.close();
+        const blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+        const w = window.open(blobUrl, '_blank', 'width=800,height=900');
+        if (!w) { URL.revokeObjectURL(blobUrl); showToast('❌ Popup blockiert – bitte Popups erlauben', 3500); return; }
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
     }
 
     // ============================================================
@@ -1712,4 +1712,5 @@
     function setStatus(msg) { document.getElementById('status-bar').textContent = msg; }
     </script>
 </body>
+
 </html>

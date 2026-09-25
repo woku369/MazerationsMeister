@@ -127,7 +127,7 @@ export class TankAutoSync {
         data.inventoryItems
       );
 
-      if (success) {
+      if (success.success) {
         this.lastSync = new Date();
         // Speichere LastSync in localStorage
         if (typeof window !== 'undefined') {
@@ -136,7 +136,7 @@ export class TankAutoSync {
         console.log(`✅ Tank-Daten erfolgreich synchronisiert: ${this.lastSync.toLocaleString()}`);
       }
 
-      return success;
+      return success.success;
 
     } catch (error) {
       console.error('❌ Tank-Synchronisation fehlgeschlagen:', error);

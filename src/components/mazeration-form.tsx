@@ -751,7 +751,12 @@ export default function MazerationForm() {
   }, [form]);
   
   const { calculatedValues, setters: setCalculatedValueSetters } = useCalculatedFormValues(form);
-  
+
+  const tankStartLForm  = form.watch('tankStartL');
+  const tankEndLForm    = form.watch('tankEndL');
+  const yieldMassKgForm = form.watch('yieldMassKg');
+  const yieldDensityForm = form.watch('yieldDensityAt');
+  const yieldTempForm   = form.watch('yieldSpindelTemp');
 
   useEffect(() => { setClientMounted(true); }, []);
 
@@ -1939,7 +1944,7 @@ export default function MazerationForm() {
                 </div>
                 {Number(yieldMassKgForm) > 0 && Number(yieldDensityForm) > 0 && (() => {
                   const rhoT  = Number(yieldDensityForm);
-                  const temp  = yieldTempForm != null && yieldTempForm !== '' ? Number(yieldTempForm) : NaN;
+                  const temp  = yieldTempForm != null ? Number(yieldTempForm) : NaN;
                   const rho20 = korrDichte20(rhoT, isNaN(temp) ? 20 : temp);
                   const volL  = calcVolumeFromMassAndDensity(Number(yieldMassKgForm), rhoT, isNaN(temp) ? undefined : temp);
                   return (

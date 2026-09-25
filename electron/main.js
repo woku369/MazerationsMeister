@@ -236,7 +236,7 @@ electron_1.app.on('activate', () => {
 electron_1.app.on('web-contents-created', (event, contents) => {
     contents.setWindowOpenHandler(({ url }) => {
         if (url.startsWith('http') && !url.startsWith('http://localhost:')) {
-            require('electron').shell.openExternal(url);
+            electron_1.shell.openExternal(url);
             return { action: 'deny' };
         }
         return { action: 'allow' };
