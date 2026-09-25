@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { initialTankDefinitions, TankDefinition } from "@/schemas/tankSchema";
 import type { StoredInventoryItem } from "@/schemas/inventorySchema";
-import { syncTankDefinitionsWithInventory, getTankDefinitions, fixTankIds } from "@/lib/tank-sync";
+import { syncTankDefinitionsWithInventory, getTankDefinitions } from "@/lib/tank-sync";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -162,8 +162,6 @@ export default function TankManagement() {
 
   const loadTankData = () => {
     try {
-      // KRITISCHE KORREKTUR: Tank-IDs erst bereinigen
-      fixTankIds();
       // Synchronisiere zunächst mit Inventory
       syncTankDefinitionsWithInventory();
       // Dann lade die aktualisierten Tank-Definitionen

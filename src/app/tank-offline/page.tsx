@@ -46,7 +46,7 @@ export default function TankOfflinePage() {
             const storedTanks = localStorage.getItem('tankDefinitions');
             if (storedTanks) {
               const tanks = JSON.parse(storedTanks);
-              tank = tanks.find((t: any) => t.tankNr === tankId || t.id === tankId);
+              tank = tanks.find((t: any) => t.id === tankId);
               console.log('🗄️ Tank aus localStorage gefunden:', tank);
             }
           } catch (e) {

@@ -56,18 +56,14 @@ export function useTanks() {
   }, [tanks, updateTanks]);
 
   const updateTank = useCallback(async (tankId: string, updates: Partial<any>) => {
-    const updatedTanks = tanks.map(tank => 
-      tank.id === tankId || tank.tankNr === tankId 
-        ? { ...tank, ...updates }
-        : tank
+    const updatedTanks = tanks.map(tank =>
+      tank.id === tankId ? { ...tank, ...updates } : tank
     );
     await updateTanks(updatedTanks);
   }, [tanks, updateTanks]);
 
   const deleteTank = useCallback(async (tankId: string) => {
-    const updatedTanks = tanks.filter(tank => 
-      tank.id !== tankId && tank.tankNr !== tankId
-    );
+    const updatedTanks = tanks.filter(tank => tank.id !== tankId);
     await updateTanks(updatedTanks);
   }, [tanks, updateTanks]);
 

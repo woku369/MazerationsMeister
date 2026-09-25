@@ -270,45 +270,13 @@
                 tank = data;
                 console.log('✅ Direkte Tank-Daten von Fallback verwendet');
             } else {
-                // Full dataset with tanks array
-                console.log('🔍 Vollständiges Dataset erhalten:', data);
-                console.log('🔍 Alle verfügbaren Tanks:', data.tanks);
-                console.log('🔍 Suche nach Tank mit ID:', tankId);
-                
-                // ERWEITERTE TANK-SUCHE: Versuche verschiedene ID-Felder
-                tank = data.tanks?.find(t => {
-                    const matches = [
-                        t.id === tankId,
-                        t.tankNr === tankId,
-                        t.bezeichnung === tankId,
-                        // Falls Tank-IDs wie "T 341" sind, versuche auch ohne Leerzeichen
-                        t.id === tankId.replace(/\s+/g, ''),
-                        t.tankNr === tankId.replace(/\s+/g, ''),
-                        // Versuche auch mit Leerzeichen falls tankId ohne ist
-                        t.id === `T ${tankId}`,
-                        t.tankNr === `T ${tankId}`
-                    ];
-                    
-                    console.log(`🔍 Tank ${t.tankNr} (ID: ${t.id}):`, matches.some(m => m));
-                    return matches.some(m => m);
-                });
-                
+                tank = data.tanks?.find(t => t.id === tankId);
                 inventory = data.inventory || [];
-                console.log('🔍 Tank-Suche Ergebnis:', { 
-                    sucheTank: tankId, 
-                    gefundenTank: tank ? `${tank.tankNr} (${tank.id})` : 'NICHT GEFUNDEN',
-                    verfügbareTanks: data.tanks ? data.tanks.map(t => `${t.tankNr} (${t.id})`).join(', ') : 'KEINE'
-                });
             }
-            
-            // FALLBACK: Wenn Tank nicht gefunden, aber Inventory-Daten für diesen Tank existieren
+
+            // FALLBACK: Tank nicht in tank-data.json, aber Inventory-Einträge vorhanden → virtuellen Tank erzeugen
             if (!tank && data.inventory) {
-                console.log('🔄 FALLBACK: Versuche Tank aus Inventory-Daten zu rekonstruieren...');
-                const tankInventory = data.inventory.filter(item => 
-                    item.tankNr === tankId || 
-                    item.tankNr?.replace(/\s+/g, '') === tankId?.replace(/\s+/g, '') ||
-                    item.location?.includes(tankId)
-                );
+                const tankInventory = data.inventory.filter(item => item.tankNr === tankId);
                 
                 if (tankInventory.length > 0) {
                     // Erstelle virtuelle Tank-Definition aus Inventory

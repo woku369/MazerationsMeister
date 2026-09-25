@@ -22,10 +22,10 @@ export function syncTankDefinitionsWithInventory(): void {
   const inventoryItems: StoredInventoryItem[] = JSON.parse(storedInventory);
   const currentTanks: TankDefinition[] = storedTanks ? JSON.parse(storedTanks) : [];
   
-  // KRITISCHE KORREKTUR: Bestehende Tank-IDs zu tankNr korrigieren
+  // Stelle sicher dass id === tankNr (Invariante: id ist der menschenlesbare Tank-Schlüssel)
   const correctedTanks = currentTanks.map(tank => ({
     ...tank,
-    id: tank.tankNr // Setze ID gleich tankNr für Konsistenz
+    id: tank.tankNr,
   }));
   
   // Sammle alle eindeutigen Tank-Nummern aus dem Inventar
@@ -86,35 +86,3 @@ export function getTankByNumber(tankNr: string): TankDefinition | null {
   return tanks.find(tank => tank.tankNr === tankNr) || null;
 }
 
-/**
- * NOTFALL-KORREKTUR: Bereinigt inkonsistente Tank-IDs in localStorage
- * Sollte einmalig ausgeführt werden um das UUID-Problem zu beheben
- */
-export function fixTankIds(): void {
-  if (typeof window === 'undefined') return;
-  
-  const storedTanks = localStorage.getItem('tankDefinitions');
-  if (!storedTanks) return;
-  
-  const tanks: TankDefinition[] = JSON.parse(storedTanks);
-  let hasChanges = false;
-  
-  const fixedTanks = tanks.map(tank => {
-    if (tank.id !== tank.tankNr) {
-      console.log(`🔧 Korrigiere Tank-ID: ${tank.id} → ${tank.tankNr}`);
-      hasChanges = true;
-      return { ...tank, id: tank.tankNr };
-    }
-    return tank;
-  });
-  
-  if (hasChanges) {
-    localStorage.setItem('tankDefinitions', JSON.stringify(fixedTanks));
-    console.log('✅ Tank-ID Korrektur abgeschlossen');
-    
-    // Event für andere Komponenten aussenden
-    window.dispatchEvent(new CustomEvent('tankDefinitionsUpdated', {
-      detail: { tanks: fixedTanks }
-    }));
-  }
-}
