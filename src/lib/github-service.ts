@@ -284,52 +284,21 @@ export class TankDataGitHubSync {
       const tankDataContent = JSON.stringify({
         tanks: asciiSafeTanks,
         inventory: asciiSafeInventory,
-        lastUpdated: new Date().toISOString(),
-        timestamp: new Date().toISOString()
+        lastUpdated: new Date().toISOString()
       }, null, 2);
 
-      // NEUE STRATEGIE: Erst timestamp-Datei (immer erfolgreich), dann normale Datei aktualisieren
-      const timestamp = Date.now();
-      
-      const files: GitHubFile[] = [
-        {
-          path: `tank-data-${timestamp}.json`, // NEUER Name - garantiert erfolgreich
-          content: tankDataContent,
-          message: `Tank data backup - ${new Date().toLocaleString()}`
-        }
-      ];
+      const result = await this.githubService.uploadFile({
+        path: 'tank-data.json',
+        content: tankDataContent,
+        message: `Tank data update - ${new Date().toLocaleString()}`
+      });
 
-      console.log(`📦 Creating backup: tank-data-${timestamp}.json`);
-
-      // 1. Erstelle Backup (sollte immer funktionieren)
-      const timestampResult = await this.githubService.uploadFile(files[0]);
-      
-      if (timestampResult) {
-        console.log(`✅ Backup erfolgreich erstellt: tank-data-${timestamp}.json`);
-        
-        // 2. Jetzt versuche normale tank-data.json zu aktualisieren (für sofortige Verfügbarkeit)
-        console.log(`� Updating main tank-data.json for immediate availability...`);
-        
-        const mainFile: GitHubFile = {
-          path: 'tank-data.json',
-          content: tankDataContent,
-          message: `Tank data update - ${new Date().toLocaleString()}`
-        };
-        
-        const mainResult = await this.githubService.uploadFile(mainFile);
-        
-        if (mainResult) {
-          console.log('✅ Hauptdatei tank-data.json erfolgreich aktualisiert!');
-          console.log(`🔗 Tank-Daten sofort verfügbar: ${this.githubService.getGitHubPagesUrl('tank-data.json')}`);
-          console.log(`📋 Backup verfügbar: ${this.githubService.getGitHubPagesUrl(files[0].path)}`);
-          return { success: true, backupUrl: this.githubService.getGitHubPagesUrl(files[0].path) };
-        } else {
-          console.warn('⚠️ Hauptdatei-Update fehlgeschlagen, aber Backup wurde erstellt');
-          console.log(`🔗 Daten verfügbar über Backup: ${this.githubService.getGitHubPagesUrl(files[0].path)}`);
-          return { success: true, backupUrl: this.githubService.getGitHubPagesUrl(files[0].path) }; // Backup reicht aus
-        }
+      if (result) {
+        const url = this.githubService.getGitHubPagesUrl('tank-data.json');
+        console.log(`✅ tank-data.json aktualisiert: ${url}`);
+        return { success: true, backupUrl: url };
       } else {
-        console.error('❌ Backup-Erstellung fehlgeschlagen');
+        console.error('❌ tank-data.json Update fehlgeschlagen');
         return { success: false };
       }
 
