@@ -165,7 +165,7 @@ Unvoreingenommene Review der Lagerbestandsverwaltung und Buchungslogik, ausgelö
 - [x] **Aufgabe 6 – GitHub-Sync aufräumen:** 119 Timestamp-Snapshots + backups/ per `git rm --cached` entfernt, `.gitignore` erweitert. `syncTankData()` schreibt direkt `tank-data.json` ohne Backup-Datei (uploadFile holt SHA selbst).
 - [x] **Aufgabe 7 – XSS-Fix systemisch machen:** `escapeHtml()` in `tank-viewer.html` (am Script-Anfang) und im Fallback-HTML in `github-service.ts` eingeführt. Alle User-Daten in `innerHTML`-Kontexten (name, produktName, currentContent, tankNr, bezeichnung, tankId aus URL-Param) werden jetzt escaped.
 - [x] **Aufgabe 8 – Aufräumen (Quick Wins):** 7 leere/orphaned Dateien gelöscht (`tank-management-backup.tsx`, 6 Stubs für ngrok/onedrive/simple-dashboard), 3 `.backup`-Quelldateien entfernt. `webSecurity: false → true` in `electron/main.ts` + `main.js`.
-- [ ] **Aufgabe 9 – Strukturelle Aufteilung (mittelfristig):** `mazeration-form.tsx`/`inventory-management.tsx` in kleinere Einheiten aufteilen, Token-Verwaltung konsolidieren, Navigation restrukturieren
+- [x] **Aufgabe 9 – Strukturelle Aufteilung:** Token-Verwaltung in `src/lib/github-token.ts` zentralisiert (3 Stellen). Berechnungs-Helpers nach `src/lib/mazeration-form-helpers.ts` ausgelagert. `useCalculatedFormValues`-Hook nach `src/hooks/use-calculated-form-values.ts` extrahiert. `mazeration-form.tsx` von 2381 → 2041 Zeilen reduziert.
 
 > Arbeitsweise: ein Branch pro Aufgabe von `fresh-main`, lokal mit `npm run dev` testen, erst dann mergen. Reihenfolge 1→2→3 empfohlen, da 2 und 3 auf dem in 1 etablierten Buchungsmechanismus aufbauen. Aufgabe 7 und 8 sind jederzeit unabhängig als Lückenfüller machbar.
 

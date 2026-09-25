@@ -1,23 +1,30 @@
 "use client";
-// Globale Platzhalter-Variablen für die gesamte Datei
+// Globale Platzhalter-Variablen für PDF-Generierung
 const placeholderText = "____________________";
 const placeholderDate = "__.__.____";
 const placeholderTime = "__:__";
 const placeholderNumber = "___,_";
 const placeholderHours = "__,__ Std.";
 
-// Kleine Hilfsfunktionen / Platzhalter, die an mehreren Stellen benötigt werden
 let y = 0;
 let currentLineHeight = 0;
 
-const getDerivedUnitsForProtocol = (plantWeightUnit?: 'g' | 'kg') => {
-  // Wenn Pflanzengewicht in kg angegeben ist, verwenden wir liter für Volumen-Ausgaben, sonst ml
-  if (plantWeightUnit === 'kg') return { yieldUnit: 'l', lossUnit: 'l' };
-  return { yieldUnit: 'ml', lossUnit: 'ml' };
-};
-
 import { zodResolver } from '@hookform/resolvers/zod';
 import { calculateNetWeightDetailsForProtocol, korrDichte20, calcVolumeFromMassAndDensity } from '@/lib/mazeration-calc';
+import { getGithubToken } from '@/lib/github-token';
+import {
+  TARE_PER_CRATE_KG_FIXED,
+  getDerivedUnitsForProtocol,
+  parseFormNumber,
+  combineDateTime,
+  formatNumberWithComma,
+  calculateRatioDetails,
+  calculateMacerationDurationDetails,
+  calculateTaskDurationHours,
+  calculateYieldAndLossDetails,
+  calculateLADetails,
+} from '@/lib/mazeration-form-helpers';
+import { useCalculatedFormValues } from '@/hooks/use-calculated-form-values';
 import { useForm } from 'react-hook-form';
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -58,168 +65,6 @@ import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
 import { mazerationFormSchema, type MazerationFormData } from '@/schemas/mazerationSchema';
 import { Skeleton } from '@/components/ui/skeleton';
-
-// Default Tara (can be overridden per form)
-const TARE_PER_CRATE_KG_FIXED = 2.00;
-
-// Parse form numeric inputs which may use comma as decimal separator
-const parseFormNumber = (v: any): number | null => {
-  if (v === undefined || v === null || v === '') return null;
-  const s = String(v).trim().replace(/\s+/g, '').replace(',', '.');
-  const n = Number(s);
-  return Number.isFinite(n) ? n : null;
-};
-
-// Helper function to combine Date and Time string
-const combineDateTime = (date: Date | undefined | null, timeString: string | undefined | null): Date | undefined => {
-  if (!date || !isValid(date)) return undefined;
-  const newDate = new Date(date);
-  if (timeString && /^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(timeString)) {
-    const [hours, minutes] = timeString.split(':').map(Number);
-    newDate.setHours(hours, minutes, 0, 0);
-    return newDate;
-  }
-  return undefined;
-};
-// ...Ende der Funktion
-
-
-const formatNumberWithComma = (num: number | null | undefined, precision: number = 2, unit?: string): string => {
-    if (num === null || num === undefined || isNaN(num)) return '---';
-    const Suffix = unit ? ` ${unit}` : '';
-    return num.toFixed(precision).replace('.', ',') + Suffix;
-};
-
-
-// Platzhalter-Variablen nur einmal deklarieren
-
-
-// Calculation Helper Functions are in src/lib/mazeration-calc.ts
-
-const calculateRatioDetails = (plantWeight?: number | null, plantWeightUnit?: 'g' | 'kg', alcoholVolume?: number | null, alcoholVolumeUnit?: 'ml' | 'l'): string => {
-  let weightInG = Number(plantWeight);
-
-  if (plantWeightUnit === 'kg') {
-      weightInG = Number(plantWeight) * 1000;
-  }
-
-  let volumeInMl = Number(alcoholVolume);
-  if (alcoholVolumeUnit === 'l') {
-    volumeInMl = volumeInMl * 1000;
-  }
-
-  if (weightInG > 0 && volumeInMl > 0) {
-    const calculatedRatio = (volumeInMl / weightInG).toFixed(2);
-    return `1:${calculatedRatio.replace('.', ',')}`;
-  }
-  return '1:X';
-};
-
-const calculateMacerationDurationDetails = (macerationStart?: Date | null, macerationStartTime?: string | null, macerationEnd?: Date | null, macerationEndTime?: string | null): string => {
-  const startDateTime = combineDateTime(macerationStart, macerationStartTime);
-  const endDateTime = combineDateTime(macerationEnd, macerationEndTime);
-
-  if (startDateTime && endDateTime && isValid(startDateTime) && isValid(endDateTime) && startDateTime < endDateTime) {
-    const durationMs = differenceInMilliseconds(endDateTime, startDateTime);
-    const totalHours = Math.floor(durationMs / (1000 * 60 * 60));
-    const days = Math.floor(totalHours / 24);
-    const hours = totalHours % 24;
-    return `${days} Tage, ${hours} Stunden`;
-  }
-  return '0 Tage, 0 Stunden';
-};
-
-const calculateTaskDurationHours = (date?: Date | null, startTime?: string | null, endTime?: string | null): number | null => {
-    if (!date || !startTime || !endTime) return null;
-
-    const startDateTime = combineDateTime(date, startTime);
-    const endDateTime = combineDateTime(date, endTime);
-
-    if (startDateTime && endDateTime && isValid(startDateTime) && isValid(endDateTime) && endDateTime > startDateTime) {
-        const durationMs = differenceInMilliseconds(endDateTime, startDateTime);
-        return parseFloat((durationMs / (1000 * 60 * 60)).toFixed(2));
-    }
-    return null; 
-};
-
-
-const calculateYieldAndLossDetails = (
-    plantWeightUnit?: 'g' | 'kg',
-    alcoholVolume?: number | null,
-    alcoholVolumeUnit?: 'ml' | 'l',
-    yieldVolume?: number | null
-  ): { lossAbsolute: number | null; lossPercentage: number | null; lossUnitDisplay: string; yieldDisplayUnit: string } => {
-  const { yieldUnit, lossUnit } = getDerivedUnitsForProtocol(plantWeightUnit);
-
-  const alcVolNum = Number(alcoholVolume);
-  const yieldVolNum = Number(yieldVolume);
-
-  if (isNaN(alcVolNum) || alcVolNum <= 0 || isNaN(yieldVolNum) || yieldVolNum < 0) {
-    return { lossAbsolute: null, lossPercentage: null, lossUnitDisplay: lossUnit, yieldDisplayUnit: yieldUnit };
-  }
-
-  let alcoholInMl = alcoholVolumeUnit === 'l' ? alcVolNum * 1000 : alcVolNum;
-  let yieldInMlToCompare = yieldUnit === 'l' ? yieldVolNum * 1000 : yieldVolNum;
-
-  if (alcoholInMl <= 0) {
-    return { lossAbsolute: null, lossPercentage: null, lossUnitDisplay: lossUnit, yieldDisplayUnit: yieldUnit };
-  }
-
-  const absoluteLossInMl = alcoholInMl - yieldInMlToCompare;
-  const percentageLoss = (absoluteLossInMl / alcoholInMl) * 100;
-
-  let displayAbsoluteLossValue: number;
-  if (lossUnit === 'l') {
-    displayAbsoluteLossValue = absoluteLossInMl / 1000;
-  } else {
-    displayAbsoluteLossValue = absoluteLossInMl;
-  }
-
-  return {
-    lossAbsolute: parseFloat(displayAbsoluteLossValue.toFixed(2)),
-    lossPercentage: parseFloat(percentageLoss.toFixed(2)),
-    lossUnitDisplay: lossUnit,
-    yieldDisplayUnit: yieldUnit,
-  };
-};
-
-const calculateLADetails = (
-    plantWeightUnit?: 'g' | 'kg',
-    alcoholVolume?: number | null,
-    alcoholConcentration?: number | null,
-    alcoholVolumeUnit?: 'ml' | 'l',
-    yieldVolume?: number | null,
-    endConcentration?: number | null
-  ): { eingesetzteLA: number | null; ausbeuteLA: number | null; verlustLA: number | null } => {
-  const alcVol = Number(alcoholVolume);
-  const alcConc = Number(alcoholConcentration);
-  const yieldVol = Number(yieldVolume);
-  const endConc = Number(endConcentration);
-  const { yieldUnit } = getDerivedUnitsForProtocol(plantWeightUnit);
-
-  let calculatedEingesetzteLA: number | null = null;
-  if (!isNaN(alcVol) && !isNaN(alcConc) && alcVol > 0 && alcConc >= 0) {
-      const volumeInLiters = alcoholVolumeUnit === 'ml' ? alcVol / 1000 : alcVol;
-      calculatedEingesetzteLA = volumeInLiters * (alcConc / 100);
-  }
-
-  let calculatedAusbeuteLA: number | null = null;
-  if (!isNaN(yieldVol) && !isNaN(endConc) && yieldVol > 0 && endConc >= 0) {
-      const yieldVolumeInLiters = yieldUnit === 'ml' ? yieldVol / 1000 : yieldVol;
-      calculatedAusbeuteLA = yieldVolumeInLiters * (endConc / 100);
-  }
-
-  let calculatedVerlustLA: number | null = null;
-  if (calculatedEingesetzteLA !== null && calculatedAusbeuteLA !== null) {
-      calculatedVerlustLA = calculatedEingesetzteLA - calculatedAusbeuteLA;
-  }
-
-  return {
-    eingesetzteLA: calculatedEingesetzteLA !== null ? parseFloat(calculatedEingesetzteLA.toFixed(4)) : null,
-    ausbeuteLA: calculatedAusbeuteLA !== null ? parseFloat(calculatedAusbeuteLA.toFixed(4)) : null,
-    verlustLA: calculatedVerlustLA !== null ? parseFloat(calculatedVerlustLA.toFixed(4)) : null,
-  };
-};
 
 
 // Function to generate PDF
@@ -849,191 +694,6 @@ const getSsrSafeDefaultValues = (): MazerationFormData => {
 };
 
 
-const useCalculatedFormValues = (form: ReturnType<typeof useForm<MazerationFormData>>) => {
-  const [ratio, setRatio] = useState<string>("1:X");
-  const [macerationDuration, setMacerationDuration] = useState<string>("0 Tage, 0 Stunden");
-  const [calculatedNetWeightKg, setCalculatedNetWeightKg] = useState<number | null>(null);
-  const [averageNetWeightPerCrateKg, setAverageNetWeightPerCrateKg] = useState<number | null>(null);
-  const [yieldDisplayUnit, setYieldDisplayUnit] = useState<string>('ml');
-  const [lossAbsolute, setLossAbsolute] = useState<number | null>(null);
-  const [lossPercentage, setLossPercentage] = useState<number | null>(null);
-  const [lossUnitDisplay, setLossUnitDisplay] = useState<string>('ml');
-  const [eingesetzteLA, setEingesetzteLA] = useState<number | null>(null);
-  const [ausbeuteLA, setAusbeuteLA] = useState<number | null>(null);
-  const [verlustLA, setVerlustLA] = useState<number | null>(null);
-
-  const [vorbereitungHours, setVorbereitungHours] = useState<number | null>(null);
-  const [verarbeitungKraeuterHours, setVerarbeitungKraeuterHours] = useState<number | null>(null);
-  const [verarbeitungMazeratHours, setVerarbeitungMazeratHours] = useState<number | null>(null);
-  const [reinigungHours, setReinigungHours] = useState<number | null>(null);
-  const [sonstigesHours, setSonstigesHours] = useState<number | null>(null);
-  const [summeZeitaufzeichnungStunden, setSummeZeitaufzeichnungStunden] = useState<number | null>(null);
-
-  const { watch } = form;
-
-  const plantWeightForm = watch('plantWeight');
-  const plantWeightUnit = watch('plantWeightUnit');
-  const alcoholVolumeForm = watch('alcoholVolume');
-  const alcoholVolumeUnit = watch('alcoholVolumeUnit');
-  const tankStartLForm    = watch('tankStartL');
-  const tankEndLForm      = watch('tankEndL');
-  const yieldMassKgForm   = watch('yieldMassKg');
-  const yieldDensityForm  = watch('yieldDensityAt');
-  const yieldTempForm     = watch('yieldSpindelTemp');
-  const alcoholConcentrationForm = watch('alcoholConcentration');
-  const yieldVolumeValue = watch('yieldVolume');
-  const endConcentrationForm = watch('endConcentration');
-  const startDate = watch('macerationStart');
-  const startTime = watch('macerationStartTime');
-  const endDate = watch('macerationEnd');
-  const endTime = watch('macerationEndTime');
-  const numberOfCratesForm = watch('numberOfCrates');
-  const grossWeightKgForm = watch('grossWeightKg');
-  const tarePerCrateKgForm = watch('tarePerCrateKg');
-  const numberOfPalletsForm = watch('numberOfPallets');
-  const tarePerPalletKgForm = watch('tarePerPalletKg');
-
-  const vorbereitungD = watch('vorbereitungDate');
-  const vorbereitungST = watch('vorbereitungStartTime');
-  const vorbereitungET = watch('vorbereitungEndTime');
-  const verarbeitungKraeuterD = watch('verarbeitungKraeuterDate');
-  const verarbeitungKraeuterST = watch('verarbeitungKraeuterStartTime');
-  const verarbeitungKraeuterET = watch('verarbeitungKraeuterEndTime');
-  const verarbeitungMazeratD = watch('verarbeitungMazeratDate');
-  const verarbeitungMazeratST = watch('verarbeitungMazeratStartTime');
-  const verarbeitungMazeratET = watch('verarbeitungMazeratEndTime');
-  const reinigungD = watch('reinigungDate');
-  const reinigungST = watch('reinigungStartTime');
-  const reinigungET = watch('reinigungEndTime');
-  const sonstigesD = watch('sonstigesDate');
-  const sonstigesST = watch('sonstigesStartTime');
-  const sonstigesET = watch('sonstigesEndTime');
-
-  useEffect(() => {
-    // parse values coming from form (may be strings with comma decimal)
-    const numCrates = parseFormNumber(numberOfCratesForm);
-    const grossKg = parseFormNumber(grossWeightKgForm);
-    const tareKg = parseFormNumber(tarePerCrateKgForm) ?? TARE_PER_CRATE_KG_FIXED;
-    const numPallets = parseFormNumber(numberOfPalletsForm);
-    const palletTareKg = parseFormNumber(tarePerPalletKgForm);
-    const { calculatedNetWeightKg: netKg, averageNetWeightPerCrateKg: avgKg } = calculateNetWeightDetailsForProtocol(
-      numCrates,
-      grossKg,
-      tareKg,
-      numPallets,
-      palletTareKg,
-    );
-    setCalculatedNetWeightKg(netKg);
-    setAverageNetWeightPerCrateKg(avgKg);
-    // Debug: logge relevante Werte (sichtbar in der Browser-Konsole)
-  // debug logs removed for production
-
-    // Wenn berechnetes Nettogewicht vorliegt, in das Feld 'Einwaage Pflanze' übernehmen,
-    // aber nur, wenn dieses Feld aktuell leer ist (nicht vom Nutzer gesetzt) oder 0.
-    try {
-      // Setze den berechneten Wert immer in das Feld 'plantWeight' (Gewünschtes Verhalten).
-        if (netKg !== null) {
-          if (plantWeightUnit === 'kg') {
-            form.setValue('plantWeight', netKg, { shouldValidate: true, shouldDirty: true });
-          } else if (plantWeightUnit === 'g') {
-            const grams = Math.round(netKg * 1000);
-            form.setValue('plantWeight', grams, { shouldValidate: true, shouldDirty: true });
-          }
-      }
-    } catch (e) {
-      // Form kann während SSR/Initialisierung manchmal noch nicht bereit sein; ignoriere dann still.
-    }
-  }, [plantWeightUnit, numberOfCratesForm, grossWeightKgForm, tarePerCrateKgForm, numberOfPalletsForm, tarePerPalletKgForm]);
-
-  useEffect(() => {
-    const currentPlantWeightUnit = plantWeightUnit;
-    const { yieldUnit, lossUnit } = getDerivedUnitsForProtocol(currentPlantWeightUnit);
-    setYieldDisplayUnit(yieldUnit);
-    setLossUnitDisplay(lossUnit);
-    if (currentPlantWeightUnit === 'kg') {
-      if (form.getValues('alcoholVolumeUnit') === 'ml') {
-        form.setValue('alcoholVolumeUnit', 'l', { shouldValidate: true });
-      }
-    } else {
-      if (form.getValues('alcoholVolumeUnit') === 'l') {
-        form.setValue('alcoholVolumeUnit', 'ml', { shouldValidate: true });
-      }
-    }
-  }, [plantWeightUnit, form]);
-
-  useEffect(() => {
-    setRatio(calculateRatioDetails(Number(plantWeightForm), plantWeightUnit, Number(alcoholVolumeForm), alcoholVolumeUnit));
-  }, [plantWeightForm, plantWeightUnit, alcoholVolumeForm, alcoholVolumeUnit]);
-
-  useEffect(() => {
-    const start = Number(tankStartLForm);
-    const end   = Number(tankEndLForm);
-    if (start > 0 && end >= 0 && start > end) {
-      form.setValue('alcoholVolume', parseFloat((start - end).toFixed(3)), { shouldValidate: false });
-      form.setValue('alcoholVolumeUnit', 'l', { shouldValidate: false });
-    }
-  }, [tankStartLForm, tankEndLForm, form]);
-
-  useEffect(() => {
-    const massKg = Number(yieldMassKgForm);
-    const rhoT   = Number(yieldDensityForm);
-    const temp   = yieldTempForm != null && yieldTempForm !== '' ? Number(yieldTempForm) : NaN;
-    if (massKg > 0 && rhoT > 0) {
-      const volL  = parseFloat(calcVolumeFromMassAndDensity(massKg, rhoT, isNaN(temp) ? undefined : temp).toFixed(3));
-      form.setValue('yieldVolume', volL, { shouldValidate: false });
-    }
-  }, [yieldMassKgForm, yieldDensityForm, yieldTempForm, form]);
-
-  useEffect(() => {
-    setMacerationDuration(calculateMacerationDurationDetails(startDate, startTime, endDate, endTime));
-  }, [startDate, startTime, endDate, endTime]);
-
-  useEffect(() => {
-    const { lossAbsolute: la, lossPercentage: lp } = calculateYieldAndLossDetails(plantWeightUnit, Number(alcoholVolumeForm), alcoholVolumeUnit, Number(yieldVolumeValue));
-    setLossAbsolute(la);
-    setLossPercentage(lp);
-  }, [alcoholVolumeForm, alcoholVolumeUnit, yieldVolumeValue, plantWeightUnit]);
-
-  useEffect(() => {
-    const { eingesetzteLA: einLA, ausbeuteLA: ausLA, verlustLA: verLA } = calculateLADetails(plantWeightUnit, Number(alcoholVolumeForm), Number(alcoholConcentrationForm), alcoholVolumeUnit, Number(yieldVolumeValue), Number(endConcentrationForm));
-    setEingesetzteLA(einLA);
-    setAusbeuteLA(ausLA);
-    setVerlustLA(verLA);
-  }, [plantWeightUnit, alcoholVolumeForm, alcoholConcentrationForm, alcoholVolumeUnit, yieldVolumeValue, endConcentrationForm]);
-
-  useEffect(() => setVorbereitungHours(calculateTaskDurationHours(vorbereitungD, vorbereitungST, vorbereitungET)), [vorbereitungD, vorbereitungST, vorbereitungET]);
-  useEffect(() => setVerarbeitungKraeuterHours(calculateTaskDurationHours(verarbeitungKraeuterD, verarbeitungKraeuterST, verarbeitungKraeuterET)), [verarbeitungKraeuterD, verarbeitungKraeuterST, verarbeitungKraeuterET]);
-  useEffect(() => setVerarbeitungMazeratHours(calculateTaskDurationHours(verarbeitungMazeratD, verarbeitungMazeratST, verarbeitungMazeratET)), [verarbeitungMazeratD, verarbeitungMazeratST, verarbeitungMazeratET]);
-  useEffect(() => setReinigungHours(calculateTaskDurationHours(reinigungD, reinigungST, reinigungET)), [reinigungD, reinigungST, reinigungET]);
-  useEffect(() => setSonstigesHours(calculateTaskDurationHours(sonstigesD, sonstigesST, sonstigesET)), [sonstigesD, sonstigesST, sonstigesET]);
-
-  useEffect(() => {
-    const sum = [vorbereitungHours, verarbeitungKraeuterHours, verarbeitungMazeratHours, reinigungHours, sonstigesHours]
-      .reduce((acc, curr) => (acc || 0) + (curr || 0), 0);
-  setSummeZeitaufzeichnungStunden((sum ?? 0) > 0 ? sum ?? 0 : null);
-  }, [vorbereitungHours, verarbeitungKraeuterHours, verarbeitungMazeratHours, reinigungHours, sonstigesHours]);
-  
-  const setters = useMemo(() => ({
-    setRatio, setMacerationDuration, setCalculatedNetWeightKg, setAverageNetWeightPerCrateKg,
-    setYieldDisplayUnit, setLossAbsolute, setLossPercentage, setLossUnitDisplay,
-    setEingesetzteLA, setAusbeuteLA, setVerlustLA,
-    setVorbereitungHours, setVerarbeitungKraeuterHours, setVerarbeitungMazeratHours,
-    setReinigungHours, setSonstigesHours, setSummeZeitaufzeichnungStunden
-  }), [ // Removed setters from dependency array as they are stable due to useState
-  ]);
-
-  return {
-    calculatedValues: {
-      ratio, macerationDuration, calculatedNetWeightKg, averageNetWeightPerCrateKg,
-      yieldDisplayUnit, lossAbsolute, lossPercentage, lossUnitDisplay,
-      eingesetzteLA, ausbeuteLA, verlustLA,
-      vorbereitungHours, verarbeitungKraeuterHours, verarbeitungMazeratHours,
-      reinigungHours, sonstigesHours, summeZeitaufzeichnungStunden
-    },
-    setters,
-  };
-};
-
 
 export default function MazerationForm() {
   const { toast } = useToast();
@@ -1236,7 +896,7 @@ export default function MazerationForm() {
 
 
   const handleImportFromGitHub = async () => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('github-token') : null;
+    const token = getGithubToken() || null;
     if (!token) {
       toast({
         title: 'Kein GitHub-Token',

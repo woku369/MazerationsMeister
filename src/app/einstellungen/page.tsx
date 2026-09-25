@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Download, Upload, Trash2, Settings, Cloud, Smartphone, Github, Clock, CheckCircle } from "lucide-react";
 import { getTankAutoSync } from "@/lib/tank-auto-sync";
+import { getGithubToken, setGithubToken as persistGithubToken } from "@/lib/github-token";
 
 
 export default function EinstellungenPage() {
@@ -80,12 +81,7 @@ export default function EinstellungenPage() {
   }, [hydrated]);
 
   // GitHub-Konfiguration
-  const [githubToken, setGithubToken] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('github-token') || '';
-    }
-    return '';
-  });
+  const [githubToken, setGithubToken] = useState(() => getGithubToken());
   const [githubEnabled, setGithubEnabled] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('github-enabled') === 'true';
@@ -94,7 +90,7 @@ export default function EinstellungenPage() {
   });
   
   const handleSaveGitHubConfig = async () => {
-    localStorage.setItem('github-token', githubToken.trim());
+    persistGithubToken(githubToken);
     localStorage.setItem('github-enabled', githubEnabled.toString());
     
     // Auto-Sync konfigurieren

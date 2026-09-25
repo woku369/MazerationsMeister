@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import QRCode from "qrcode";
 import { getTankAutoSync } from "@/lib/tank-auto-sync";
+import { getGithubToken, setGithubToken as persistGithubToken } from "@/lib/github-token";
 import * as cloudQRGenerator from "@/lib/cloud-qr-generator";
 import OneDriveAutoUploader from "@/lib/onedrive-auto-uploader";
 import * as oneDriveExport from "@/lib/onedrive-export";
@@ -198,12 +199,7 @@ export default function TankManagement() {
     }
     return false;
   });
-  const [githubToken, setGithubToken] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('github-token') || '';
-    }
-    return '';
-  });
+  const [githubToken, setGithubToken] = useState(() => getGithubToken());
   const [showGithubSetup, setShowGithubSetup] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -219,10 +215,8 @@ export default function TankManagement() {
       setGithubEnabled(true);
       setShowGithubSetup(false);
       // In localStorage speichern UND Einstellungen synchronisieren
-      if (typeof window !== "undefined") {
-        localStorage.setItem("github-token", githubToken);
-        localStorage.setItem("github-enabled", "true");
-      }
+      persistGithubToken(githubToken);
+      localStorage.setItem("github-enabled", "true");
       
       // Event für Synchronisation mit anderen Komponenten aussenden
       window.dispatchEvent(new CustomEvent('githubConfigUpdated', {
