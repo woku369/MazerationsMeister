@@ -114,14 +114,15 @@ export default function SammellistePage() {
       if (la) laAus += la;
     });
     const krautStr = krautG >= 1000 ? `${(krautG / 1000).toFixed(2).replace('.', ',')} kg` : `${krautG.toFixed(0)} g`;
-    return { krautStr, laEin, mazerat, laAus };
+    // Verlust = Restalkohol im Pflanzenmaterial - muss im Gesamt-LA-Bestand nachvollziehbar sein.
+    return { krautStr, laEin, mazerat, laAus, laVerlust: laEin - laAus };
   }, [selected]);
 
   function exportXLSX() {
     if (!selected.length) return;
     const header = ['Datum', 'Bezeichnung', 'Charge', 'Pflanze', 'Pflanzenteil',
       'Kraut (Menge)', 'Einheit Kraut', 'Alkoholtyp', 'Sprit (L)', 'Alkohol (%vol)',
-      'LA Einsatz (L abs.)', 'Mazerat (L)', 'Endalkohol (%vol)', 'LA Ausbeute (L abs.)',
+      'LA Einsatz (L abs.)', 'Mazerat (L)', 'Endalkohol (%vol)', 'LA Ausbeute (L abs.)', 'LA Verlust (L abs.)',
       'Beginn', 'Ende', 'Temp (°C)', 'Bemerkungen'];
 
     const rows = selected.map(p => {
@@ -129,6 +130,7 @@ export default function SammellistePage() {
       const mazL = toL(p.yieldVolume, getYieldUnit(p));
       const le = laL(p.alcoholVolume, p.alcoholVolumeUnit, p.alcoholConcentration);
       const la = laL(p.yieldVolume, getYieldUnit(p), p.endConcentration);
+      const verlust = le != null && la != null ? le - la : null;
       return [
         p.creationDate || '', p.macerationName || '', p.batchNumber || '',
         p.plantName || '', p.plantPart || '',
@@ -139,6 +141,7 @@ export default function SammellistePage() {
         mazL != null ? Math.round(mazL * 1000) / 1000 : '',
         p.endConcentration ?? '',
         la != null ? Math.round(la * 1000) / 1000 : '',
+        verlust != null ? Math.round(verlust * 1000) / 1000 : '',
         p.macerationStart || '', p.macerationEnd || '',
         p.roomTemperature ?? '', p.remarks || '',
       ];
@@ -153,10 +156,11 @@ export default function SammellistePage() {
       Math.round(totals.laEin * 1000) / 1000,
       Math.round(totals.mazerat * 1000) / 1000, '',
       Math.round(totals.laAus * 1000) / 1000,
+      Math.round(totals.laVerlust * 1000) / 1000,
       '', '', '', ''];
 
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows, [], sumRow]);
-    ws['!cols'] = [10,20,10,18,16,10,8,14,10,10,12,10,12,12,12,12,8,30].map(w => ({ wch: w }));
+    ws['!cols'] = [10,20,10,18,16,10,8,14,10,10,12,10,12,12,12,12,12,8,30].map(w => ({ wch: w }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Sammelliste');
     XLSX.writeFile(wb, `Sammelliste_Mazerationen_${format(new Date(), 'dd_MM_yyyy')}.xlsx`);
@@ -241,7 +245,7 @@ export default function SammellistePage() {
                   <table className="w-full text-xs border-collapse" style={{ minWidth: 700 }}>
                     <thead>
                       <tr className="border-b bg-muted/50">
-                        {['Datum', 'Bezeichnung / Ch.', 'Kraut', 'Sprit (L / %)', 'LA Einsatz', 'Mazerat (L)', 'Alk.%', 'LA Ausbeute'].map(h => (
+                        {['Datum', 'Bezeichnung / Ch.', 'Kraut', 'Sprit (L / %)', 'LA Einsatz', 'Mazerat (L)', 'Alk.%', 'LA Ausbeute', 'LA Verlust'].map(h => (
                           <th key={h} className="p-2 text-right first:text-left font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
@@ -252,6 +256,7 @@ export default function SammellistePage() {
                         const mazL = toL(p.yieldVolume, getYieldUnit(p));
                         const le = laL(p.alcoholVolume, p.alcoholVolumeUnit, p.alcoholConcentration);
                         const la = laL(p.yieldVolume, getYieldUnit(p), p.endConcentration);
+                        const verlust = le != null && la != null ? le - la : null;
                         const spritStr = spritL != null
                           ? `${spritL.toFixed(2).replace('.', ',')} L${p.alcoholConcentration ? ` / ${String(p.alcoholConcentration).replace('.', ',')}%` : ''}`
                           : '–';
@@ -268,6 +273,7 @@ export default function SammellistePage() {
                             <td className="p-2 text-right whitespace-nowrap">{mazL != null ? fmtN(mazL, 2) + ' L' : '–'}</td>
                             <td className="p-2 text-right whitespace-nowrap">{p.endConcentration != null ? String(p.endConcentration).replace('.', ',') + ' %' : '–'}</td>
                             <td className="p-2 text-right whitespace-nowrap font-medium">{la != null ? fmtN(la) + ' L' : '–'}</td>
+                            <td className="p-2 text-right whitespace-nowrap font-medium text-amber-700">{verlust != null ? fmtN(verlust) + ' L' : '–'}</td>
                           </tr>
                         );
                       })}
@@ -281,6 +287,7 @@ export default function SammellistePage() {
                         <td className="p-2 text-right whitespace-nowrap">{fmtN(totals.mazerat, 2)} L</td>
                         <td className="p-2"></td>
                         <td className="p-2 text-right whitespace-nowrap">{fmtN(totals.laAus)} L</td>
+                        <td className="p-2 text-right whitespace-nowrap text-amber-700">{fmtN(totals.laVerlust)} L</td>
                       </tr>
                     </tfoot>
                   </table>

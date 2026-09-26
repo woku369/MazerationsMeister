@@ -202,7 +202,7 @@
                         </div>
                         <div>
                             <label class="field-label">Konzentration (% vol) <span class="required-star">*</span></label>
-                            <input id="f-alc-conc" type="text" inputmode="decimal" class="field-input" placeholder="96,0">
+                            <input id="f-alc-conc" type="text" inputmode="decimal" class="field-input" placeholder="96,0" oninput="calcAusbeute()">
                         </div>
                         <div>
                             <label class="field-label">Volumen <span class="required-star">*</span></label>
@@ -304,7 +304,7 @@
                         </div>
                         <div>
                             <label class="field-label">Endkonzentration (% vol)</label>
-                            <input id="f-end-conc" type="text" inputmode="decimal" class="field-input" placeholder="0,0">
+                            <input id="f-end-conc" type="text" inputmode="decimal" class="field-input" placeholder="0,0" oninput="calcAusbeute()">
                         </div>
                         <!-- Abfüllung in Tank(s) -->
                         <div class="border-t border-gray-100 pt-3 space-y-3">
@@ -390,6 +390,7 @@
                                 <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">Mazerat</th>
                                 <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">Alk.%</th>
                                 <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">LA Ausbeute</th>
+                                <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">LA Verlust</th>
                                 <th class="p-2 border-b border-purple-100"></th>
                             </tr>
                         </thead>
@@ -835,6 +836,8 @@
         const weightG = weightUnit === 'kg' ? toNum('f-weight') * 1000 : toNum('f-weight');
         const spritMl = volUnit   === 'l'  ? toNum('f-alc-vol') * 1000 : toNum('f-alc-vol');
         const yieldMl = yieldUnit === 'l'  ? toNum('f-yield')   * 1000 : toNum('f-yield');
+        const alcConc = toNum('f-alc-conc');
+        const endConc = toNum('f-end-conc');
         const disp = document.getElementById('ausbeute-display');
         const parts = [];
         if (spritMl > 0 && yieldMl > 0) {
@@ -843,6 +846,20 @@
         if (weightG > 0 && spritMl > 0) {
             const ratio = spritMl / weightG;
             parts.push(`⚗️ Kraut:Sprit = 1:${ratio.toFixed(2).replace('.', ',')}`);
+        }
+        // Reinalkohol-Bilanz (unversteuert) - Verlust = Restalkohol im Pflanzenmaterial,
+        // muss im Gesamt-LA-Bestand nachvollziehbar sein (Formeln: TS-Quelle mazeration-calc.ts)
+        if (spritMl > 0 && alcConc > 0) {
+            const laEin = toL(spritMl, 'ml') * (alcConc / 100);
+            let laVerlustText = '';
+            if (yieldMl > 0 && endConc > 0) {
+                const laAus = toL(yieldMl, 'ml') * (endConc / 100);
+                const laVerlust = laEin - laAus;
+                parts.push(`⚗️ LA: ${laEin.toFixed(2).replace('.', ',')} → ${laAus.toFixed(2).replace('.', ',')} L`);
+                parts.push(`🔻 Verlust: ${laVerlust.toFixed(2).replace('.', ',')} LA`);
+            } else {
+                parts.push(`⚗️ Eingesetzte LA: ${laEin.toFixed(2).replace('.', ',')} L`);
+            }
         }
         if (parts.length) {
             disp.textContent = parts.join('   |   ');
@@ -1310,11 +1327,12 @@
         }
         protocols.sort((a, b) => (a.creationDate || '').localeCompare(b.creationDate || ''));
 
-        let sumKrautG = 0, sumLaEinsatz = 0, sumMazerat = 0, sumLaAusbeute = 0;
+        let sumKrautG = 0, sumLaEinsatz = 0, sumMazerat = 0, sumLaAusbeute = 0, sumLaVerlust = 0;
 
         tbody.innerHTML = protocols.map(p => {
             const laEin  = laL(p.alcoholVolume,  p.alcoholVolumeUnit,  p.alcoholConcentration);
             const laAus  = laL(p.yieldVolume,    p.yieldVolumeUnit,    p.endConcentration);
+            const laVerlust = (laEin != null && laAus != null) ? laEin - laAus : null;
             const mazeratL = toL(p.yieldVolume, p.yieldVolumeUnit);
             const spritL = toL(p.alcoholVolume, p.alcoholVolumeUnit);
 
@@ -1325,6 +1343,7 @@
             if (laEin)    sumLaEinsatz  += laEin;
             if (mazeratL) sumMazerat    += mazeratL;
             if (laAus)    sumLaAusbeute += laAus;
+            if (laVerlust != null) sumLaVerlust += laVerlust;
 
             const datum = p.creationDate ? p.creationDate.split('-').reverse().join('.') : '–';
             const spritStr = spritL != null
@@ -1340,6 +1359,7 @@
                 <td class="p-2 text-right whitespace-nowrap">${mazeratL != null ? mazeratL.toFixed(2) + ' L' : '–'}<\/td>
                 <td class="p-2 text-right whitespace-nowrap">${p.endConcentration != null ? String(p.endConcentration).replace('.',',') + ' %' : '–'}<\/td>
                 <td class="p-2 text-right whitespace-nowrap font-medium">${laAus != null ? laAus.toFixed(3) + ' L' : '–'}<\/td>
+                <td class="p-2 text-right whitespace-nowrap font-medium text-amber-700">${laVerlust != null ? laVerlust.toFixed(3) + ' L' : '–'}<\/td>
                 <td class="p-2 text-center"><button onclick="removeFromSammelliste('${p.id}')" class="text-red-400 font-bold text-base leading-none">×<\/button><\/td>
             <\/tr>`;
         }).join('');
@@ -1356,6 +1376,7 @@
             <td class="p-2 text-right whitespace-nowrap">${sumMazerat.toFixed(2)} L</td>
             <td class="p-2"></td>
             <td class="p-2 text-right whitespace-nowrap">${sumLaAusbeute.toFixed(3)} L</td>
+            <td class="p-2 text-right whitespace-nowrap text-amber-700">${sumLaVerlust.toFixed(3)} L</td>
             <td class="p-2"></td>
         <\/tr>`;
     }
@@ -1371,17 +1392,19 @@
         }
         protocols.sort((a, b) => (a.creationDate || '').localeCompare(b.creationDate || ''));
 
-        let sumKrautG = 0, sumLaEinsatz = 0, sumMazerat = 0, sumLaAusbeute = 0;
+        let sumKrautG = 0, sumLaEinsatz = 0, sumMazerat = 0, sumLaAusbeute = 0, sumLaVerlust = 0;
 
         const rows = protocols.map(p => {
             const laEin  = laL(p.alcoholVolume,  p.alcoholVolumeUnit,  p.alcoholConcentration);
             const laAus  = laL(p.yieldVolume,    p.yieldVolumeUnit,    p.endConcentration);
+            const laVerlust = (laEin != null && laAus != null) ? laEin - laAus : null;
             const mazeratL = toL(p.yieldVolume, p.yieldVolumeUnit);
             const spritL = toL(p.alcoholVolume, p.alcoholVolumeUnit);
             if (p.plantWeight) sumKrautG += p.plantWeightUnit === 'kg' ? p.plantWeight * 1000 : p.plantWeight;
             if (laEin)    sumLaEinsatz  += laEin;
             if (mazeratL) sumMazerat    += mazeratL;
             if (laAus)    sumLaAusbeute += laAus;
+            if (laVerlust != null) sumLaVerlust += laVerlust;
             const datum = p.creationDate ? p.creationDate.split('-').reverse().join('.') : '–';
             const spritStr = spritL != null
                 ? spritL.toFixed(2) + ' L' + (p.alcoholConcentration ? ' / ' + String(p.alcoholConcentration).replace('.',',') + ' %' : '')
@@ -1395,6 +1418,7 @@
                 <td>${mazeratL != null ? mazeratL.toFixed(2) + ' L' : '–'}</td>
                 <td>${p.endConcentration != null ? String(p.endConcentration).replace('.',',') + ' %' : '–'}</td>
                 <td>${laAus != null ? laAus.toFixed(3) + ' L' : '–'}</td>
+                <td>${laVerlust != null ? laVerlust.toFixed(3) + ' L' : '–'}</td>
             </tr>`;
         }).join('');
 
@@ -1419,7 +1443,7 @@
 <table>
 <thead><tr>
   <th>Datum</th><th>Bezeichnung / Ch.</th><th>Kraut</th><th>Sprit / Typ</th>
-  <th>LA Einsatz</th><th>Mazerat</th><th>Alk.%</th><th>LA Ausbeute</th>
+  <th>LA Einsatz</th><th>Mazerat</th><th>Alk.%</th><th>LA Ausbeute</th><th>LA Verlust</th>
 </tr></thead>
 <tbody>${rows}</tbody>
 <tfoot><tr>
@@ -1428,6 +1452,7 @@
   <td>${sumLaEinsatz.toFixed(3)} L</td>
   <td>${sumMazerat.toFixed(2)} L</td><td></td>
   <td>${sumLaAusbeute.toFixed(3)} L</td>
+  <td>${sumLaVerlust.toFixed(3)} L</td>
 </tr></tfoot>
 </table>
 <div class="footer">
@@ -1459,7 +1484,7 @@
             'Kraut (Menge)', 'Einheit Kraut',
             'Alkoholtyp', 'Sprit (L)', 'Alkohol (%vol)',
             'LA Einsatz (L abs.)',
-            'Mazerat (L)', 'Endalkohol (%vol)', 'LA Ausbeute (L abs.)',
+            'Mazerat (L)', 'Endalkohol (%vol)', 'LA Ausbeute (L abs.)', 'LA Verlust (L abs.)',
             'Beginn', 'Ende', 'Temp (°C)', 'Bemerkungen'];
 
         const rows = protocols.map(p => {
@@ -1467,6 +1492,7 @@
             const mazeratL = toL(p.yieldVolume, p.yieldVolumeUnit);
             const laEin = laL(p.alcoholVolume, p.alcoholVolumeUnit, p.alcoholConcentration);
             const laAus = laL(p.yieldVolume, p.yieldVolumeUnit, p.endConcentration);
+            const laVerlust = (laEin != null && laAus != null) ? laEin - laAus : null;
             return [
                 p.creationDate || '',
                 p.macerationName || '',
@@ -1482,6 +1508,7 @@
                 mazeratL != null ? Math.round(mazeratL * 1000) / 1000 : '',
                 p.endConcentration != null ? p.endConcentration : '',
                 laAus != null ? Math.round(laAus * 1000) / 1000 : '',
+                laVerlust != null ? Math.round(laVerlust * 1000) / 1000 : '',
                 p.macerationStartDate || '',
                 p.macerationEndDate || '',
                 p.roomTemperature != null ? p.roomTemperature : '',
@@ -1490,7 +1517,7 @@
         });
 
         // Summenzeile
-        let sumKrautG = 0, sumLaEin = 0, sumMaz = 0, sumLaAus = 0;
+        let sumKrautG = 0, sumLaEin = 0, sumMaz = 0, sumLaAus = 0, sumLaVerlust = 0;
         protocols.forEach(p => {
             if (p.plantWeight) sumKrautG += p.plantWeightUnit === 'kg' ? p.plantWeight * 1000 : p.plantWeight;
             const le = laL(p.alcoholVolume, p.alcoholVolumeUnit, p.alcoholConcentration);
@@ -1499,6 +1526,7 @@
             if (le) sumLaEin += le;
             if (ml) sumMaz += ml;
             if (la) sumLaAus += la;
+            if (le != null && la != null) sumLaVerlust += (le - la);
         });
         const sumRow = ['∑ Gesamt', '', `${protocols.length} Chargen`, '', '',
             sumKrautG >= 1000 ? Math.round(sumKrautG/10)/100 : sumKrautG,
@@ -1507,11 +1535,12 @@
             Math.round(sumLaEin * 1000) / 1000,
             Math.round(sumMaz * 1000) / 1000, '',
             Math.round(sumLaAus * 1000) / 1000,
+            Math.round(sumLaVerlust * 1000) / 1000,
             '', '', '', ''];
 
         const ws = XLSX.utils.aoa_to_sheet([header, ...rows, [], sumRow]);
         // Spaltenbreiten
-        ws['!cols'] = [10,20,10,18,16,10,8,14,10,10,12,10,12,12,12,12,8,30].map(w => ({wch:w}));
+        ws['!cols'] = [10,20,10,18,16,10,8,14,10,10,12,10,12,12,12,12,12,8,30].map(w => ({wch:w}));
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Sammelliste');
         const today = new Date().toISOString().slice(0,10);

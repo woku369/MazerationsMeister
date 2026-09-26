@@ -1379,6 +1379,42 @@ export default function MazerationForm() {
                   </FormControl>
                 </FormItem>
               </div>
+              <div className="md:col-span-2 border-t pt-3 space-y-1">
+                <p className="text-sm text-muted-foreground font-medium">Reinalkohol-Bilanz (unversteuert)</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormItem>
+                    <FormLabel>Eingesetzte LA</FormLabel>
+                    <FormControl>
+                      <Input
+                        value={calculatedValues.eingesetzteLA !== null ? formatNumberWithComma(calculatedValues.eingesetzteLA, 4, 'L') : '---'}
+                        readOnly
+                        className="bg-muted cursor-not-allowed"
+                      />
+                    </FormControl>
+                  </FormItem>
+                  <FormItem>
+                    <FormLabel>Ausbeute LA</FormLabel>
+                    <FormControl>
+                      <Input
+                        value={calculatedValues.ausbeuteLA !== null ? formatNumberWithComma(calculatedValues.ausbeuteLA, 4, 'L') : '---'}
+                        readOnly
+                        className="bg-muted cursor-not-allowed"
+                      />
+                    </FormControl>
+                  </FormItem>
+                  <FormItem>
+                    <FormLabel className="text-amber-700">Verlust LA</FormLabel>
+                    <FormControl>
+                      <Input
+                        value={calculatedValues.verlustLA !== null ? formatNumberWithComma(calculatedValues.verlustLA, 4, 'L') : '---'}
+                        readOnly
+                        className="bg-amber-50 cursor-not-allowed border-amber-200"
+                      />
+                    </FormControl>
+                  </FormItem>
+                </div>
+                <p className="text-xs text-muted-foreground italic">Verlust = Restalkohol im Pflanzenmaterial. Muss im Gesamt-LA-Bestand nachvollziehbar sein.</p>
+              </div>
               <div className="md:col-span-2 border-t pt-4 space-y-3">
                 <p className="text-sm text-muted-foreground font-medium">⚗️ Ausbeute aus kg + Dichte (optional) — kg eingeben, Volumen wird berechnet</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
