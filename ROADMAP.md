@@ -199,7 +199,7 @@ Nach Abschluss von Phase 3.7 (alle 9 Aufgaben verifiziert) wurde ein zweiter, br
 - Ausbeute-%-Framing driftet zwischen Desktop (nur "Verlust %") und PWA (zusätzlich "Ausbeute %")
 
 #### Aufgaben (siehe Review-Datei für vollständige Details)
-- [ ] **Aufgabe 10 – LA-Aktualisierung bei Buchung:** `StockService` berechnet `literAbsolutalkohol` bei jeder Mengenänderung konsistent neu, alle Auswertungsstellen vereinheitlichen
+- [x] ✅ **Aufgabe 10 – LA-Aktualisierung bei Buchung:** Erledigt. `StockService` (`addEntry`/`updateEntry`/`applyTransaction`) berechnet `literAbsolutalkohol` jetzt bei jeder Mengen-/Konzentrationsänderung neu. Alle 3 Auswertungsstellen (Tabelle, Summary, Rohexport) rechnen jetzt konsistent live über `calcLA`. Neue Tests in `stock-service.test.ts`, dafür `vitest.config.ts` ergänzt (Alias-Auflösung fehlte).
 - [ ] **Aufgabe 11 – Sammelliste Faktor-1000-Bug:** `yieldVolumeUnit` im Desktop-Schema ergänzen, Rückwärtskompatibilität für bestehende Protokolle ohne dieses Feld
 - [ ] **Aufgabe 12 – PWA-Import-Absturz beheben:** `allLoggedCalculatedValues` beim Import synchron mitpflegen, zusätzlich `generateCumulativeXlsx` defensiv gegen fehlende Einträge machen
 - [ ] **Aufgabe 13 – Tank-Viewer `?view=all` reparieren:** `hasUniqueNumber`-Flag korrekt durchreichen (Schema-Ergänzung nötig), Zeitstempel-Feldnamen vereinheitlichen
