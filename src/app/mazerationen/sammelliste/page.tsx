@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { TableIcon, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { toVolumeLiters, calcLA } from '@/lib/mazeration-calc';
+import { getDerivedUnitsForProtocol } from '@/lib/mazeration-form-helpers';
 
-interface Protocol {
+export interface Protocol {
   id?: string;
   macerationName?: string;
   batchNumber?: string;
@@ -33,6 +34,18 @@ interface Protocol {
 function toL(vol: number | null | undefined, unit: string | undefined): number | null {
   if (!vol) return null;
   return toVolumeLiters(vol, unit ?? 'l');
+}
+
+/**
+ * Einheit der Ausbeute (yieldVolume) mit Rückwärtskompatibilität: ältere
+ * Desktop-Protokolle (vor Einführung von yieldVolumeUnit) hatten dieses Feld
+ * nicht gespeichert. Ein harter 'l'-Default hätte in ml erfasste
+ * Kleinmengen-Ausbeuten um Faktor 1000 verfälscht - stattdessen aus
+ * plantWeightUnit ableiten, genau wie beim ursprünglichen Erfassen.
+ */
+export function getYieldUnit(p: Protocol): 'ml' | 'l' {
+  if (p.yieldVolumeUnit === 'ml' || p.yieldVolumeUnit === 'l') return p.yieldVolumeUnit;
+  return getDerivedUnitsForProtocol(p.plantWeightUnit as 'g' | 'kg' | undefined).yieldUnit;
 }
 
 function laL(vol: number | null | undefined, unit: string | undefined, conc: number | null | undefined): number | null {
@@ -94,8 +107,8 @@ export default function SammellistePage() {
     selected.forEach(p => {
       if (p.plantWeight) krautG += p.plantWeightUnit === 'kg' ? p.plantWeight * 1000 : p.plantWeight;
       const le = laL(p.alcoholVolume, p.alcoholVolumeUnit, p.alcoholConcentration);
-      const ml = toL(p.yieldVolume, p.yieldVolumeUnit);
-      const la = laL(p.yieldVolume, p.yieldVolumeUnit, p.endConcentration);
+      const ml = toL(p.yieldVolume, getYieldUnit(p));
+      const la = laL(p.yieldVolume, getYieldUnit(p), p.endConcentration);
       if (le) laEin += le;
       if (ml) mazerat += ml;
       if (la) laAus += la;
@@ -113,9 +126,9 @@ export default function SammellistePage() {
 
     const rows = selected.map(p => {
       const spritL = toL(p.alcoholVolume, p.alcoholVolumeUnit);
-      const mazL = toL(p.yieldVolume, p.yieldVolumeUnit);
+      const mazL = toL(p.yieldVolume, getYieldUnit(p));
       const le = laL(p.alcoholVolume, p.alcoholVolumeUnit, p.alcoholConcentration);
-      const la = laL(p.yieldVolume, p.yieldVolumeUnit, p.endConcentration);
+      const la = laL(p.yieldVolume, getYieldUnit(p), p.endConcentration);
       return [
         p.creationDate || '', p.macerationName || '', p.batchNumber || '',
         p.plantName || '', p.plantPart || '',
@@ -236,9 +249,9 @@ export default function SammellistePage() {
                     <tbody>
                       {selected.map((p, i) => {
                         const spritL = toL(p.alcoholVolume, p.alcoholVolumeUnit);
-                        const mazL = toL(p.yieldVolume, p.yieldVolumeUnit);
+                        const mazL = toL(p.yieldVolume, getYieldUnit(p));
                         const le = laL(p.alcoholVolume, p.alcoholVolumeUnit, p.alcoholConcentration);
-                        const la = laL(p.yieldVolume, p.yieldVolumeUnit, p.endConcentration);
+                        const la = laL(p.yieldVolume, getYieldUnit(p), p.endConcentration);
                         const spritStr = spritL != null
                           ? `${spritL.toFixed(2).replace('.', ',')} L${p.alcoholConcentration ? ` / ${String(p.alcoholConcentration).replace('.', ',')}%` : ''}`
                           : '–';

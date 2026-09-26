@@ -107,6 +107,10 @@ export const mazerationFormSchema = z.object({
     numberPreprocess,
     z.coerce.number({invalid_type_error: "Ungültiger Zahlenwert für Ausbeute."}).min(0,'Ausbeute darf nicht negativ sein').optional().nullable()
   ),
+  // Einheit von yieldVolume (aus plantWeightUnit abgeleitet, siehe getDerivedUnitsForProtocol).
+  // Wird beim Speichern gesetzt, damit Sammelliste/Export die Ausbeute nicht fälschlich
+  // als Liter interpretieren, wenn sie in ml erfasst wurde (Kleinmengen-Protokolle).
+  yieldVolumeUnit: z.enum(['ml', 'l']).optional(),
   yieldMassKg: z.preprocess(
     numberPreprocess,
     z.coerce.number({invalid_type_error: "Ungültiger Zahlenwert."}).min(0).optional().nullable()

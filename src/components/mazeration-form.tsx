@@ -223,7 +223,8 @@ export default function MazerationForm() {
   async function onSubmit(values: MazerationFormData) {
     setIsLoading(true);
     try {
-        const dataForExportFiles: MazerationFormData = { ...values };
+        const { yieldUnit: yieldVolumeUnitForSave } = getDerivedUnitsForProtocol(values.plantWeightUnit);
+        const dataForExportFiles: MazerationFormData = { ...values, yieldVolumeUnit: yieldVolumeUnitForSave };
 
         generatePdf(dataForExportFiles, calculatedValues, false);
         await generateDocx(dataForExportFiles, calculatedValues, false);

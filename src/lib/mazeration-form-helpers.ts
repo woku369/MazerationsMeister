@@ -10,7 +10,7 @@ export const placeholderHours = "__,__ Std.";
 
 export const TARE_PER_CRATE_KG_FIXED = 2.00;
 
-export const getDerivedUnitsForProtocol = (plantWeightUnit?: 'g' | 'kg') => {
+export const getDerivedUnitsForProtocol = (plantWeightUnit?: 'g' | 'kg'): { yieldUnit: 'ml' | 'l'; lossUnit: 'ml' | 'l' } => {
   if (plantWeightUnit === 'kg') return { yieldUnit: 'l', lossUnit: 'l' };
   return { yieldUnit: 'ml', lossUnit: 'ml' };
 };
