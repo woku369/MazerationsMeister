@@ -27,7 +27,7 @@
 - ✅ Entfernung veralteter Implementierungen (Ngrok, Azure, komplexe Sync-Mechanismen)
 - ✅ Fokus auf lokale OneDrive-Synchronisation
 
-### Phase 3: KRITISCHE SYSTEM-BEREINIGUNG 🔴 OFFEN
+### Phase 3: KRITISCHE SYSTEM-BEREINIGUNG 🟡 GRÖSSTENTEILS ERLEDIGT (Stand 27.09.2026, siehe unten)
 
 #### Identifizierte Probleme
 1. **Inkonsistente Tank-IDs:** QR-Code generiert UUID, System erwartet z.B. "T341"
@@ -38,19 +38,17 @@
 6. **113 Backup-Snapshots** im Repository-Root (tank-data-*.json) – .gitignore ergaenzt
    > ⚠️ **Korrektur (Review September 2026):** Nur die *neuen* Snapshots werden durch `.gitignore` verhindert. Die bereits committeten Alt-Snapshots wurden **nie entfernt** – Stand heute liegen **117 `tank-data-*.json`-Dateien weiterhin im Git-Tracking**. Siehe `docs/REVIEW-2026-09-lagerbestand-buchungslogik.md`, Abschnitt A5. Als „behoben" markiert unten war verfrüht.
 
-#### Behobene Probleme (September 2025 – Juni 2026)
-- ⚠️ `.gitignore` um `tank-data-[0-9]*.json` erweitert (neue Snapshots landen nicht mehr im Repo) — **Repo-Bloat selbst besteht weiter**, siehe Korrektur oben und Aufgabe 6 in der Review
-- ✅ Leere Platzhalterdateien identifiziert (electron/main-*.js, src/lib/ngrok-*.ts usw.) — Dateien sind weiterhin vorhanden, nur identifiziert, nicht gelöscht (siehe Aufgabe 8 in der Review)
+#### Behobene Probleme
+- ✅ **Tank-IDs normalisiert** (Aufgabe 4, verifiziert: 0 von 50 Tanks mit `id !== tankNr`). Die dabei entdeckte Lücke bei `inventory[]` läuft separat als Aufgabe 18 (18/41 Zeilen erledigt, 23 warten auf einen Vor-Ort-Termin des Nutzers).
+- ✅ **Navigation restrukturiert** — `/inventory` ("Lagerverwaltung") ist fester Hauptmenüpunkt in der Sidebar, ebenso die später ergänzten `/lohnbrand` und `/rezepturen`.
+- ✅ **`webSecurity: true`** ist in allen 4 Electron-Dateien gesetzt (`main.js`, `main.ts`, `main-simple.js`, `main-simple.ts`) — verifiziert.
+- ✅ **XSS-Fix tank-viewer.html vollständig** (korrigiert 27.09.2026): `public/tank-viewer.html` escaped inzwischen sowohl im Einzeltank-Pfad als auch in der `?view=all`-Ansicht konsequent per `escapeHtml()`, ebenso der Inline-Fallback in `github-service.ts` — verifiziert per Code-Durchsicht, kein unescaped `innerHTML` mehr. **Aber:** Die tatsächlich auf GitHub Pages deployte `out/tank-viewer.html` war trotzdem noch der alte, ungepatchte Stand (0 `escapeHtml`-Aufrufe) — seit den Fixes lief schlicht kein `next build` mehr. Mit dem Rebuild vom 27.09.2026 ist die Live-Seite jetzt auf dem gepatchten Stand (und enthält nebenbei erstmals auch die Routen `/lohnbrand`, `/rezepturen`, `/mazerationen/sammelliste`, die vorher im deployten `out/` komplett fehlten).
+- ✅ **113/117 Backup-Snapshots entfernt** (`tank-data-*.json`) — verifiziert: 0 dieser Dateien noch im Git-Tracking.
+- ✅ **Leere/tote Dateien entfernt** (27.09.2026): `tank-viewer.html` + `tank-viewer-simple.html` (Repo-Root, veraltete Vorläufer ohne Code-Referenz), `public/tank-viewer-fix.html` (0 Referenzen), `src/ai/dev.ts` + `src/ai/ai-instance.ts` (ungenutztes Genkit-Scaffolding aus dem Ausgangs-Template) samt der dazugehörigen, ins Leere zeigenden `genkit:dev`/`genkit:watch`-npm-Skripte.
 
 #### Offene Aufgaben
-- [ ] Tank-IDs auf einheitliches Format normalisieren — bestätigt offen, nur Workarounds vorhanden (Review A3 / Aufgabe 4)
 - [ ] Token-Management vereinheitlichen (Single Point of Truth) — bestätigt offen, 4 unabhängige Lese-/Schreibstellen (Review Teil B)
-- [ ] QR-Code Implementierungen konsolidieren
-- [ ] Navigation restrukturieren (Inventory als Hauptmenüpunkt)
-- [ ] `webSecurity: true` setzen in electron/main.js — bestätigt offen, betrifft 4 Electron-Dateien (Review A7 / Aufgabe 8)
-- [ ] XSS-Fix in tank-viewer.html Fallback (tankId per textContent statt innerHTML)
-   > ⚠️ **Korrektur (Review September 2026):** Für den ursprünglichen Einzeltank-Pfad wurde das korrekt gefixt. Die neue `?view=all`-Ansicht (September 2026) hat denselben Fehlertyp erneut eingeführt (unescaped `innerHTML`), ebenso der Inline-Fallback in `github-service.ts`. Der Fix war ein Einzelfall-Patch, keine systemische Regel — siehe Review A6 / Aufgabe 7.
-- [ ] Leere Dateien entfernen — bestätigt weiterhin offen
+- [ ] QR-Code Implementierungen konsolidieren — bestätigt offen (localhost- vs. GitHub-Pages-URLs)
 
 ### Phase 3.5: Mazeration PWA ✅ IMPLEMENTIERT (Juni 2026)
 
