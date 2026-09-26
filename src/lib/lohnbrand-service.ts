@@ -1,7 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 import * as StockService from './stock-service';
+import { calcLA } from './mazeration-calc';
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 import type { LohnbrandAuftrag, LohnbrandContainer, LohnbrandStatus } from '@/schemas/lohnbrandSchema';
+
+/** Summe LA über alle Gebinde eines Auftrags (Ausgang oder geplanter Auftrag). */
+export function calcContainerLA(container: LohnbrandContainer[]): number {
+  return container.reduce((sum, c) => sum + calcLA(c.mengeLiter, c.alkoholVolProzent), 0);
+}
 
 const STORAGE_KEY = 'lohnbrandAuftraege';
 
@@ -43,6 +49,7 @@ export function createAuftrag(
     status: 'unterwegs',
     ausgangsdatum: params.ausgangsdatum,
     container: params.container,
+    ausgangsLA: parseFloat(calcContainerLA(params.container).toFixed(3)),
     bemerkungen: params.bemerkungen,
     createdAt: now,
     updatedAt: now,
@@ -93,6 +100,12 @@ export function completeAuftrag(
 
   const updatedItems = StockService.addEntry(inventoryItems, neuesItem);
 
+  const ergebnisLA = calcLA(ergebnis.ergebnisMengeLiter, ergebnis.ergebnisAlkoholVolProzent);
+  // Brennverlust: die Differenz zwischen ausgehender und zurückgekommener LA.
+  // Muss dokumentiert werden, sonst fehlt sie unerklärt im Gesamt-LA-Bestand
+  // (unversteuerter Alkohol, zoll-/buchungsrelevant).
+  const verlustLA = auftrag.ausgangsLA - ergebnisLA;
+
   const updatedAuftraege = auftraege.map(a => a.id === auftragId ? {
     ...a,
     status: 'abgeschlossen' as LohnbrandStatus,
@@ -100,6 +113,8 @@ export function completeAuftrag(
     ergebnisProduktName: ergebnis.ergebnisProduktName,
     ergebnisMengeLiter: ergebnis.ergebnisMengeLiter,
     ergebnisAlkoholVolProzent: ergebnis.ergebnisAlkoholVolProzent,
+    ergebnisLA: parseFloat(ergebnisLA.toFixed(3)),
+    verlustLA: parseFloat(verlustLA.toFixed(3)),
     zielTankNr: ergebnis.zielTankNr,
     updatedAt: now,
   } : a);

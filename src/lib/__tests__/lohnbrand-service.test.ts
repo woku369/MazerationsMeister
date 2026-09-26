@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateAuftragsNummer, createAuftrag, completeAuftrag } from '../lohnbrand-service';
+import { generateAuftragsNummer, createAuftrag, completeAuftrag, calcContainerLA } from '../lohnbrand-service';
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 import type { LohnbrandAuftrag } from '@/schemas/lohnbrandSchema';
 
@@ -27,9 +27,9 @@ describe('generateAuftragsNummer', () => {
 
   it('zählt fortlaufend hoch, ignoriert andere Jahre', () => {
     const existing: LohnbrandAuftrag[] = [
-      { id: '1', auftragsNummer: 'LB-2026-001', lohnbrennerName: 'X', status: 'abgeschlossen', ausgangsdatum: '', container: [], createdAt: '', updatedAt: '' },
-      { id: '2', auftragsNummer: 'LB-2026-002', lohnbrennerName: 'X', status: 'unterwegs', ausgangsdatum: '', container: [], createdAt: '', updatedAt: '' },
-      { id: '3', auftragsNummer: 'LB-2025-005', lohnbrennerName: 'X', status: 'abgeschlossen', ausgangsdatum: '', container: [], createdAt: '', updatedAt: '' },
+      { id: '1', auftragsNummer: 'LB-2026-001', lohnbrennerName: 'X', status: 'abgeschlossen', ausgangsdatum: '', container: [], ausgangsLA: 0, createdAt: '', updatedAt: '' },
+      { id: '2', auftragsNummer: 'LB-2026-002', lohnbrennerName: 'X', status: 'unterwegs', ausgangsdatum: '', container: [], ausgangsLA: 0, createdAt: '', updatedAt: '' },
+      { id: '3', auftragsNummer: 'LB-2025-005', lohnbrennerName: 'X', status: 'abgeschlossen', ausgangsdatum: '', container: [], ausgangsLA: 0, createdAt: '', updatedAt: '' },
     ];
     expect(generateAuftragsNummer(existing, 2026)).toBe('LB-2026-003');
   });
@@ -100,7 +100,7 @@ describe('completeAuftrag', () => {
   it('ist ein No-Op für bereits abgeschlossene oder unbekannte Aufträge', () => {
     const auftrag: LohnbrandAuftrag = {
       id: 'a1', auftragsNummer: 'LB-2026-001', lohnbrennerName: 'X', status: 'abgeschlossen',
-      ausgangsdatum: '', container: [], createdAt: '', updatedAt: '',
+      ausgangsdatum: '', container: [], ausgangsLA: 0, createdAt: '', updatedAt: '',
     };
     const { auftraege, inventoryItems } = completeAuftrag([auftrag], [], 'a1', {
       ruecklaufdatum: '2026-09-15', ergebnisProduktName: 'X', ergebnisMengeLiter: 100,
@@ -108,5 +108,56 @@ describe('completeAuftrag', () => {
     });
     expect(auftraege).toEqual([auftrag]);
     expect(inventoryItems).toEqual([]);
+  });
+
+  it('berechnet Ausgangs-LA aus mehreren Gebinden verschiedener Konzentration korrekt (Praxisbeispiel)', () => {
+    // 600L @ 50% = 300 LA, + 300L @ 40% = 120 LA -> 900L Mazerat, 420 LA gesamt
+    const inventory = [
+      makeInventoryItem({ id: 'item-x', currentQuantityLiters: 600, alcoholVolProzent: 50 }),
+      makeInventoryItem({ id: 'item-y', currentQuantityLiters: 300, alcoholVolProzent: 40 }),
+    ];
+    const { auftrag } = createAuftrag([], inventory, {
+      lohnbrennerName: 'Destillerie Beispiel',
+      ausgangsdatum: '2026-09-01',
+      container: [
+        { inventoryItemId: 'item-x', tankNr: 'T X', produktName: 'Mazerat Z (Charge 1)', mengeLiter: 600, alkoholVolProzent: 50 },
+        { inventoryItemId: 'item-y', tankNr: 'T Y', produktName: 'Mazerat Z (Charge 2)', mengeLiter: 300, alkoholVolProzent: 40 },
+      ],
+    });
+    expect(auftrag.ausgangsLA).toBeCloseTo(420, 3);
+  });
+
+  it('berechnet den Brennverlust (Verlust-LA) beim Rücklauf korrekt (Praxisbeispiel)', () => {
+    // Ausgang: 420 LA. Rücklauf: 500L @ 80% = 400 LA. Verlust: 20 LA.
+    const inventory = [
+      makeInventoryItem({ id: 'item-x', currentQuantityLiters: 600, alcoholVolProzent: 50 }),
+      makeInventoryItem({ id: 'item-y', currentQuantityLiters: 300, alcoholVolProzent: 40 }),
+    ];
+    const { auftrag } = createAuftrag([], inventory, {
+      lohnbrennerName: 'Destillerie Beispiel',
+      ausgangsdatum: '2026-09-01',
+      container: [
+        { inventoryItemId: 'item-x', tankNr: 'T X', produktName: 'Mazerat Z (Charge 1)', mengeLiter: 600, alkoholVolProzent: 50 },
+        { inventoryItemId: 'item-y', tankNr: 'T Y', produktName: 'Mazerat Z (Charge 2)', mengeLiter: 300, alkoholVolProzent: 40 },
+      ],
+    });
+    const { auftraege } = completeAuftrag([auftrag], inventory, auftrag.id, {
+      ruecklaufdatum: '2026-09-15',
+      ergebnisProduktName: 'Destillat Z',
+      ergebnisMengeLiter: 500,
+      ergebnisAlkoholVolProzent: 80,
+      zielTankNr: 'T 341',
+    });
+    expect(auftraege[0].ergebnisLA).toBeCloseTo(400, 3);
+    expect(auftraege[0].verlustLA).toBeCloseTo(20, 3);
+  });
+});
+
+describe('calcContainerLA', () => {
+  it('summiert LA über mehrere Gebinde unterschiedlicher Konzentration', () => {
+    expect(calcContainerLA([
+      { inventoryItemId: 'a', tankNr: 'T1', produktName: 'A', mengeLiter: 600, alkoholVolProzent: 50 },
+      { inventoryItemId: 'b', tankNr: 'T2', produktName: 'B', mengeLiter: 300, alkoholVolProzent: 40 },
+    ])).toBeCloseTo(420, 3);
   });
 });

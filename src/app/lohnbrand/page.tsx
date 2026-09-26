@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Truck, PackageCheck, Plus, Trash2 } from 'lucide-react';
 import * as StockService from '@/lib/stock-service';
 import * as LohnbrandService from '@/lib/lohnbrand-service';
+import { calcLA } from '@/lib/mazeration-calc';
 import { getTankDefinitions } from '@/lib/tank-sync';
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 import type { LohnbrandAuftrag, LohnbrandContainer } from '@/schemas/lohnbrandSchema';
@@ -23,6 +24,9 @@ type DraftContainer = { inventoryItemId: string; mengeLiter: string };
 
 function fmtL(n: number | undefined | null) {
   return n != null ? n.toLocaleString('de-DE', { maximumFractionDigits: 2 }) : '–';
+}
+function fmtLA(n: number | undefined | null) {
+  return n != null ? `${n.toLocaleString('de-DE', { maximumFractionDigits: 2 })} LA` : '–';
 }
 function fmtDate(iso: string | undefined) {
   if (!iso) return '–';
@@ -117,7 +121,7 @@ export default function LohnbrandPage() {
     });
     toast({
       title: `Auftrag ${auftrag.auftragsNummer} angelegt`,
-      description: `Abgang für ${container.length} Gebinde gebucht: ${container.reduce((s, c) => s + c.mengeLiter, 0).toFixed(1)} L an ${lohnbrennerName.trim()}.`,
+      description: `Abgang für ${container.length} Gebinde gebucht: ${container.reduce((s, c) => s + c.mengeLiter, 0).toFixed(1)} L, ${fmtLA(auftrag.ausgangsLA)} an ${lohnbrennerName.trim()}.`,
     });
     setIsNewOpen(false);
     resetNewForm();
@@ -148,7 +152,11 @@ export default function LohnbrandPage() {
       ergebnisAlkoholVolProzent: alk,
       zielTankNr: zielTankNr.trim(),
     });
-    toast({ title: 'Rücklauf eingebucht', description: `${menge.toFixed(1)} L ${ergebnisProduktName.trim()} in ${zielTankNr.trim()} eingelagert.` });
+    const aktualisiert = LohnbrandService.readAll().find(a => a.id === completingId);
+    toast({
+      title: 'Rücklauf eingebucht',
+      description: `${menge.toFixed(1)} L ${ergebnisProduktName.trim()} in ${zielTankNr.trim()} eingelagert. ${aktualisiert ? `Brennverlust: ${fmtLA(aktualisiert.verlustLA)}` : ''}`,
+    });
     setCompletingId(null);
     loadAll();
   }
@@ -182,8 +190,9 @@ export default function LohnbrandPage() {
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">
                   {a.container.map((c, i) => (
-                    <div key={i}>{c.produktName} ({c.tankNr}): {fmtL(c.mengeLiter)} L, {c.alkoholVolProzent}%</div>
+                    <div key={i}>{c.produktName} ({c.tankNr}): {fmtL(c.mengeLiter)} L, {c.alkoholVolProzent}% → {fmtLA(calcLA(c.mengeLiter, c.alkoholVolProzent))}</div>
                   ))}
+                  <div className="font-medium text-foreground mt-0.5">Σ Ausgang: {fmtL(a.container.reduce((s, c) => s + c.mengeLiter, 0))} L, {fmtLA(a.ausgangsLA)}</div>
                 </div>
                 {a.bemerkungen && <p className="text-xs text-muted-foreground mt-1 italic">{a.bemerkungen}</p>}
               </div>
@@ -210,6 +219,14 @@ export default function LohnbrandPage() {
               </div>
               <div className="text-muted-foreground mt-1">
                 {fmtL(a.ergebnisMengeLiter)} L {a.ergebnisProduktName} ({a.ergebnisAlkoholVolProzent}%) → {a.zielTankNr}
+              </div>
+              <div className="mt-1 font-medium">
+                {fmtLA(a.ausgangsLA)} Ausgang → {fmtLA(a.ergebnisLA)} Rücklauf
+                {a.verlustLA != null && (
+                  <span className={a.verlustLA > 0 ? 'text-amber-700' : a.verlustLA < 0 ? 'text-red-700' : ''}>
+                    {' '}(Verlust: {fmtLA(a.verlustLA)}{a.ausgangsLA > 0 ? `, ${((a.verlustLA / a.ausgangsLA) * 100).toFixed(1)}%` : ''})
+                  </span>
+                )}
               </div>
             </div>
           ))}
@@ -239,6 +256,8 @@ export default function LohnbrandPage() {
               <Label>Gebinde</Label>
               {draftContainers.map((row, idx) => {
                 const item = inventoryItems.find(i => i.id === row.inventoryItemId);
+                const menge = parseFloat(row.mengeLiter.replace(',', '.'));
+                const rowLA = item && Number.isFinite(menge) && menge > 0 ? calcLA(menge, item.alcoholVolProzent) : null;
                 return (
                   <div key={idx} className="flex items-center gap-2">
                     <Select value={row.inventoryItemId} onValueChange={v => updateDraftRow(idx, { inventoryItemId: v, mengeLiter: inventoryItems.find(i => i.id === v)?.currentQuantityLiters.toFixed(1) ?? '' })}>
@@ -255,7 +274,10 @@ export default function LohnbrandPage() {
                       value={row.mengeLiter}
                       onChange={e => updateDraftRow(idx, { mengeLiter: e.target.value })}
                     />
-                    {item && <span className="text-xs text-muted-foreground shrink-0">/ {fmtL(item.currentQuantityLiters)} L</span>}
+                    <span className="text-xs text-muted-foreground shrink-0 w-32">
+                      {item && `/ ${fmtL(item.currentQuantityLiters)} L`}
+                      {rowLA != null && ` · ${fmtLA(rowLA)}`}
+                    </span>
                     <Button type="button" size="icon" variant="ghost" onClick={() => removeDraftRow(idx)} disabled={draftContainers.length === 1}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -263,6 +285,17 @@ export default function LohnbrandPage() {
                 );
               })}
               <Button type="button" size="sm" variant="outline" onClick={addDraftRow}><Plus className="w-4 h-4 mr-1" />Weiteres Gebinde</Button>
+              {(() => {
+                const container = buildContainerPayload();
+                if (!container || container.length === 0) return null;
+                const gesamtL = container.reduce((s, c) => s + c.mengeLiter, 0);
+                const gesamtLA = LohnbrandService.calcContainerLA(container);
+                return (
+                  <p className="text-sm font-medium text-right pt-1">
+                    Σ Gesamt: {fmtL(gesamtL)} L, {fmtLA(gesamtLA)}
+                  </p>
+                );
+              })()}
             </div>
 
             <div>
@@ -285,6 +318,9 @@ export default function LohnbrandPage() {
             <DialogDescription>Bucht das Destillat als neuen Lagerposten im Zieltank ein.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {completingAuftrag && (
+              <p className="text-sm bg-muted rounded-md px-3 py-2">Ausgangs-LA (unversteuert): <span className="font-semibold">{fmtLA(completingAuftrag.ausgangsLA)}</span></p>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Rücklaufdatum</Label>
@@ -316,6 +352,20 @@ export default function LohnbrandPage() {
                 <Input type="text" inputMode="decimal" value={ergebnisAlkoholVolProzent} onChange={e => setErgebnisAlkoholVolProzent(e.target.value)} />
               </div>
             </div>
+            {(() => {
+              if (!completingAuftrag) return null;
+              const menge = parseFloat(ergebnisMengeLiter.replace(',', '.'));
+              const alk = parseFloat(ergebnisAlkoholVolProzent.replace(',', '.'));
+              if (!Number.isFinite(menge) || menge <= 0 || !Number.isFinite(alk) || alk < 0) return null;
+              const ergebnisLA = calcLA(menge, alk);
+              const verlustLA = completingAuftrag.ausgangsLA - ergebnisLA;
+              const verlustPct = completingAuftrag.ausgangsLA > 0 ? (verlustLA / completingAuftrag.ausgangsLA) * 100 : 0;
+              return (
+                <p className={`text-sm font-medium ${verlustLA < 0 ? 'text-red-700' : 'text-amber-700'}`}>
+                  Rücklauf: {fmtLA(ergebnisLA)} — Verlust beim Brennen: {fmtLA(verlustLA)} ({verlustPct.toFixed(1)}%)
+                </p>
+              );
+            })()}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCompletingId(null)}>Abbrechen</Button>

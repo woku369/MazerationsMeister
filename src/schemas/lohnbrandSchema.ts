@@ -18,12 +18,18 @@ export type LohnbrandAuftrag = {
 
   ausgangsdatum: string;     // ISO-Datum
   container: LohnbrandContainer[];
+  ausgangsLA: number;        // Summe LA über alle Gebinde beim Ausgang (unversteuert, zoll-/buchungsrelevant) - zum
+                              // Erstellungszeitpunkt berechnet und fest gespeichert, damit der Wert auch dann noch
+                              // stimmt, wenn sich die Quell-Lagerposten später ändern
 
   // Erst bei Abschluss befüllt:
   ruecklaufdatum?: string;
   ergebnisProduktName?: string;
   ergebnisMengeLiter?: number;
   ergebnisAlkoholVolProzent?: number;
+  ergebnisLA?: number;       // LA des zurückgekommenen Destillats
+  verlustLA?: number;        // ausgangsLA - ergebnisLA (Brennverlust, muss dokumentiert werden -
+                              // fehlt sonst unerklärt im Gesamt-LA-Bestand)
   zielTankNr?: string;
 
   bemerkungen?: string;
