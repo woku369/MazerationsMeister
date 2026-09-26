@@ -348,6 +348,7 @@ export default function TankManagement() {
       ...newTank,
       id: newTank.tankNr, // Verwende tankNr als ID für Konsistenz
       volumenLiter: newTank.volumenLiter || 5000, // Standardkapazität 5.000L
+      hasUniqueNumber: newTank.hasUniqueNumber ?? true, // neue Tanks sind inventardaten-getrieben
     };
     
     const updatedTanks = [...tanks, tank];

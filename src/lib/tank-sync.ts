@@ -41,6 +41,7 @@ export function syncTankDefinitionsWithInventory(): void {
         tankNr: tankNr,
         bezeichnung: `Auto-erkannt: ${tankNr}`,
         volumenLiter: 5000,
+        hasUniqueNumber: true, // Füllstand kommt aus dem Inventar, kein eigener currentContent
       };
       currentTanks.push(newTank);
       hasChanges = true;

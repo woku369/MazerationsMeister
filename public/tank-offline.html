@@ -235,7 +235,9 @@
             }
 
             // Last update
-            const lastUpdate = data.lastExport || new Date().toISOString();
+            // github-service.ts schreibt das Feld als "lastUpdated" - "lastExport" gab es
+            // nie, wurde also immer via Fallback auf "jetzt" gesetzt (falsches "Online"-Signal).
+            const lastUpdate = data.lastUpdated || new Date().toISOString();
             document.getElementById('last-update').textContent = new Date(lastUpdate).toLocaleString('de-DE');
 
             // Status indicator

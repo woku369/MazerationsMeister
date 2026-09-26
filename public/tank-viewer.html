@@ -363,7 +363,9 @@
             }
 
             // Last update
-            const lastUpdate = data.lastExport || new Date().toISOString();
+            // github-service.ts schreibt das Feld als "lastUpdated" - "lastExport" gab es
+            // nie, wurde also immer via Fallback auf "jetzt" gesetzt (falsches "Online"-Signal).
+            const lastUpdate = data.lastUpdated || new Date().toISOString();
             document.getElementById('last-update').textContent = new Date(lastUpdate).toLocaleString('de-DE');
 
             // Status indicator
@@ -423,7 +425,9 @@
         }
 
         function getContentLabel(t, inventory) {
-            if (t.hasUniqueNumber) {
+            // hasUniqueNumber fehlt bei aelteren/neu erkannten Tanks - dann ist
+            // Inventar-getrieben (true) die sichere Annahme, siehe displayAllTanks().
+            if (t.hasUniqueNumber !== false) {
                 const items = inventory.filter(i => i.tankNr === t.tankNr);
                 return items.map(i => i.produktName || '').join(', ').toLowerCase();
             }
@@ -467,7 +471,7 @@
             } else {
                 tanks.sort((a, b) => getContentLabel(a, inventory).localeCompare(getContentLabel(b, inventory), 'de'));
             }
-            const lastExport = data.lastExport ? new Date(data.lastExport).toLocaleString('de-DE') : '–';
+            const lastExport = data.lastUpdated ? new Date(data.lastUpdated).toLocaleString('de-DE') : '–';
 
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('all-tanks').classList.remove('hidden');
@@ -481,7 +485,10 @@
 
             grid.innerHTML = tanks.map(t => {
                 const name    = escapeHtml(t.bezeichnung || t.id || t.tankNr);
-                const isUniq  = t.hasUniqueNumber === true;
+                // Fehlt das Feld (z.B. aeltere/neu synchronisierte Tanks ohne den
+                // Wert), ist "Inventar-getrieben" (true) die sichere Annahme -
+                // sonst wuerde faelschlich die Kapazitaet als Fuellstand angezeigt.
+                const isUniq  = t.hasUniqueNumber !== false;
                 let fill, vol, pct, color, inhalt, barHtml;
 
                 if (isUniq) {
