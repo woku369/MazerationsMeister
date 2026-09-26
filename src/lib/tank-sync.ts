@@ -3,20 +3,24 @@ import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 
 /**
  * Synchronisiert Tank-Definitionen mit dem aktuellen Inventar
- * Neue Tank-Nummern aus dem Inventar werden automatisch zu den Tank-Definitionen hinzugefügt
+ * Neue Tank-Nummern aus dem Inventar werden automatisch zu den Tank-Definitionen hinzugefügt.
+ *
+ * Gibt die neu angelegten Tanks zurück, damit der Aufrufer den Nutzer warnen kann
+ * (z.B. bei einem Tippfehler in der importierten Tanknummer entsteht sonst
+ * unbemerkt ein 5000L-Phantomtank, siehe docs/REVIEW-2026-09-cross-modul-kohaerenz.md, Befund B1/D1).
  */
-export function syncTankDefinitionsWithInventory(): void {
-  if (typeof window === 'undefined') return;
+export function syncTankDefinitionsWithInventory(): TankDefinition[] {
+  if (typeof window === 'undefined') return [];
 
   const storedInventory = localStorage.getItem('inventoryItems');
   const storedTanks = localStorage.getItem('tankDefinitions');
-  
+
   console.log('🔍 Tank-Sync Debug: Inventory Data:', storedInventory ? 'EXISTS' : 'MISSING');
   console.log('🔍 Tank-Sync Debug: Current inventory length:', storedInventory ? JSON.parse(storedInventory).length : 0);
-  
+
   if (!storedInventory) {
     console.warn('⚠️ Tank-Sync: Keine Inventory-Daten gefunden!');
-    return;
+    return [];
   }
 
   const inventoryItems: StoredInventoryItem[] = JSON.parse(storedInventory);
@@ -31,7 +35,7 @@ export function syncTankDefinitionsWithInventory(): void {
   });
 
   const existingTankNrs = new Set(currentTanks.map(tank => tank.tankNr));
-  let hasChanges = false;
+  const newlyCreated: TankDefinition[] = [];
 
   // Füge neue Tanks hinzu, die im Inventar gefunden wurden (id === tankNr per Invariante)
   uniqueTankNrs.forEach(tankNr => {
@@ -44,17 +48,19 @@ export function syncTankDefinitionsWithInventory(): void {
         hasUniqueNumber: true, // Füllstand kommt aus dem Inventar, kein eigener currentContent
       };
       currentTanks.push(newTank);
-      hasChanges = true;
+      newlyCreated.push(newTank);
     }
   });
 
-  if (hasChanges) {
+  if (newlyCreated.length > 0) {
     localStorage.setItem('tankDefinitions', JSON.stringify(currentTanks));
     console.log('✅ Tank-Sync: Neue Tanks hinzugefügt:', currentTanks.length);
     window.dispatchEvent(new CustomEvent('tankDefinitionsUpdated', {
       detail: { tanks: currentTanks }
     }));
   }
+
+  return newlyCreated;
 }
 
 /**

@@ -3,6 +3,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { calculateNetWeightDetailsForProtocol, korrDichte20, calcVolumeFromMassAndDensity, toVolumeLiters } from '@/lib/mazeration-calc';
 import { getGithubToken } from '@/lib/github-token';
+import { getTankDefinitions, syncTankDefinitionsWithInventory } from '@/lib/tank-sync';
+import type { TankDefinition } from '@/schemas/tankSchema';
 import {
   TARE_PER_CRATE_KG_FIXED,
   getDerivedUnitsForProtocol,
@@ -129,6 +131,9 @@ export default function MazerationForm() {
   const [loggedProtocols, setLoggedProtocols] = useState<MazerationFormData[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [pendingInventoryItem, setPendingInventoryItem] = useState<StoredInventoryItem | null>(null);
+  const [availableTanks, setAvailableTanks] = useState<TankDefinition[]>([]);
+  const [useCustomTank, setUseCustomTank] = useState(false);
+  useEffect(() => { setAvailableTanks(getTankDefinitions()); }, []);
   // LocalStorage: Protokolle beim Start laden
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -284,6 +289,18 @@ export default function MazerationForm() {
         title: 'Lager-Zugang gebucht',
         description: `${pendingInventoryItem.currentQuantityLiters.toFixed(2)} L ${pendingInventoryItem.produktName} in ${pendingInventoryItem.tankNr} eingebucht.`,
       });
+      // Tank-Definitionen synchronisieren, damit ein per Freitext eingegebener,
+      // noch unbekannter Zieltank in der Tankverwaltung auftaucht - und der Nutzer
+      // gewarnt wird, falls dadurch (z.B. bei einem Tippfehler) ein neuer Tank entsteht.
+      const neuAngelegt = syncTankDefinitionsWithInventory();
+      if (neuAngelegt.length > 0) {
+        toast({
+          title: `Neuer Tank angelegt: ${neuAngelegt.map(t => t.tankNr).join(', ')}`,
+          description: 'Tanknummer war nicht bekannt, wurde mit 5000L Standardgröße angelegt. Bei Tippfehlern bitte in der Tankverwaltung korrigieren.',
+          variant: 'destructive',
+        });
+        setAvailableTanks(getTankDefinitions());
+      }
     } catch (err) {
       toast({ title: 'Fehler beim Einbuchen', variant: 'destructive' });
     } finally {
@@ -1281,20 +1298,62 @@ export default function MazerationForm() {
               <FormField
                 control={form.control}
                 name="targetTankNr"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-2">
-                    <FormLabel className="flex items-center gap-1"><Warehouse className="w-4 h-4 text-muted-foreground" />Zieltank (für Lagereinbuchung)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="text"
-                        placeholder="z.B. T 341, Fass-3 — leer lassen um Einbuchung zu überspringen"
-                        {...field}
-                        value={field.value ?? ''}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const isKnownTank = !field.value || availableTanks.some(t => t.tankNr === field.value);
+                  const showCustomInput = useCustomTank || (!!field.value && !isKnownTank);
+                  return (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel className="flex items-center gap-1"><Warehouse className="w-4 h-4 text-muted-foreground" />Zieltank (für Lagereinbuchung)</FormLabel>
+                      {!showCustomInput ? (
+                        <Select
+                          value={field.value || '__none__'}
+                          onValueChange={(v) => {
+                            if (v === '__custom__') { setUseCustomTank(true); field.onChange(''); return; }
+                            field.onChange(v === '__none__' ? '' : v);
+                          }}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Zieltank wählen (optional)" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="__none__">— Kein Zieltank / Einbuchung überspringen —</SelectItem>
+                            {availableTanks.map(t => (
+                              <SelectItem key={t.tankNr} value={t.tankNr}>{t.bezeichnung} ({t.tankNr})</SelectItem>
+                            ))}
+                            <SelectItem value="__custom__">+ Anderer/neuer Tank (manuell eingeben)…</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <div className="space-y-1">
+                          <FormControl>
+                            <Input
+                              type="text"
+                              placeholder="z.B. T 341, Fass-3"
+                              {...field}
+                              value={field.value ?? ''}
+                              autoFocus
+                            />
+                          </FormControl>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs text-amber-600">
+                              {isKnownTank ? 'Freie Eingabe' : 'Dieser Tank ist noch nicht angelegt — wird beim Speichern automatisch als neuer Tank erfasst.'}
+                            </p>
+                            <button
+                              type="button"
+                              className="text-xs text-muted-foreground underline shrink-0"
+                              onClick={() => { setUseCustomTank(false); field.onChange(''); }}
+                            >
+                              zurück zur Liste
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
               <div className="md:col-span-1">
                 <FormItem>

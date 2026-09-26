@@ -257,10 +257,17 @@ export default function InventoryManagement() {
           }).filter(i => i.produktName && String(i.produktName).trim() !== '');
           setInventoryItems(neueInventoryItems);
           toast({ title: 'Lagerbestand importiert', description: `${neueInventoryItems.length} Lagerartikel wurden hinzugefÃ¼gt.` });
-          
+
           // Tank-Definitionen automatisch synchronisieren nach dem Import
-          syncTankDefinitionsWithInventory();
-          
+          const neuAngelegteTanks = syncTankDefinitionsWithInventory();
+          if (neuAngelegteTanks.length > 0) {
+            toast({
+              title: `${neuAngelegteTanks.length} neue(r) Tank(s) automatisch angelegt`,
+              description: `Tanknummer(n) im Import nicht bekannt, mit 5000L Standardgröße angelegt: ${neuAngelegteTanks.map(t => t.tankNr).join(', ')}. Bei Tippfehlern bitte in der Tankverwaltung korrigieren.`,
+              variant: 'destructive',
+            });
+          }
+
           setIsImporting(false);
           return;
         }
@@ -516,8 +523,15 @@ export default function InventoryManagement() {
     }
     
     // Tank-Definitionen automatisch synchronisieren nach dem Speichern
-    syncTankDefinitionsWithInventory();
-    
+    const neuAngelegteTanksBeimSpeichern = syncTankDefinitionsWithInventory();
+    if (neuAngelegteTanksBeimSpeichern.length > 0) {
+      toast({
+        title: `${neuAngelegteTanksBeimSpeichern.length} neue(r) Tank(s) automatisch angelegt`,
+        description: `Tanknummer(n) nicht bekannt, mit 5000L Standardgröße angelegt: ${neuAngelegteTanksBeimSpeichern.map(t => t.tankNr).join(', ')}. Bei Tippfehlern bitte in der Tankverwaltung korrigieren.`,
+        variant: 'destructive',
+      });
+    }
+
     // Dialog schlieÃŸen
     setIsAddEditDialogOpen(false);
     setEditingItem(null);
