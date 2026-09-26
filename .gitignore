@@ -15,7 +15,20 @@
 
 # next.js
 /.next/
-# /out/ - Wird fuer GitHub Pages gebraucht
+# /out/ - Wird fuer GitHub Pages gebraucht (statischer Export), NICHT komplett ignorieren.
+# distDir ist in next.config.ts auf 'out' gesetzt, wodurch "next dev" dort auch seinen
+# Build-Cache ablegt - diese Unterpfade sind kein Export-Ergebnis und gehoeren nie ins Repo.
+out/cache/
+out/server/
+out/static/
+out/trace
+out/types/
+out/app-build-manifest.json
+out/build-manifest.json
+out/package.json
+out/prerender-manifest.json
+out/react-loadable-manifest.json
+out/routes-manifest.json
 
 # production
 /build
