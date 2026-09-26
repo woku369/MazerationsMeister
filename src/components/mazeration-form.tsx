@@ -10,7 +10,7 @@ let y = 0;
 let currentLineHeight = 0;
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { calculateNetWeightDetailsForProtocol, korrDichte20, calcVolumeFromMassAndDensity } from '@/lib/mazeration-calc';
+import { calculateNetWeightDetailsForProtocol, korrDichte20, calcVolumeFromMassAndDensity, toVolumeLiters } from '@/lib/mazeration-calc';
 import { getGithubToken } from '@/lib/github-token';
 import {
   TARE_PER_CRATE_KG_FIXED,
@@ -821,7 +821,7 @@ export default function MazerationForm() {
         // Lager-Zugang vorschlagen wenn Zieltank und Ausbeute vorhanden
         if (values.targetTankNr && values.yieldVolume) {
           const { yieldUnit } = getDerivedUnitsForProtocol(values.plantWeightUnit);
-          const yieldInLiters = yieldUnit === 'ml' ? values.yieldVolume / 1000 : values.yieldVolume;
+          const yieldInLiters = toVolumeLiters(values.yieldVolume, yieldUnit);
           const proposed: StoredInventoryItem = {
             id: uuidv4(),
             artikelNummer: values.batchNumber,

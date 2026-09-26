@@ -1,4 +1,5 @@
 import { differenceInMilliseconds, isValid } from 'date-fns';
+import { toVolumeLiters, calcLA } from './mazeration-calc';
 
 export const TARE_PER_CRATE_KG_FIXED = 2.00;
 
@@ -128,12 +129,12 @@ export const calculateLADetails = (
 
   const eingesetzteLA =
     !isNaN(alcVol) && !isNaN(alcConc) && alcVol > 0 && alcConc >= 0
-      ? parseFloat(((alcoholVolumeUnit === 'ml' ? alcVol / 1000 : alcVol) * (alcConc / 100)).toFixed(4))
+      ? parseFloat(calcLA(toVolumeLiters(alcVol, alcoholVolumeUnit || 'l'), alcConc).toFixed(4))
       : null;
 
   const ausbeuteLA =
     !isNaN(yieldVol) && !isNaN(endConc) && yieldVol > 0 && endConc >= 0
-      ? parseFloat(((yieldUnit === 'ml' ? yieldVol / 1000 : yieldVol) * (endConc / 100)).toFixed(4))
+      ? parseFloat(calcLA(toVolumeLiters(yieldVol, yieldUnit), endConc).toFixed(4))
       : null;
 
   const verlustLA =
