@@ -245,13 +245,26 @@ Das ist dieselbe Formel wie `durchschnittAlkohol` in `berechneRezeptur()`, nur n
 
 ---
 
-## 9. Fixiertes Ziel-ABV & IFS-Randbedingung (zentrale Geschäftsregel)
+## 9. Ziel-ABV 53,5 % — gelebter Richtwert (nicht fixiert)
+
+> ⚠️ **Korrektur vom 27.09.2026 (Wolfgang Kulmitzer, direkt im App-Chat):** Dieser Abschnitt stellte den Ziel-ABV ursprünglich als starre, technisch zu erzwingende IFS-Regel dar. Das ist **so nicht richtig**. Der Absatz bleibt unten unverändert stehen (Nachvollziehbarkeit), gilt aber als **überholt** — maßgeblich ist die Richtigstellung direkt danach.
+
+> **Ziel-ABV für jede GFKC-Charge (GFKC-M wie GFKC-O) ist üblicherweise 53,5 % vol — als gelebter Richtwert, nicht als fixe Vorgabe.**
+>
+> Jede neue Charge durchläuft ohnehin denselben Freigabeprozess, unabhängig vom tatsächlich erreichten ABV. Erreicht eine Charge z.B. 55 % statt 53,5 %, ändert das **nichts** an der Freigabe selbst — es bedeutet lediglich, dass der Lohnabfüller seine ABV-Berechnung für die Dosierung im Endprodukt neu machen muss.
+>
+> **Für die App bedeutet das:** `zielAlkohol` bleibt frei editierbar, keine Sperre, keine Sonderwarnung bei Abweichung nötig. Der tatsächlich erreichte ABV jeder Charge sollte lediglich klar sichtbar/exportierbar sein, damit der Lohnabfüller ihn für seine Neuberechnung hat.
+
+<details>
+<summary>Ursprüngliche, überholte Fassung dieses Abschnitts (zur Nachvollziehbarkeit)</summary>
 
 > **Ziel-ABV für jede GFKC-Charge (GFKC-M wie GFKC-O) ist immer 53,5 % vol.**
 
-Grund, warum diese Regel für die App-Logik zentral ist: Die **Einsatzmenge von GFKC im Milder Gurktaler soll bei einer GFKC-Rezepturänderung gleich bleiben**, damit keine im Sinne der IFS-Zertifizierung erkennbare "Rezepturänderung" am Endprodukt entsteht (ein aufwändiges Freigabeverfahren). Solange GFKC durchgängig bei 53,5 % vol angeliefert wird, ändert sich für das Endprodukt-Rezept nur die **eingesetzte GFKC-Charge** — kein zusätzlicher IFS-Vorgang nötig, nur normale Neuausmischung + Freigabe.
+Grund, warum diese Regel für die App-Logik zentral sein sollte: Die **Einsatzmenge von GFKC im Milder Gurktaler soll bei einer GFKC-Rezepturänderung gleich bleiben**, damit keine im Sinne der IFS-Zertifizierung erkennbare "Rezepturänderung" am Endprodukt entsteht (ein aufwändiges Freigabeverfahren). Solange GFKC durchgängig bei 53,5 % vol angeliefert wird, ändert sich für das Endprodukt-Rezept nur die **eingesetzte GFKC-Charge** — kein zusätzlicher IFS-Vorgang nötig, nur normale Neuausmischung + Freigabe.
 
 **Für die App bedeutet das:** `zielAlkohol` bei GFKC-Rezepturen sollte nicht frei editierbar, sondern mit 53,5 % vorbelegt sein (oder zumindest mit einer deutlichen Warnung versehen werden, falls abweichend), weil ein Abweichen hier eine geschäftskritische Nebenwirkung (IFS-Verfahren) auslöst, die im UI nicht sichtbar ist, wenn man nur die Zahl sieht.
+
+</details>
 
 ---
 
@@ -293,7 +306,7 @@ Diese Liste sollte bei der Umsetzung sichtbar bleiben (z. B. als Kommentarfeld j
 Die in `docs/GFKC-VERSCHNITT-BESTANDSAUFNAHME.md` beschriebene Lücke (fehlende Buchungsfunktion, `spritStaerke` hartcodiert, `produktionsDaten` nie befüllt) bleibt unverändert bestehen. Ergänzend aus diesem Dokument für die Umsetzung relevant:
 
 - Die dort vorhandene einfache Alkoholkorrektur (Wasser **oder** Sprit, feste Gesamtmenge) deckt **nicht** den GFKC-O-Fall ab, bei dem eine Gruppe von Komponenten fix bleibt, eine andere Gruppe reduziert wird und die Gesamtmenge sich daraus erst ergibt (Abschnitt 6 und 8.3) — das ist eine eigene, zusätzliche Rechenfunktion, kein Sonderfall der bestehenden `alkoholKorrektur`.
-- `zielAlkohol` sollte für GFKC-Rezepturen aus Geschäftsgründen (Abschnitt 9), nicht nur aus Rezepturgründen, auf 53,5 % vorbelegt/geschützt werden.
+- ~~`zielAlkohol` sollte auf 53,5 % vorbelegt/geschützt werden~~ — **entfällt** (siehe Korrektur in Abschnitt 9): bleibt frei editierbar, nur der tatsächlich erreichte ABV muss sichtbar/exportierbar sein.
 - Ein `messmethode`-Feld je Komponenten-ABV (Abschnitt 5) wird mittelfristig relevant, sobald der Alex 501 im Einsatz ist.
 
 ---
