@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import QRCode from "qrcode";
 import { getTankAutoSync } from "@/lib/tank-auto-sync";
-import { getGithubToken, setGithubToken as persistGithubToken } from "@/lib/github-token";
+import { getGithubToken, getGithubEnabled, setGithubConfig, onGithubConfigChanged } from "@/lib/github-token";
 import * as cloudQRGenerator from "@/lib/cloud-qr-generator";
 import OneDriveAutoUploader from "@/lib/onedrive-auto-uploader";
 import * as oneDriveExport from "@/lib/onedrive-export";
@@ -144,20 +144,17 @@ export default function TankManagement() {
       loadTankData();
     };
     
-    // Höre auf GitHub Config Updates von anderen Komponenten
-    const handleGitHubUpdate = (event: any) => {
-      if (event.detail) {
-        setGithubToken(event.detail.token || '');
-        setGithubEnabled(event.detail.enabled || false);
-      }
-    };
-    
+    // Höre auf GitHub Config Updates von anderen Komponenten (z.B. Einstellungen-Seite)
+    const unsubscribeGithubConfig = onGithubConfigChanged((config) => {
+      setGithubToken(config.token);
+      setGithubEnabled(config.enabled);
+    });
+
     window.addEventListener('tankDefinitionsUpdated', handleTankUpdate);
-    window.addEventListener('githubConfigUpdated', handleGitHubUpdate);
-    
+
     return () => {
       window.removeEventListener('tankDefinitionsUpdated', handleTankUpdate);
-      window.removeEventListener('githubConfigUpdated', handleGitHubUpdate);
+      unsubscribeGithubConfig();
     };
   }, []);
 
@@ -193,12 +190,7 @@ export default function TankManagement() {
   const [allSelected, setAllSelected] = useState(false);
   
   // GitHub Integration State - Von Einstellungen laden
-  const [githubEnabled, setGithubEnabled] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('github-enabled') === 'true';
-    }
-    return false;
-  });
+  const [githubEnabled, setGithubEnabled] = useState(() => getGithubEnabled());
   const [githubToken, setGithubToken] = useState(() => getGithubToken());
   const [showGithubSetup, setShowGithubSetup] = useState(false);
 
@@ -214,15 +206,9 @@ export default function TankManagement() {
     if (githubToken.trim()) {
       setGithubEnabled(true);
       setShowGithubSetup(false);
-      // In localStorage speichern UND Einstellungen synchronisieren
-      persistGithubToken(githubToken);
-      localStorage.setItem("github-enabled", "true");
-      
-      // Event für Synchronisation mit anderen Komponenten aussenden
-      window.dispatchEvent(new CustomEvent('githubConfigUpdated', {
-        detail: { token: githubToken, enabled: true }
-      }));
-      
+      // In localStorage speichern UND andere Komponenten (z.B. Einstellungen-Seite) benachrichtigen
+      setGithubConfig(githubToken, true);
+
       // WICHTIG: Auto-Sync über zentrale Steuerung initialisieren (verhindert Race Conditions)
       console.log("🔄 Initialisiere zentrale Auto-Sync für Race Condition Prevention...");
       const autoSync = getTankAutoSync();

@@ -5,6 +5,7 @@
 
 import { GitHubService, TankDataGitHubSync } from './github-service';
 import { universalStorage } from './universal-storage-simple';
+import { getGithubToken } from './github-token';
 
 export interface AutoSyncConfig {
   enabled: boolean;
@@ -31,9 +32,12 @@ export class TankAutoSync {
   async initialize(config: AutoSyncConfig): Promise<boolean> {
     try {
       this.config = config;
-      // Speichere Konfiguration in localStorage
+      // Konfiguration in localStorage speichern - OHNE Token (der lebt nur an
+      // einer Stelle, in github-token.ts, um Drift zwischen den beiden Kopien
+      // zu vermeiden; siehe loadConfig()).
       if (typeof window !== 'undefined') {
-        localStorage.setItem('autoSyncConfig', JSON.stringify(config));
+        const { githubToken: _githubToken, ...persistable } = config;
+        localStorage.setItem('autoSyncConfig', JSON.stringify(persistable));
       }
 
       if (config.enabled && config.githubToken) {
@@ -154,9 +158,13 @@ export class TankAutoSync {
       if (typeof window !== 'undefined') {
         const configStr = localStorage.getItem('autoSyncConfig');
         if (configStr) {
-          this.config = JSON.parse(configStr);
+          // Token nicht aus der eigenen (bewusst tokenlosen) Kopie lesen,
+          // sondern live von der einzigen Quelle - sonst könnte hier ein
+          // veralteter Token überleben, wenn er zwischenzeitlich in den
+          // Einstellungen geändert/rotiert wurde.
+          this.config = { ...JSON.parse(configStr), githubToken: getGithubToken() };
         }
-        
+
         const lastSyncStr = localStorage.getItem('lastGitHubSync');
         if (lastSyncStr) {
           this.lastSync = new Date(lastSyncStr);

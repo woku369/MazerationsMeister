@@ -1,9 +1,11 @@
 /**
  * 🗄️ UNIVERSELLES SPEICHER-SYSTEM (SIMPLIFIED)
  * Browser UND Electron verwenden beide localStorage
- * 
+ *
  * Einfacher, zuverlässiger Ansatz ohne Dateisystem-Komplexität
  */
+
+import { getGithubToken, getGithubEnabled } from './github-token';
 
 export interface AppData {
   // Tank-System
@@ -117,8 +119,8 @@ class UniversalStorageManager {
       this.data.dataPath = localStorage.getItem('dataPath') || '';
       this.data.oneDrivePath = localStorage.getItem('oneDrivePath') || '';
       this.data.oneDriveConfig = this.loadFromStorage('oneDriveConfig', null);
-      this.data.githubToken = localStorage.getItem('github-token') || '';
-      this.data.githubEnabled = localStorage.getItem('github-enabled') === 'true';
+      this.data.githubToken = getGithubToken();
+      this.data.githubEnabled = getGithubEnabled();
       this.data.inventoryCategories = this.loadFromStorage('inventoryCategories', [
         'Spirituosen', 'Früchte', 'Gewürze', 'Zusätze', 'Behälter'
       ]);
