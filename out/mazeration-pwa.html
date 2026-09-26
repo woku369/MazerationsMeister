@@ -10,6 +10,7 @@
     <title>Mazeration erfassen – MazerationsMeister</title>
     <link rel="manifest" href="./mazeration-manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -33,6 +34,7 @@
         .protocol-item { border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; background: white; }
         .badge-synced { background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
         .badge-pending { background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+        .badge-draft   { background: #fff7ed; color: #9a3412; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid #fdba74; }
         .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 13px 22px; border-radius: 12px; z-index: 9999; font-size: 14px; max-width: 88vw; text-align: center; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
         .toast.show { opacity: 1; }
         .calc-display { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 12px; color: #166534; font-size: 14px; }
@@ -55,9 +57,10 @@
         </div>
         <!-- Tabs -->
         <div class="flex max-w-lg mx-auto">
-            <button onclick="showTab('form')" id="tab-form" class="tab-btn active flex-1 py-2.5 text-sm text-white">📝 Formular</button>
-            <button onclick="showTab('list')" id="tab-list" class="tab-btn flex-1 py-2.5 text-sm text-purple-300">📋 Protokolle</button>
-            <button onclick="showTab('settings')" id="tab-settings" class="tab-btn flex-1 py-2.5 text-sm text-purple-300">⚙️ Einstellungen</button>
+            <button onclick="showTab('form')" id="tab-form" class="tab-btn active flex-1 py-2.5 text-xs text-white">📝 Formular</button>
+            <button onclick="showTab('list')" id="tab-list" class="tab-btn flex-1 py-2.5 text-xs text-purple-300">📋 Protokolle</button>
+            <button onclick="showTab('sammelliste')" id="tab-sammelliste" class="tab-btn flex-1 py-2.5 text-xs text-purple-300">📊 Sammelliste</button>
+            <button onclick="showTab('settings')" id="tab-settings" class="tab-btn flex-1 py-2.5 text-xs text-purple-300">⚙️ Einst.</button>
         </div>
     </div>
 
@@ -65,6 +68,10 @@
 
         <!-- ===== FORMULAR ===== -->
         <div id="tab-content-form">
+            <div id="editing-banner" style="display:none" class="mb-3 px-4 py-2 bg-amber-50 border border-amber-300 rounded-xl text-sm text-amber-800 flex items-center justify-between">
+                <span>✏️ Bearbeitung: <strong id="editing-name"></strong></span>
+                <button type="button" onclick="cancelEdit()" class="text-amber-600 font-bold text-xs">Abbrechen ✕</button>
+            </div>
             <form id="mazeration-form" novalidate>
 
                 <!-- Basisdaten -->
@@ -78,8 +85,8 @@
                             <input id="f-name" type="text" class="field-input" placeholder="z.B. Lavendel Mazeration" autocomplete="off">
                         </div>
                         <div>
-                            <label class="field-label">Chargennummer <span class="required-star">*</span> <span class="text-gray-400 font-normal">(5-stellig)</span></label>
-                            <input id="f-batch" type="text" inputmode="numeric" class="field-input" placeholder="12345" maxlength="5" autocomplete="off">
+                            <label class="field-label">Chargennummer <span class="required-star">*</span> <span class="text-gray-400 font-normal">(4–5-stellig)</span></label>
+                            <input id="f-batch" type="text" inputmode="numeric" class="field-input" placeholder="1234" maxlength="5" autocomplete="off">
                         </div>
                         <div>
                             <label class="field-label">Erstellungsdatum</label>
@@ -103,6 +110,7 @@
                             <label class="field-label">Pflanzenteil <span class="required-star">*</span></label>
                             <select id="f-plant-part" class="field-input">
                                 <option value="">– auswählen –</option>
+                                <option>Oberirdische Pflanze</option>
                                 <option>Blüten</option>
                                 <option>Blätter</option>
                                 <option>Früchte / Beeren</option>
@@ -131,7 +139,7 @@
                         </div>
                         <div>
                             <label class="field-label" id="weight-label">Pflanzengewicht (g)</label>
-                            <input id="f-weight" type="text" inputmode="decimal" class="field-input" placeholder="0,0">
+                            <input id="f-weight" type="text" inputmode="decimal" class="field-input" placeholder="0,0" oninput="calcAusbeute()">
                         </div>
                         <!-- Kisten (nur bei kg) -->
                         <div id="crate-section" class="hidden space-y-4 border-t border-gray-100 pt-4">
@@ -149,6 +157,20 @@
                             <div>
                                 <label class="field-label">Tara / Kiste (kg)</label>
                                 <input id="f-tare" type="text" inputmode="decimal" class="field-input" placeholder="2,00" value="2,00" oninput="calcNet()">
+                            </div>
+                            <!-- Paletten -->
+                            <div class="border-t border-gray-100 pt-3 space-y-3">
+                                <p class="text-sm text-gray-500 font-medium">Palettenmanagement (optional)</p>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="field-label">Anzahl Paletten</label>
+                                        <input id="f-pallets" type="text" inputmode="decimal" class="field-input" placeholder="0" oninput="calcNet()">
+                                    </div>
+                                    <div>
+                                        <label class="field-label">Tara / Palette (kg)</label>
+                                        <input id="f-pallet-tare" type="text" inputmode="decimal" class="field-input" placeholder="20,00" value="20,00" oninput="calcNet()">
+                                    </div>
+                                </div>
                             </div>
                             <div id="net-display" class="calc-display hidden">
                                 <strong>Nettogewicht:</strong> <span id="net-weight">–</span> kg
@@ -169,6 +191,7 @@
                             <label class="field-label">Alkoholtyp <span class="required-star">*</span></label>
                             <select id="f-alc-type" class="field-input">
                                 <option value="">– auswählen –</option>
+                                <option>Primasprit 60%</option>
                                 <option>Ethanol 96%</option>
                                 <option>Weingeist</option>
                                 <option>Korn</option>
@@ -179,7 +202,7 @@
                         </div>
                         <div>
                             <label class="field-label">Konzentration (% vol) <span class="required-star">*</span></label>
-                            <input id="f-alc-conc" type="text" inputmode="decimal" class="field-input" placeholder="96,0">
+                            <input id="f-alc-conc" type="text" inputmode="decimal" class="field-input" placeholder="96,0" oninput="calcAusbeute()">
                         </div>
                         <div>
                             <label class="field-label">Volumen <span class="required-star">*</span></label>
@@ -187,7 +210,22 @@
                                 <button type="button" class="toggle-btn" id="vol-ml" onclick="setVolUnit('ml')">ml</button>
                                 <button type="button" class="toggle-btn selected" id="vol-l" onclick="setVolUnit('l')">Liter</button>
                             </div>
-                            <input id="f-alc-vol" type="text" inputmode="decimal" class="field-input" placeholder="0,0">
+                            <input id="f-alc-vol" type="text" inputmode="decimal" class="field-input" placeholder="0,0" oninput="calcAusbeute()">
+                        </div>
+                        <!-- Steigrohranzeige -->
+                        <div class="border-t border-gray-100 pt-3 space-y-3">
+                            <p class="text-sm text-gray-500 font-medium">📏 Steigrohranzeige (optional)</p>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="field-label">Anfangsstand (L)</label>
+                                    <input id="f-tank-start" type="text" inputmode="decimal" class="field-input" placeholder="z.B. 4020" oninput="calcTankDiff()">
+                                </div>
+                                <div>
+                                    <label class="field-label">Endstand (L)</label>
+                                    <input id="f-tank-end" type="text" inputmode="decimal" class="field-input" placeholder="z.B. 3010" oninput="calcTankDiff()">
+                                </div>
+                            </div>
+                            <div id="tank-diff-display" class="calc-display hidden text-sm"></div>
                         </div>
                     </div>
                 </div>
@@ -242,12 +280,43 @@
                                 <button type="button" class="toggle-btn" id="yield-ml" onclick="setYieldUnit('ml')">ml</button>
                                 <button type="button" class="toggle-btn selected" id="yield-l" onclick="setYieldUnit('l')">Liter</button>
                             </div>
-                            <input id="f-yield" type="text" inputmode="decimal" class="field-input" placeholder="0,0">
+                            <input id="f-yield" type="text" inputmode="decimal" class="field-input" placeholder="0,0" oninput="calcAusbeute()">
+                            <div id="ausbeute-display" class="calc-display hidden mt-2 text-sm"></div>
+                        </div>
+                        <!-- Dichte-Umrechnung kg → L -->
+                        <div class="border-t border-gray-100 pt-3 space-y-3">
+                            <p class="text-sm text-gray-500 font-medium">⚗️ Ausbeute aus kg + Dichte (optional)</p>
+                            <div>
+                                <label class="field-label">Masse Mazerat (kg)</label>
+                                <input id="f-yield-kg" type="text" inputmode="decimal" class="field-input" placeholder="0,000" oninput="calcYieldFromKg()">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="field-label">Dichte bei Spindeltemp. (g/cm³)</label>
+                                    <input id="f-yield-density" type="text" inputmode="decimal" class="field-input" placeholder="1,0000" oninput="calcYieldFromKg()">
+                                </div>
+                                <div>
+                                    <label class="field-label">Spindeltemperatur (°C)</label>
+                                    <input id="f-yield-temp" type="text" inputmode="decimal" class="field-input" placeholder="20,0" oninput="calcYieldFromKg()">
+                                </div>
+                            </div>
+                            <div id="yield-kg-display" class="calc-display hidden text-sm"></div>
                         </div>
                         <div>
                             <label class="field-label">Endkonzentration (% vol)</label>
-                            <input id="f-end-conc" type="text" inputmode="decimal" class="field-input" placeholder="0,0">
+                            <input id="f-end-conc" type="text" inputmode="decimal" class="field-input" placeholder="0,0" oninput="calcAusbeute()">
                         </div>
+                        <!-- Abfüllung in Tank(s) -->
+                        <div class="border-t border-gray-100 pt-3 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <p class="text-sm text-gray-500 font-medium">🏺 Abfüllung in Tank(s)</p>
+                                <button type="button" onclick="addTargetTank()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-lg font-medium">+ Tank</button>
+                            </div>
+                            <datalist id="tank-options"></datalist>
+                            <div id="target-tanks-list" class="space-y-3"></div>
+                            <div id="target-tanks-total" class="calc-display hidden text-sm"></div>
+                        </div>
+
                         <div>
                             <label class="field-label">Bemerkungen</label>
                             <textarea id="f-remarks" class="field-input" rows="3" placeholder="Qualitätshinweise, Besonderheiten..."></textarea>
@@ -256,14 +325,20 @@
                 </div>
 
                 <!-- Action Buttons -->
+                <button type="button" onclick="saveDraft(true)" class="w-full bg-amber-50 border border-amber-300 text-amber-700 font-bold py-3 rounded-xl text-sm mb-2">
+                    📂 Entwurf speichern (unvollständig)
+                </button>
                 <div class="flex gap-3 mb-4">
                     <button type="button" onclick="saveLocally()" class="flex-1 bg-white border-2 border-purple-400 text-purple-700 font-bold py-4 rounded-xl text-sm">
-                        💾 Lokal speichern
+                        💾 Abschließen & speichern
                     </button>
                     <button type="button" onclick="saveAndSync()" class="btn-primary flex-1 text-white font-bold py-4 rounded-xl text-sm">
-                        ☁️ Speichern & Sync
+                        ☁️ Abschließen & Sync
                     </button>
                 </div>
+                <button type="button" onclick="exportFormAsPDF()" class="w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl text-sm mb-2">
+                    📄 Als PDF exportieren
+                </button>
                 <button type="button" onclick="resetForm()" class="w-full bg-gray-100 text-gray-500 py-3 rounded-xl text-sm mb-6">
                     🔄 Neues Protokoll (Formular leeren)
                 </button>
@@ -272,19 +347,86 @@
 
         <!-- ===== PROTOKOLLE ===== -->
         <div id="tab-content-list" class="hidden">
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex justify-between items-center mb-3">
                 <h2 class="text-white font-bold text-base">Gespeicherte Protokolle</h2>
                 <button onclick="syncAll()" class="bg-white text-purple-700 font-bold px-4 py-2 rounded-lg text-sm shadow">
                     ☁️ Alle syncen
                 </button>
+            </div>
+            <div class="mb-3 space-y-2">
+                <input id="protocol-search" type="search" class="field-input text-gray-800 text-sm" placeholder="🔍 Name, Charge, Pflanze ..." oninput="renderProtocolList()">
+                <div class="flex gap-2">
+                    <button onclick="setProtocolFilter('all')" id="filter-all" class="toggle-btn selected text-xs px-3 py-1.5">Alle</button>
+                    <button onclick="setProtocolFilter('draft')" id="filter-draft" class="toggle-btn text-xs px-3 py-1.5">📂 Entwurf</button>
+                    <button onclick="setProtocolFilter('done')" id="filter-done" class="toggle-btn text-xs px-3 py-1.5">✅ Fertig</button>
+                </div>
             </div>
             <div id="protocol-list" class="space-y-3">
                 <div class="card p-6 text-center text-gray-400 text-sm">Keine Protokolle gespeichert</div>
             </div>
         </div>
 
+        <!-- ===== SAMMELLISTE ===== -->
+        <div id="tab-content-sammelliste" class="hidden">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-white font-bold text-base">Sammelliste</h2>
+                <div class="flex gap-2">
+                    <button onclick="exportSammellisteXLSX()" class="bg-white text-green-700 font-bold px-3 py-2 rounded-lg text-xs shadow">📊 XLSX</button>
+                    <button onclick="exportSammellistePDF()" class="bg-white text-purple-700 font-bold px-3 py-2 rounded-lg text-xs shadow">📄 PDF</button>
+                    <button onclick="clearSammelliste()" class="bg-red-100 text-red-700 font-bold px-3 py-2 rounded-lg text-xs shadow">🗑 Leeren</button>
+                </div>
+            </div>
+            <div id="sammelliste-empty" class="card p-6 text-center text-gray-400 text-sm">Keine Einträge – Protokolle über »+« hinzufügen</div>
+            <div id="sammelliste-table-wrap" class="hidden">
+                <div class="overflow-x-auto rounded-xl shadow mb-3">
+                    <table id="sammelliste-table" class="w-full text-xs bg-white border-collapse" style="min-width:680px">
+                        <thead>
+                            <tr style="background:#f3f0ff">
+                                <th class="p-2 text-left text-purple-800 font-bold border-b border-purple-100">Datum</th>
+                                <th class="p-2 text-left text-purple-800 font-bold border-b border-purple-100">Bezeichnung / Charge</th>
+                                <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">Kraut</th>
+                                <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">Sprit (L / %)</th>
+                                <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">LA Einsatz</th>
+                                <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">Mazerat</th>
+                                <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">Alk.%</th>
+                                <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">LA Ausbeute</th>
+                                <th class="p-2 text-right text-purple-800 font-bold border-b border-purple-100">LA Verlust</th>
+                                <th class="p-2 border-b border-purple-100"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="sammelliste-body"></tbody>
+                        <tfoot id="sammelliste-footer"></tfoot>
+                    </table>
+                </div>
+                <p class="text-xs text-purple-200 text-center">LA = Liter Absolut (vol × Alk%/100)</p>
+            </div>
+        </div>
+
         <!-- ===== EINSTELLUNGEN ===== -->
         <div id="tab-content-settings" class="hidden">
+            <!-- Benachrichtigungen -->
+            <div class="card p-4 mb-4">
+                <h2 class="font-bold text-gray-800 mb-3">🔔 Benachrichtigungen</h2>
+                <p class="text-sm text-gray-600 mb-3">Beim Öffnen der App wird geprüft, ob ein Mazerat abgezogen werden sollte.</p>
+                <button onclick="requestNotificationPermission()" id="notif-btn" class="w-full bg-purple-50 text-purple-700 font-bold py-3 rounded-xl text-sm">
+                    🔔 Benachrichtigungen aktivieren
+                </button>
+                <p id="notif-status" class="text-xs text-gray-400 mt-2 text-center"></p>
+            </div>
+            <!-- Datensicherung -->
+            <div class="card p-4 mb-4">
+                <h2 class="font-bold text-gray-800 mb-3">💾 Datensicherung</h2>
+                <div class="space-y-3">
+                    <button onclick="exportAllJSON()" class="w-full bg-blue-50 text-blue-700 font-bold py-3 rounded-xl text-sm">
+                        📥 Alle Protokolle exportieren (.json)
+                    </button>
+                    <label class="w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl text-sm flex items-center justify-center cursor-pointer">
+                        📤 Protokolle importieren (.json)
+                        <input type="file" accept=".json" onchange="importFromJSON(event)" class="hidden">
+                    </label>
+                    <p class="text-xs text-gray-400">Import ergänzt bestehende Daten – vorhandene IDs werden übersprungen.</p>
+                </div>
+            </div>
             <div class="card p-4 mb-4">
                 <h2 class="font-bold text-gray-800 mb-4">⚙️ GitHub Sync</h2>
                 <div class="space-y-4">
@@ -336,6 +478,8 @@
     let weightUnit = 'g';
     let volUnit = 'l';
     let yieldUnit = 'l';
+    let editingId = null;
+    let protocolFilter = 'all';
 
     // ============================================================
     // INIT
@@ -343,11 +487,15 @@
     document.addEventListener('DOMContentLoaded', async () => {
         await initDB();
         await loadSettings();
+        await loadSammelliste();
         setTodayDate();
         updateOnlineStatus();
         registerSW();
+        loadTankOptions();
         setupAutosave();
         await restoreDraft();
+        if ('Notification' in window) updateNotifStatus(Notification.permission);
+        await checkEndDateNotifications();
     });
 
     window.addEventListener('online', updateOnlineStatus);
@@ -468,7 +616,7 @@
     // TABS
     // ============================================================
     function showTab(tab) {
-        ['form','list','settings'].forEach(t => {
+        ['form','list','sammelliste','settings'].forEach(t => {
             document.getElementById(`tab-content-${t}`).classList.toggle('hidden', t !== tab);
             const btn = document.getElementById(`tab-${t}`);
             btn.classList.toggle('active', t === tab);
@@ -476,6 +624,7 @@
             btn.classList.toggle('text-purple-300', t !== tab);
         });
         if (tab === 'list') renderProtocolList();
+        if (tab === 'sammelliste') renderSammelliste();
     }
 
     // ============================================================
@@ -497,16 +646,19 @@
         document.getElementById('unit-kg').classList.toggle('selected', u === 'kg');
         document.getElementById('weight-label').textContent = `Pflanzengewicht (${u})`;
         document.getElementById('crate-section').classList.toggle('hidden', u !== 'kg');
+        calcAusbeute();
     }
     function setVolUnit(u) {
         volUnit = u;
         document.getElementById('vol-ml').classList.toggle('selected', u === 'ml');
         document.getElementById('vol-l').classList.toggle('selected', u === 'l');
+        calcAusbeute();
     }
     function setYieldUnit(u) {
         yieldUnit = u;
         document.getElementById('yield-ml').classList.toggle('selected', u === 'ml');
         document.getElementById('yield-l').classList.toggle('selected', u === 'l');
+        calcAusbeute();
     }
 
     // ============================================================
@@ -516,15 +668,205 @@
 
     function calcNet() {
         const crates = toNum('f-crates'), gross = toNum('f-gross'), tare = toNum('f-tare') || 2.0;
+        const pallets = toNum('f-pallets'), palletTare = toNum('f-pallet-tare') || 20.0;
         const disp = document.getElementById('net-display');
-        if (crates > 0 && gross > 0) {
-            const net = gross - crates * tare;
+        if (gross > 0) {
+            const crateTaraTotal = crates > 0 ? crates * tare : 0;
+            const palletTaraTotal = pallets > 0 ? pallets * palletTare : 0;
+            const net = gross - crateTaraTotal - palletTaraTotal;
             disp.classList.toggle('hidden', net <= 0);
             if (net > 0) {
                 document.getElementById('net-weight').textContent = net.toFixed(2);
-                document.getElementById('net-per-crate').textContent = (net / crates).toFixed(2);
+                document.getElementById('net-per-crate').textContent = crates > 0 ? (net / crates).toFixed(2) : '–';
             }
         } else { disp.classList.add('hidden'); }
+    }
+
+    function calcYieldFromKg() {
+        const massKg = parseFloat(document.getElementById('f-yield-kg').value.replace(',', '.')) || 0;
+        const rhoT   = parseFloat(document.getElementById('f-yield-density').value.replace(',', '.')) || 0;
+        const tempRaw = document.getElementById('f-yield-temp').value.replace(',', '.');
+        const temp   = tempRaw !== '' ? parseFloat(tempRaw) : NaN;
+        const disp   = document.getElementById('yield-kg-display');
+        if (massKg > 0 && rhoT > 0) {
+            // Temperaturkorrektur auf 20 °C (Koeffizient 0,00066 g/cm³/°C)
+            const rho20 = !isNaN(temp) ? rhoT + 0.00066 * (temp - 20) : rhoT;
+            const volL  = massKg / rho20;
+            document.getElementById('f-yield').value = volL.toFixed(3).replace('.', ',');
+            if (yieldUnit !== 'l') setYieldUnit('l');
+            let msg = `🧮 ${massKg.toFixed(3).replace('.', ',')} kg ÷ ρ₂₀ ${rho20.toFixed(4).replace('.', ',')} g/cm³ = ${volL.toFixed(3).replace('.', ',')} L`;
+            if (!isNaN(temp) && temp !== 20) msg += ` (Korr.: ρ${temp}°C ${rhoT.toFixed(4).replace('.', ',')} → ρ20°C ${rho20.toFixed(4).replace('.', ',')})`;
+            disp.textContent = msg;
+            disp.classList.remove('hidden');
+            calcAusbeute();
+        } else {
+            disp.classList.add('hidden');
+        }
+    }
+
+    function calcTankDiff() {
+        const start = parseFloat(document.getElementById('f-tank-start').value.replace(',', '.')) || 0;
+        const end   = parseFloat(document.getElementById('f-tank-end').value.replace(',', '.'))   || 0;
+        const disp  = document.getElementById('tank-diff-display');
+        if (start > 0 && end >= 0 && start > end) {
+            const diff = start - end;
+            document.getElementById('f-alc-vol').value = diff.toFixed(0);
+            if (volUnit !== 'l') setVolUnit('l');
+            disp.textContent = `🧮 Eingesetzt: ${diff.toFixed(0).replace('.', ',')} L (${start.toFixed(0)} − ${end.toFixed(0)} L)`;
+            disp.classList.remove('hidden');
+            calcAusbeute();
+        } else {
+            disp.classList.add('hidden');
+        }
+    }
+
+    // ── Tankzuordnung Mazerat ────────────────────────────────────
+    let _tankOptions = [];
+
+    async function loadTankOptions() {
+        try {
+            const urls = ['./tank-data.json', '../tank-data.json', '/tank-data.json'];
+            let data = null;
+            for (const url of urls) {
+                try { const r = await fetch(url); if (r.ok) { data = await r.json(); break; } } catch (_) {}
+            }
+            if (!data?.tanks) return;
+            _tankOptions = data.tanks.map(t => t.bezeichnung || t.id || t.tankNr).filter(Boolean);
+            const dl = document.getElementById('tank-options');
+            dl.innerHTML = _tankOptions.map(n => `<option value="${esc(n)}">`).join('');
+        } catch (_) {}
+    }
+
+    let _ttIdx = 0;
+
+    function addTargetTank(entry) {
+        const idx = _ttIdx++;
+        const div = document.createElement('div');
+        div.className = 'target-tank-entry bg-purple-50 border border-purple-100 rounded-xl p-3 space-y-2';
+        div.dataset.idx = idx;
+        const startVal = entry?.startL != null ? String(entry.startL).replace('.',',') : '';
+        const endVal   = entry?.endL   != null ? String(entry.endL).replace('.',',')   : '';
+        div.innerHTML = `
+            <div class="flex items-center gap-2">
+                <input type="text" list="tank-options" value="${esc(entry?.tankLabel || '')}"
+                    placeholder="Tank-Bezeichnung (z.B. T 341)"
+                    class="field-input flex-1 text-sm tt-label" oninput="updateTargetTankTotal()">
+                <button type="button" onclick="removeTargetTank(this)"
+                    class="text-gray-400 hover:text-red-400 text-xl leading-none px-1">×</button>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="field-label text-xs">Anfangsstand (L)</label>
+                    <input type="text" inputmode="decimal" value="${startVal}"
+                        class="field-input text-sm tt-start" placeholder="z.B. 4020"
+                        oninput="calcTargetTankDiff(this.closest('.target-tank-entry'))">
+                </div>
+                <div>
+                    <label class="field-label text-xs">Endstand (L)</label>
+                    <input type="text" inputmode="decimal" value="${endVal}"
+                        class="field-input text-sm tt-end" placeholder="z.B. 3010"
+                        oninput="calcTargetTankDiff(this.closest('.target-tank-entry'))">
+                </div>
+            </div>
+            <div class="tt-diff calc-display hidden text-xs"></div>`;
+        document.getElementById('target-tanks-list').appendChild(div);
+        if (startVal && endVal) calcTargetTankDiff(div);
+        updateTargetTankTotal();
+    }
+
+    function removeTargetTank(btn) {
+        btn.closest('.target-tank-entry').remove();
+        updateTargetTankTotal();
+    }
+
+    function calcTargetTankDiff(entry) {
+        const s = parseFloat(entry.querySelector('.tt-start').value.replace(',','.')) || 0;
+        const e = parseFloat(entry.querySelector('.tt-end').value.replace(',','.'))   || 0;
+        const disp = entry.querySelector('.tt-diff');
+        if (s > 0 && e >= 0 && s !== e) {
+            const diff = Math.abs(s - e);
+            disp.textContent = `🧮 Menge: ${diff.toFixed(1).replace('.',',')} L (${s.toFixed(0)} → ${e.toFixed(0)} L)`;
+            disp.classList.remove('hidden');
+        } else {
+            disp.classList.add('hidden');
+        }
+        updateTargetTankTotal();
+    }
+
+    function updateTargetTankTotal() {
+        const entries = document.querySelectorAll('.target-tank-entry');
+        let total = 0;
+        let allHaveValues = true;
+        entries.forEach(e => {
+            const s = parseFloat(e.querySelector('.tt-start').value.replace(',','.')) || 0;
+            const en = parseFloat(e.querySelector('.tt-end').value.replace(',','.'))  || 0;
+            if (s > 0 && en >= 0 && s !== en) total += Math.abs(s - en);
+            else if (s === 0 && en === 0) allHaveValues = false;
+        });
+        const totalEl = document.getElementById('target-tanks-total');
+        if (entries.length > 1 && total > 0) {
+            totalEl.textContent = `Σ Gesamt abgefüllt: ${total.toFixed(1).replace('.',',')} L`;
+            totalEl.classList.remove('hidden');
+        } else {
+            totalEl.classList.add('hidden');
+        }
+    }
+
+    function collectTargetTanks() {
+        return Array.from(document.querySelectorAll('.target-tank-entry')).map(e => {
+            const s = parseFloat(e.querySelector('.tt-start').value.replace(',','.')) || null;
+            const en = parseFloat(e.querySelector('.tt-end').value.replace(',','.'))  || null;
+            return {
+                tankLabel: e.querySelector('.tt-label').value.trim(),
+                startL:    s,
+                endL:      en,
+                quantityL: (s != null && en != null && s !== en) ? parseFloat(Math.abs(s - en).toFixed(3)) : null,
+            };
+        }).filter(t => t.tankLabel || t.startL != null);
+    }
+
+    function restoreTargetTanks(tanks) {
+        document.getElementById('target-tanks-list').innerHTML = '';
+        _ttIdx = 0;
+        if (Array.isArray(tanks)) tanks.forEach(t => addTargetTank(t));
+        updateTargetTankTotal();
+    }
+
+    function calcAusbeute() {
+        const weightG = weightUnit === 'kg' ? toNum('f-weight') * 1000 : toNum('f-weight');
+        const spritMl = volUnit   === 'l'  ? toNum('f-alc-vol') * 1000 : toNum('f-alc-vol');
+        const yieldMl = yieldUnit === 'l'  ? toNum('f-yield')   * 1000 : toNum('f-yield');
+        const alcConc = toNum('f-alc-conc');
+        const endConc = toNum('f-end-conc');
+        const disp = document.getElementById('ausbeute-display');
+        const parts = [];
+        if (spritMl > 0 && yieldMl > 0) {
+            parts.push(`📊 Ausbeute: ${(yieldMl / spritMl * 100).toFixed(1).replace('.', ',')} %`);
+        }
+        if (weightG > 0 && spritMl > 0) {
+            const ratio = spritMl / weightG;
+            parts.push(`⚗️ Kraut:Sprit = 1:${ratio.toFixed(2).replace('.', ',')}`);
+        }
+        // Reinalkohol-Bilanz (unversteuert) - Verlust = Restalkohol im Pflanzenmaterial,
+        // muss im Gesamt-LA-Bestand nachvollziehbar sein (Formeln: TS-Quelle mazeration-calc.ts)
+        if (spritMl > 0 && alcConc > 0) {
+            const laEin = toL(spritMl, 'ml') * (alcConc / 100);
+            let laVerlustText = '';
+            if (yieldMl > 0 && endConc > 0) {
+                const laAus = toL(yieldMl, 'ml') * (endConc / 100);
+                const laVerlust = laEin - laAus;
+                parts.push(`⚗️ LA: ${laEin.toFixed(2).replace('.', ',')} → ${laAus.toFixed(2).replace('.', ',')} L`);
+                parts.push(`🔻 Verlust: ${laVerlust.toFixed(2).replace('.', ',')} LA`);
+            } else {
+                parts.push(`⚗️ Eingesetzte LA: ${laEin.toFixed(2).replace('.', ',')} L`);
+            }
+        }
+        if (parts.length) {
+            disp.textContent = parts.join('   |   ');
+            disp.classList.remove('hidden');
+        } else {
+            disp.classList.add('hidden');
+        }
     }
 
     function calcDuration() {
@@ -564,10 +906,14 @@
             numberOfCrates:      weightUnit === 'kg' ? (toNum('f-crates') || null) : null,
             grossWeightKg:       weightUnit === 'kg' ? (toNum('f-gross')  || null) : null,
             tarePerCrateKg:      weightUnit === 'kg' ? (toNum('f-tare')   || 2.0)  : null,
+            numberOfPallets:     weightUnit === 'kg' ? (toNum('f-pallets') || null) : null,
+            tarePerPalletKg:     weightUnit === 'kg' ? (toNum('f-pallet-tare') || null) : null,
             alcoholType:         document.getElementById('f-alc-type').value,
             alcoholConcentration: toNum('f-alc-conc') || null,
             alcoholVolumeUnit:   volUnit,
             alcoholVolume:       toNum('f-alc-vol') || null,
+            tankStartL:          parseFloat(document.getElementById('f-tank-start').value.replace(',','.')) || null,
+            tankEndL:            parseFloat(document.getElementById('f-tank-end').value.replace(',','.'))   || null,
             macerationStartDate: document.getElementById('f-start-date').value,
             macerationStartTime: document.getElementById('f-start-time').value,
             macerationEndDate:   document.getElementById('f-end-date').value,
@@ -575,14 +921,18 @@
             roomTemperature:     toNum('f-temp') || null,
             yieldVolumeUnit:     yieldUnit,
             yieldVolume:         toNum('f-yield')     || null,
+            yieldMassKg:         parseFloat(document.getElementById('f-yield-kg').value.replace(',','.')) || null,
+            yieldDensityAt:      parseFloat(document.getElementById('f-yield-density').value.replace(',','.')) || null,
+            yieldSpindelTemp:    parseFloat(document.getElementById('f-yield-temp').value.replace(',','.')) || null,
             endConcentration:    toNum('f-end-conc')  || null,
             remarks:             document.getElementById('f-remarks').value.trim(),
+            targetTanks:         collectTargetTanks(),
         };
     }
 
     function validateForm(data) {
         if (!data.macerationName)              return 'Bezeichnung ist erforderlich';
-        if (!/^\d{5}$/.test(data.batchNumber)) return 'Chargennummer muss genau 5 Ziffern sein';
+        if (!/^\d{4,5}$/.test(data.batchNumber)) return 'Chargennummer muss 4 oder 5 Ziffern sein';
         if (!data.plantName)                   return 'Pflanzenname ist erforderlich';
         if (!data.plantPart)                   return 'Pflanzenteil ist erforderlich';
         return null;
@@ -596,8 +946,26 @@
             .forEach(el => el.addEventListener('input', () => { clearTimeout(el._t); el._t = setTimeout(saveDraft, 1500); }));
     }
 
-    async function saveDraft() {
+    async function saveDraft(explicit = false) {
         try { await dbPut('draft', { key: 'current', data: { ...collectForm(), weightUnit, volUnit, yieldUnit } }); } catch (e) {}
+        if (!explicit) return;
+        // Explizites "Entwurf speichern": als Protokoll-Eintrag sichern (auch unvollständig)
+        const data = collectForm();
+        if (!data.macerationName) { showToast('❌ Mindestens Bezeichnung angeben', 3000); return; }
+        if (editingId) {
+            const existing = await dbGet('protocols', editingId);
+            const p = { ...existing, ...data, savedAt: new Date().toISOString(), synced: false, draft: true };
+            await dbPut('protocols', p);
+            showToast('📂 Entwurf aktualisiert');
+        } else {
+            const p = { ...makeProtocol(data), draft: true };
+            await dbPut('protocols', p);
+            editingId = p.id;
+            document.getElementById('editing-banner').style.display = '';
+            document.getElementById('editing-name').textContent = data.macerationName;
+            showToast('📂 Entwurf gespeichert – Bearbeitung läuft weiter');
+        }
+        setStatus('Entwurf gespeichert');
     }
 
     async function restoreDraft() {
@@ -611,21 +979,31 @@
             set('f-quality', d.qualityAssessment);
             if (d.plantWeight)    set('f-weight',   String(d.plantWeight).replace('.',','));
             if (d.weightUnit)     setWeightUnit(d.weightUnit);
-            if (d.numberOfCrates) set('f-crates', d.numberOfCrates);
-            if (d.grossWeightKg)  set('f-gross',  String(d.grossWeightKg).replace('.',','));
-            if (d.tarePerCrateKg) set('f-tare',   String(d.tarePerCrateKg).replace('.',','));
+            if (d.numberOfCrates)  set('f-crates',      d.numberOfCrates);
+            if (d.grossWeightKg)   set('f-gross',       String(d.grossWeightKg).replace('.',','));
+            if (d.tarePerCrateKg)  set('f-tare',        String(d.tarePerCrateKg).replace('.',','));
+            if (d.numberOfPallets) set('f-pallets',     d.numberOfPallets);
+            if (d.tarePerPalletKg) set('f-pallet-tare', String(d.tarePerPalletKg).replace('.',','));
             set('f-alc-type', d.alcoholType);
             if (d.alcoholConcentration) set('f-alc-conc', String(d.alcoholConcentration).replace('.',','));
             if (d.volUnit)   setVolUnit(d.volUnit);
             if (d.alcoholVolume) set('f-alc-vol', String(d.alcoholVolume).replace('.',','));
+            if (d.tankStartL) set('f-tank-start', String(d.tankStartL).replace('.',','));
+            if (d.tankEndL)   set('f-tank-end',   String(d.tankEndL).replace('.',','));
+            calcTankDiff();
             set('f-start-date', d.macerationStartDate); set('f-start-time', d.macerationStartTime);
             set('f-end-date',   d.macerationEndDate);   set('f-end-time',   d.macerationEndTime);
             if (d.roomTemperature) set('f-temp', String(d.roomTemperature).replace('.',','));
             if (d.yieldUnit) setYieldUnit(d.yieldUnit);
             if (d.yieldVolume)    set('f-yield',    String(d.yieldVolume).replace('.',','));
+            if (d.yieldMassKg)    set('f-yield-kg', String(d.yieldMassKg).replace('.',','));
+            if (d.yieldDensityAt) set('f-yield-density', String(d.yieldDensityAt).replace('.',','));
+            if (d.yieldSpindelTemp != null) set('f-yield-temp', String(d.yieldSpindelTemp).replace('.',','));
+            calcYieldFromKg();
             if (d.endConcentration) set('f-end-conc', String(d.endConcentration).replace('.',','));
             set('f-remarks', d.remarks);
-            calcNet(); calcDuration();
+            restoreTargetTanks(d.targetTanks);
+            calcNet(); calcDuration(); calcAusbeute();
             setStatus('↩ Entwurf wiederhergestellt');
         } catch (e) {}
     }
@@ -643,14 +1021,73 @@
         };
     }
 
+    async function openForEdit(id) {
+        const p = await dbGet('protocols', id);
+        if (!p) return;
+        // Felder befüllen
+        const set = (elId, val) => { const el = document.getElementById(elId); if (el && val != null && val !== '') el.value = val; };
+        set('f-name', p.macerationName);   set('f-batch', p.batchNumber);  set('f-date', p.creationDate);
+        set('f-plant', p.plantName);       set('f-plant-part', p.plantPart); set('f-harvest', p.harvestDate);
+        set('f-quality', p.qualityAssessment);
+        if (p.plantWeightUnit) setWeightUnit(p.plantWeightUnit);
+        if (p.plantWeight)    set('f-weight',   String(p.plantWeight).replace('.',','));
+        if (p.numberOfCrates)  set('f-crates',      p.numberOfCrates);
+        if (p.grossWeightKg)   set('f-gross',       String(p.grossWeightKg).replace('.',','));
+        if (p.tarePerCrateKg)  set('f-tare',        String(p.tarePerCrateKg).replace('.',','));
+        if (p.numberOfPallets) set('f-pallets',     p.numberOfPallets);
+        if (p.tarePerPalletKg) set('f-pallet-tare', String(p.tarePerPalletKg).replace('.',','));
+        set('f-alc-type', p.alcoholType);
+        if (p.alcoholConcentration) set('f-alc-conc', String(p.alcoholConcentration).replace('.',','));
+        if (p.alcoholVolumeUnit) setVolUnit(p.alcoholVolumeUnit);
+        if (p.alcoholVolume) set('f-alc-vol', String(p.alcoholVolume).replace('.',','));
+        if (p.tankStartL) set('f-tank-start', String(p.tankStartL).replace('.',','));
+        if (p.tankEndL)   set('f-tank-end',   String(p.tankEndL).replace('.',','));
+        calcTankDiff();
+        set('f-start-date', p.macerationStartDate); set('f-start-time', p.macerationStartTime);
+        set('f-end-date',   p.macerationEndDate);   set('f-end-time',   p.macerationEndTime);
+        if (p.roomTemperature) set('f-temp', String(p.roomTemperature).replace('.',','));
+        if (p.yieldVolumeUnit) setYieldUnit(p.yieldVolumeUnit);
+        if (p.yieldVolume)    set('f-yield',    String(p.yieldVolume).replace('.',','));
+        if (p.yieldMassKg)    set('f-yield-kg', String(p.yieldMassKg).replace('.',','));
+        if (p.yieldDensityAt) set('f-yield-density', String(p.yieldDensityAt).replace('.',','));
+        if (p.yieldSpindelTemp != null) set('f-yield-temp', String(p.yieldSpindelTemp).replace('.',','));
+        calcYieldFromKg();
+        if (p.endConcentration) set('f-end-conc', String(p.endConcentration).replace('.',','));
+        set('f-remarks', p.remarks);
+        restoreTargetTanks(p.targetTanks);
+        calcNet(); calcDuration(); calcAusbeute();
+        // Bearbeitungs-Modus aktivieren
+        editingId = id;
+        document.getElementById('editing-banner').style.display = '';
+        document.getElementById('editing-name').textContent = p.macerationName || id;
+        showTab('form');
+        window.scrollTo(0, 0);
+        showToast('✏️ Protokoll zur Bearbeitung geöffnet');
+    }
+
+    function cancelEdit() {
+        editingId = null;
+        document.getElementById('editing-banner').style.display = 'none';
+        showToast('Bearbeitung abgebrochen');
+    }
+
     async function saveLocally() {
         const data = collectForm();
         const err = validateForm(data);
         if (err) { showToast('❌ ' + err, 3500); return; }
-        const p = makeProtocol(data);
-        await dbPut('protocols', p);
-        await dbDelete('draft', 'current');
-        showToast('💾 Lokal gespeichert!');
+        if (editingId) {
+            const existing = await dbGet('protocols', editingId);
+            const p = { ...existing, ...data, savedAt: new Date().toISOString(), synced: false };
+            await dbPut('protocols', p);
+            editingId = null;
+            document.getElementById('editing-banner').style.display = 'none';
+            showToast('💾 Protokoll aktualisiert!');
+        } else {
+            const p = makeProtocol(data);
+            await dbPut('protocols', p);
+            await dbDelete('draft', 'current');
+            showToast('💾 Lokal gespeichert!');
+        }
         setStatus('Protokoll lokal gespeichert');
     }
 
@@ -658,7 +1095,15 @@
         const data = collectForm();
         const err = validateForm(data);
         if (err) { showToast('❌ ' + err, 3500); return; }
-        const p = makeProtocol(data);
+        let p;
+        if (editingId) {
+            const existing = await dbGet('protocols', editingId);
+            p = { ...existing, ...data, savedAt: new Date().toISOString(), synced: false };
+            editingId = null;
+            document.getElementById('editing-banner').style.display = 'none';
+        } else {
+            p = makeProtocol(data);
+        }
         await dbPut('protocols', p);
         if (!navigator.onLine) {
             showToast('💾 Gespeichert – Sync sobald online', 3000);
@@ -685,7 +1130,10 @@
         setTodayDate();
         document.getElementById('net-display').classList.add('hidden');
         document.getElementById('duration-display').classList.add('hidden');
+        restoreTargetTanks([]);
         dbDelete('draft', 'current').catch(() => {});
+        editingId = null;
+        document.getElementById('editing-banner').style.display = 'none';
         showToast('🔄 Formular geleert');
     }
 
@@ -735,9 +1183,25 @@
     // ============================================================
     // PROTOKOLLLISTE
     // ============================================================
+    function setProtocolFilter(f) {
+        protocolFilter = f;
+        ['all', 'draft', 'done'].forEach(k => {
+            document.getElementById(`filter-${k}`).classList.toggle('selected', k === f);
+        });
+        renderProtocolList();
+    }
+
     async function renderProtocolList() {
         const list = document.getElementById('protocol-list');
-        const protocols = (await dbGetAll('protocols')).sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+        const search = (document.getElementById('protocol-search')?.value || '').toLowerCase();
+        let protocols = (await dbGetAll('protocols')).sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+        if (search) protocols = protocols.filter(p =>
+            (p.macerationName || '').toLowerCase().includes(search) ||
+            (p.batchNumber    || '').toLowerCase().includes(search) ||
+            (p.plantName      || '').toLowerCase().includes(search)
+        );
+        if (protocolFilter === 'draft') protocols = protocols.filter(p =>  p.draft);
+        if (protocolFilter === 'done')  protocols = protocols.filter(p => !p.draft);
         if (!protocols.length) {
             list.innerHTML = '<div class="card p-6 text-center text-gray-400 text-sm">Keine Protokolle gespeichert<\/div>';
             return;
@@ -750,10 +1214,13 @@
                         <div class="text-sm text-gray-500 mt-0.5">Charge: ${esc(p.batchNumber)} &middot; ${esc(p.plantName || '–')}<\/div>
                         <div class="text-xs text-gray-400 mt-1">${new Date(p.savedAt).toLocaleString('de-DE')}<\/div>
                     <\/div>
-                    <span class="shrink-0 ${p.synced ? 'badge-synced' : 'badge-pending'}">${p.synced ? '✅ Gesynct' : '⏳ Ausstehend'}<\/span>
+                    <span class="shrink-0 ${p.synced ? 'badge-synced' : p.draft ? 'badge-draft' : 'badge-pending'}">${p.synced ? '✅ Gesynct' : p.draft ? '📂 Entwurf' : '⏳ Ausstehend'}<\/span>
                 <\/div>
-                <div class="flex gap-2 mt-3">
+                <div class="flex gap-2 mt-3 flex-wrap">
+                    <button onclick="openForEdit('${p.id}')" class="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium">✏️ Bearbeiten<\/button>
+                    <button onclick="addToSammelliste('${p.id}')" class="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-medium">📊 + Liste<\/button>
                     ${!p.synced ? `<button onclick="syncOne('${p.id}')" class="btn-primary text-white px-3 py-1.5 rounded-lg text-xs font-medium">☁️ Sync<\/button>` : ''}
+                    <button onclick="exportPDFById('${p.id}')" class="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium">📄 PDF<\/button>
                     <button onclick="deleteProtocol('${p.id}')" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium">🗑 Löschen<\/button>
                 <\/div>
             <\/div>
@@ -782,6 +1249,489 @@
     // ============================================================
     // HILFSFUNKTIONEN
     // ============================================================
+    // SAMMELLISTE
+    // ============================================================
+    let sammellisteIds = [];   // geordnete Liste von Protokoll-IDs
+
+    async function loadSammelliste() {
+        try {
+            const rec = await dbGet('settings', 'sammelliste');
+            sammellisteIds = rec?.value || [];
+        } catch(e) { sammellisteIds = []; }
+    }
+
+    async function saveSammellisteIds() {
+        await dbPut('settings', { key: 'sammelliste', value: sammellisteIds });
+    }
+
+    async function addToSammelliste(id) {
+        await loadSammelliste();
+        if (sammellisteIds.includes(id)) { showToast('ℹ️ Bereits in der Sammelliste'); return; }
+        sammellisteIds.push(id);
+        await saveSammellisteIds();
+        showToast('📊 Zur Sammelliste hinzugefügt');
+    }
+
+    async function removeFromSammelliste(id) {
+        await loadSammelliste();
+        sammellisteIds = sammellisteIds.filter(x => x !== id);
+        await saveSammellisteIds();
+        await renderSammelliste();
+    }
+
+    async function clearSammelliste() {
+        if (!confirm('Sammelliste wirklich leeren?')) return;
+        sammellisteIds = [];
+        await saveSammellisteIds();
+        await renderSammelliste();
+    }
+
+    // Formeln: TS-Quelle in src/lib/mazeration-calc.ts (toVolumeLiters, calcLA)
+    function toL(vol, unit) {
+        if (!vol) return null;
+        return unit === 'ml' ? vol / 1000 : vol;
+    }
+
+    function laL(vol, unit, conc) {
+        const vL = toL(vol, unit);
+        if (!vL || !conc) return null;
+        return vL * conc / 100;
+    }
+
+    function fmtL(v) { return v != null ? v.toFixed(3) + ' L' : '–'; }
+    function fmtKraut(p) {
+        if (!p.plantWeight) return '–';
+        return String(p.plantWeight).replace('.',',') + ' ' + (p.plantWeightUnit || 'g');
+    }
+
+    async function renderSammelliste() {
+        await loadSammelliste();
+        const empty = document.getElementById('sammelliste-empty');
+        const wrap  = document.getElementById('sammelliste-table-wrap');
+        const tbody = document.getElementById('sammelliste-body');
+        const tfoot = document.getElementById('sammelliste-footer');
+
+        if (!sammellisteIds.length) {
+            empty.classList.remove('hidden');
+            wrap.classList.add('hidden');
+            return;
+        }
+        empty.classList.add('hidden');
+        wrap.classList.remove('hidden');
+
+        // Protokolle laden und chronologisch sortieren
+        const protocols = [];
+        for (const id of sammellisteIds) {
+            const p = await dbGet('protocols', id);
+            if (p) protocols.push(p);
+        }
+        protocols.sort((a, b) => (a.creationDate || '').localeCompare(b.creationDate || ''));
+
+        let sumKrautG = 0, sumLaEinsatz = 0, sumMazerat = 0, sumLaAusbeute = 0, sumLaVerlust = 0;
+
+        tbody.innerHTML = protocols.map(p => {
+            const laEin  = laL(p.alcoholVolume,  p.alcoholVolumeUnit,  p.alcoholConcentration);
+            const laAus  = laL(p.yieldVolume,    p.yieldVolumeUnit,    p.endConcentration);
+            const laVerlust = (laEin != null && laAus != null) ? laEin - laAus : null;
+            const mazeratL = toL(p.yieldVolume, p.yieldVolumeUnit);
+            const spritL = toL(p.alcoholVolume, p.alcoholVolumeUnit);
+
+            // Summen (Kraut in g normieren)
+            if (p.plantWeight) {
+                sumKrautG += p.plantWeightUnit === 'kg' ? p.plantWeight * 1000 : p.plantWeight;
+            }
+            if (laEin)    sumLaEinsatz  += laEin;
+            if (mazeratL) sumMazerat    += mazeratL;
+            if (laAus)    sumLaAusbeute += laAus;
+            if (laVerlust != null) sumLaVerlust += laVerlust;
+
+            const datum = p.creationDate ? p.creationDate.split('-').reverse().join('.') : '–';
+            const spritStr = spritL != null
+                ? spritL.toFixed(2) + ' L' + (p.alcoholConcentration ? ' / ' + String(p.alcoholConcentration).replace('.',',') + '%' : '')
+                : '–';
+
+            return `<tr class="border-b border-gray-100 hover:bg-purple-50">
+                <td class="p-2 whitespace-nowrap">${datum}</td>
+                <td class="p-2"><div class="font-medium">${esc(p.macerationName)}<\/div><div class="text-gray-400">${esc(p.batchNumber || '')}<\/div><\/td>
+                <td class="p-2 text-right whitespace-nowrap">${fmtKraut(p)}<\/td>
+                <td class="p-2 text-right whitespace-nowrap">${spritStr}<\/td>
+                <td class="p-2 text-right whitespace-nowrap font-medium">${laEin != null ? laEin.toFixed(3) + ' L' : '–'}<\/td>
+                <td class="p-2 text-right whitespace-nowrap">${mazeratL != null ? mazeratL.toFixed(2) + ' L' : '–'}<\/td>
+                <td class="p-2 text-right whitespace-nowrap">${p.endConcentration != null ? String(p.endConcentration).replace('.',',') + ' %' : '–'}<\/td>
+                <td class="p-2 text-right whitespace-nowrap font-medium">${laAus != null ? laAus.toFixed(3) + ' L' : '–'}<\/td>
+                <td class="p-2 text-right whitespace-nowrap font-medium text-amber-700">${laVerlust != null ? laVerlust.toFixed(3) + ' L' : '–'}<\/td>
+                <td class="p-2 text-center"><button onclick="removeFromSammelliste('${p.id}')" class="text-red-400 font-bold text-base leading-none">×<\/button><\/td>
+            <\/tr>`;
+        }).join('');
+
+        // Summenzeile
+        const sumKrautStr = sumKrautG >= 1000
+            ? (sumKrautG/1000).toFixed(2) + ' kg'
+            : sumKrautG.toFixed(0) + ' g';
+        tfoot.innerHTML = `<tr style="background:#f3f0ff;font-weight:700">
+            <td class="p-2" colspan="2">∑ Gesamt (${protocols.length} Chargen)</td>
+            <td class="p-2 text-right whitespace-nowrap">${sumKrautStr}</td>
+            <td class="p-2"></td>
+            <td class="p-2 text-right whitespace-nowrap">${sumLaEinsatz.toFixed(3)} L</td>
+            <td class="p-2 text-right whitespace-nowrap">${sumMazerat.toFixed(2)} L</td>
+            <td class="p-2"></td>
+            <td class="p-2 text-right whitespace-nowrap">${sumLaAusbeute.toFixed(3)} L</td>
+            <td class="p-2 text-right whitespace-nowrap text-amber-700">${sumLaVerlust.toFixed(3)} L</td>
+            <td class="p-2"></td>
+        <\/tr>`;
+    }
+
+    async function exportSammellistePDF() {
+        await loadSammelliste();
+        if (!sammellisteIds.length) { showToast('❌ Sammelliste ist leer', 2500); return; }
+
+        const protocols = [];
+        for (const id of sammellisteIds) {
+            const p = await dbGet('protocols', id);
+            if (p) protocols.push(p);
+        }
+        protocols.sort((a, b) => (a.creationDate || '').localeCompare(b.creationDate || ''));
+
+        let sumKrautG = 0, sumLaEinsatz = 0, sumMazerat = 0, sumLaAusbeute = 0, sumLaVerlust = 0;
+
+        const rows = protocols.map(p => {
+            const laEin  = laL(p.alcoholVolume,  p.alcoholVolumeUnit,  p.alcoholConcentration);
+            const laAus  = laL(p.yieldVolume,    p.yieldVolumeUnit,    p.endConcentration);
+            const laVerlust = (laEin != null && laAus != null) ? laEin - laAus : null;
+            const mazeratL = toL(p.yieldVolume, p.yieldVolumeUnit);
+            const spritL = toL(p.alcoholVolume, p.alcoholVolumeUnit);
+            if (p.plantWeight) sumKrautG += p.plantWeightUnit === 'kg' ? p.plantWeight * 1000 : p.plantWeight;
+            if (laEin)    sumLaEinsatz  += laEin;
+            if (mazeratL) sumMazerat    += mazeratL;
+            if (laAus)    sumLaAusbeute += laAus;
+            if (laVerlust != null) sumLaVerlust += laVerlust;
+            const datum = p.creationDate ? p.creationDate.split('-').reverse().join('.') : '–';
+            const spritStr = spritL != null
+                ? spritL.toFixed(2) + ' L' + (p.alcoholConcentration ? ' / ' + String(p.alcoholConcentration).replace('.',',') + ' %' : '')
+                : '–';
+            return `<tr>
+                <td>${datum}</td>
+                <td>${p.macerationName || '–'}<br><small>${p.batchNumber || ''}</small></td>
+                <td>${fmtKraut(p)}</td>
+                <td>${spritStr}<br><small>${esc(p.alcoholType || '')}</small></td>
+                <td>${laEin != null ? laEin.toFixed(3) + ' L' : '–'}</td>
+                <td>${mazeratL != null ? mazeratL.toFixed(2) + ' L' : '–'}</td>
+                <td>${p.endConcentration != null ? String(p.endConcentration).replace('.',',') + ' %' : '–'}</td>
+                <td>${laAus != null ? laAus.toFixed(3) + ' L' : '–'}</td>
+                <td>${laVerlust != null ? laVerlust.toFixed(3) + ' L' : '–'}</td>
+            </tr>`;
+        }).join('');
+
+        const sumKrautStr = sumKrautG >= 1000 ? (sumKrautG/1000).toFixed(2)+' kg' : sumKrautG.toFixed(0)+' g';
+
+        const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+<title>Sammelliste Mazerationen</title>
+<style>
+  body{font-family:Arial,sans-serif;font-size:10px;padding:20px;color:#111}
+  h1{font-size:15px;color:#4c1d95;border-bottom:2px solid #7c3aed;padding-bottom:5px;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse}
+  th{background:#f3f0ff;color:#4c1d95;font-size:9px;text-transform:uppercase;padding:5px 6px;text-align:right;border-bottom:2px solid #c4b5fd}
+  th:nth-child(1),th:nth-child(2){text-align:left}
+  td{padding:4px 6px;border-bottom:1px solid #e5e7eb;text-align:right;vertical-align:top}
+  td:nth-child(1),td:nth-child(2){text-align:left}
+  td small{color:#6b7280;font-size:9px}
+  tfoot tr{background:#f3f0ff;font-weight:700}
+  .footer{margin-top:16px;font-size:9px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:5px;display:flex;justify-content:space-between}
+  @media print{@page{margin:12mm 12mm}body{padding:0}}
+</style></head><body>
+<h1>Sammelliste Mazerationen (${protocols.length} Chargen)</h1>
+<table>
+<thead><tr>
+  <th>Datum</th><th>Bezeichnung / Ch.</th><th>Kraut</th><th>Sprit / Typ</th>
+  <th>LA Einsatz</th><th>Mazerat</th><th>Alk.%</th><th>LA Ausbeute</th><th>LA Verlust</th>
+</tr></thead>
+<tbody>${rows}</tbody>
+<tfoot><tr>
+  <td colspan="2">∑ Gesamt</td>
+  <td>${sumKrautStr}</td><td></td>
+  <td>${sumLaEinsatz.toFixed(3)} L</td>
+  <td>${sumMazerat.toFixed(2)} L</td><td></td>
+  <td>${sumLaAusbeute.toFixed(3)} L</td>
+  <td>${sumLaVerlust.toFixed(3)} L</td>
+</tr></tfoot>
+</table>
+<div class="footer">
+  <span>Gurktaler AG · MazerationsMeister</span>
+  <span>Erstellt: ${new Date().toLocaleString('de-DE')}</span>
+</div>
+<script>window.onload=()=>window.print()<\/script>
+</body></html>`;
+
+        const blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+        const w = window.open(blobUrl, '_blank', 'width=900,height=700');
+        if (!w) { URL.revokeObjectURL(blobUrl); showToast('❌ Popup blockiert', 3000); return; }
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+    }
+
+    async function exportSammellisteXLSX() {
+        await loadSammelliste();
+        if (!sammellisteIds.length) { showToast('❌ Sammelliste ist leer', 2500); return; }
+        if (typeof XLSX === 'undefined') { showToast('❌ XLSX-Bibliothek nicht geladen', 2500); return; }
+
+        const protocols = [];
+        for (const id of sammellisteIds) {
+            const p = await dbGet('protocols', id);
+            if (p) protocols.push(p);
+        }
+        protocols.sort((a, b) => (a.creationDate || '').localeCompare(b.creationDate || ''));
+
+        const header = ['Datum', 'Bezeichnung', 'Charge', 'Pflanze', 'Pflanzenteil',
+            'Kraut (Menge)', 'Einheit Kraut',
+            'Alkoholtyp', 'Sprit (L)', 'Alkohol (%vol)',
+            'LA Einsatz (L abs.)',
+            'Mazerat (L)', 'Endalkohol (%vol)', 'LA Ausbeute (L abs.)', 'LA Verlust (L abs.)',
+            'Beginn', 'Ende', 'Temp (°C)', 'Bemerkungen'];
+
+        const rows = protocols.map(p => {
+            const spritL = toL(p.alcoholVolume, p.alcoholVolumeUnit);
+            const mazeratL = toL(p.yieldVolume, p.yieldVolumeUnit);
+            const laEin = laL(p.alcoholVolume, p.alcoholVolumeUnit, p.alcoholConcentration);
+            const laAus = laL(p.yieldVolume, p.yieldVolumeUnit, p.endConcentration);
+            const laVerlust = (laEin != null && laAus != null) ? laEin - laAus : null;
+            return [
+                p.creationDate || '',
+                p.macerationName || '',
+                p.batchNumber || '',
+                p.plantName || '',
+                p.plantPart || '',
+                p.plantWeight != null ? p.plantWeight : '',
+                p.plantWeightUnit || '',
+                p.alcoholType || '',
+                spritL != null ? spritL : '',
+                p.alcoholConcentration != null ? p.alcoholConcentration : '',
+                laEin != null ? Math.round(laEin * 1000) / 1000 : '',
+                mazeratL != null ? Math.round(mazeratL * 1000) / 1000 : '',
+                p.endConcentration != null ? p.endConcentration : '',
+                laAus != null ? Math.round(laAus * 1000) / 1000 : '',
+                laVerlust != null ? Math.round(laVerlust * 1000) / 1000 : '',
+                p.macerationStartDate || '',
+                p.macerationEndDate || '',
+                p.roomTemperature != null ? p.roomTemperature : '',
+                p.remarks || '',
+            ];
+        });
+
+        // Summenzeile
+        let sumKrautG = 0, sumLaEin = 0, sumMaz = 0, sumLaAus = 0, sumLaVerlust = 0;
+        protocols.forEach(p => {
+            if (p.plantWeight) sumKrautG += p.plantWeightUnit === 'kg' ? p.plantWeight * 1000 : p.plantWeight;
+            const le = laL(p.alcoholVolume, p.alcoholVolumeUnit, p.alcoholConcentration);
+            const ml = toL(p.yieldVolume, p.yieldVolumeUnit);
+            const la = laL(p.yieldVolume, p.yieldVolumeUnit, p.endConcentration);
+            if (le) sumLaEin += le;
+            if (ml) sumMaz += ml;
+            if (la) sumLaAus += la;
+            if (le != null && la != null) sumLaVerlust += (le - la);
+        });
+        const sumRow = ['∑ Gesamt', '', `${protocols.length} Chargen`, '', '',
+            sumKrautG >= 1000 ? Math.round(sumKrautG/10)/100 : sumKrautG,
+            sumKrautG >= 1000 ? 'kg' : 'g',
+            '', '', '',
+            Math.round(sumLaEin * 1000) / 1000,
+            Math.round(sumMaz * 1000) / 1000, '',
+            Math.round(sumLaAus * 1000) / 1000,
+            Math.round(sumLaVerlust * 1000) / 1000,
+            '', '', '', ''];
+
+        const ws = XLSX.utils.aoa_to_sheet([header, ...rows, [], sumRow]);
+        // Spaltenbreiten
+        ws['!cols'] = [10,20,10,18,16,10,8,14,10,10,12,10,12,12,12,12,12,8,30].map(w => ({wch:w}));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Sammelliste');
+        const today = new Date().toISOString().slice(0,10);
+        XLSX.writeFile(wb, `Sammelliste_Mazerationen_${today}.xlsx`);
+        showToast('📊 XLSX wird heruntergeladen');
+    }
+
+    // ============================================================
+    // PDF EXPORT
+    // ============================================================
+    function exportFormAsPDF() {
+        const data = collectForm();
+        if (!data.macerationName) { showToast('❌ Bitte zuerst Bezeichnung eingeben', 3000); return; }
+        exportPDF({ ...data, savedAt: new Date().toISOString(), id: '–', synced: false });
+    }
+
+    async function exportPDFById(id) {
+        const p = await dbGet('protocols', id);
+        if (p) exportPDF(p);
+    }
+
+    function exportPDF(p) {
+        const fmt = v => esc((v != null && v !== '' && v !== 0) ? String(v) : '–');
+        const fmtDate = s => s ? s.split('-').reverse().join('.') : '–';
+        const fmtNum = v => (v != null && v !== 0) ? String(v).replace('.', ',') : '–';
+        const savedStr = p.savedAt ? new Date(p.savedAt).toLocaleString('de-DE') : '–';
+
+        const html = `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Mazeration – ${esc(p.macerationName || '')}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 24px 28px; }
+  h1 { font-size: 17px; color: #4c1d95; border-bottom: 2px solid #7c3aed; padding-bottom: 6px; margin-bottom: 18px; }
+  h2 { font-size: 12px; font-weight: bold; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.05em;
+       border-bottom: 1px solid #e5e7eb; padding-bottom: 3px; margin-bottom: 10px; margin-top: 16px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; margin-bottom: 4px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px 20px; margin-bottom: 4px; }
+  .field .lbl { font-size: 9px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
+  .field .val { font-size: 11px; font-weight: 600; border-bottom: 1px dotted #d1d5db; padding-bottom: 1px; min-height: 16px; }
+  .remarks { border: 1px solid #e5e7eb; padding: 8px; border-radius: 4px; min-height: 40px; font-size: 11px; margin-top: 6px; white-space: pre-wrap; }
+  .footer { margin-top: 24px; font-size: 9px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 6px; display: flex; justify-content: space-between; }
+  @media print { @page { margin: 15mm 15mm; } body { padding: 0; } }
+</style>
+</head>
+<body>
+<h1>Mazerationsprotokoll – ${esc(p.macerationName || '')} (Charge ${esc(p.batchNumber || '–')})</h1>
+
+<h2>Allgemein</h2>
+<div class="grid">
+  <div class="field"><div class="lbl">Bezeichnung</div><div class="val">${p.macerationName || '–'}</div></div>
+  <div class="field"><div class="lbl">Chargennummer</div><div class="val">${fmt(p.batchNumber)}</div></div>
+  <div class="field"><div class="lbl">Erstellungsdatum</div><div class="val">${fmtDate(p.creationDate)}</div></div>
+</div>
+
+<h2>Pflanzenmaterial</h2>
+<div class="grid">
+  <div class="field"><div class="lbl">Pflanzenname</div><div class="val">${fmt(p.plantName)}</div></div>
+  <div class="field"><div class="lbl">Pflanzenteil</div><div class="val">${fmt(p.plantPart)}</div></div>
+  <div class="field"><div class="lbl">Erntedatum</div><div class="val">${fmtDate(p.harvestDate)}</div></div>
+  <div class="field"><div class="lbl">Qualitätsbewertung</div><div class="val">${fmt(p.qualityAssessment)}</div></div>
+</div>
+<div class="grid3">
+  <div class="field"><div class="lbl">Pflanzengewicht (${fmt(p.plantWeightUnit)})</div><div class="val">${fmtNum(p.plantWeight)}</div></div>
+  ${p.numberOfCrates != null ? `<div class="field"><div class="lbl">Anzahl Kisten</div><div class="val">${fmtNum(p.numberOfCrates)}</div></div>` : ''}
+  ${p.grossWeightKg != null ? `<div class="field"><div class="lbl">Bruttogewicht (kg)</div><div class="val">${fmtNum(p.grossWeightKg)}</div></div>` : ''}
+  ${p.numberOfPallets != null ? `<div class="field"><div class="lbl">Anzahl Paletten</div><div class="val">${fmtNum(p.numberOfPallets)}</div></div>` : ''}
+  ${p.tarePerPalletKg != null ? `<div class="field"><div class="lbl">Tara / Palette (kg)</div><div class="val">${fmtNum(p.tarePerPalletKg)}</div></div>` : ''}
+</div>
+
+<h2>Alkohol</h2>
+<div class="grid3">
+  <div class="field"><div class="lbl">Alkoholtyp</div><div class="val">${fmt(p.alcoholType)}</div></div>
+  <div class="field"><div class="lbl">Konzentration (% vol)</div><div class="val">${fmtNum(p.alcoholConcentration)}</div></div>
+  <div class="field"><div class="lbl">Menge (${fmt(p.alcoholVolumeUnit)})</div><div class="val">${fmtNum(p.alcoholVolume)}</div></div>
+</div>
+
+<h2>Mazerationszeitraum</h2>
+<div class="grid">
+  <div class="field"><div class="lbl">Beginn</div><div class="val">${fmtDate(p.macerationStartDate)} ${fmt(p.macerationStartTime)}</div></div>
+  <div class="field"><div class="lbl">Ende</div><div class="val">${fmtDate(p.macerationEndDate)} ${fmt(p.macerationEndTime)}</div></div>
+  <div class="field"><div class="lbl">Raumtemperatur (°C)</div><div class="val">${fmtNum(p.roomTemperature)}</div></div>
+</div>
+
+<h2>Ausbeute</h2>
+<div class="grid">
+  <div class="field"><div class="lbl">Ausbeute (${fmt(p.yieldVolumeUnit)})</div><div class="val">${fmtNum(p.yieldVolume)}</div></div>
+  <div class="field"><div class="lbl">Endkonzentration (% vol)</div><div class="val">${fmtNum(p.endConcentration)}</div></div>
+</div>
+
+<h2>Bemerkungen</h2>
+<div class="remarks">${esc(p.remarks || '')}</div>
+
+<div class="footer">
+  <span>Gurktaler AG · MazerationsMeister PWA</span>
+  <span>Gespeichert: ${savedStr} · ID: ${p.id || '–'}</span>
+</div>
+
+<script>window.onload = () => { window.print(); }<\/script>
+</body>
+</html>`;
+
+        const blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+        const w = window.open(blobUrl, '_blank', 'width=800,height=900');
+        if (!w) { URL.revokeObjectURL(blobUrl); showToast('❌ Popup blockiert – bitte Popups erlauben', 3500); return; }
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+    }
+
+    // ============================================================
+    // AUSBEUTE & VERHÄLTNIS (wird auch aus openForEdit/restoreDraft aufgerufen)
+    // ============================================================
+
+    // ============================================================
+    // PUSH-BENACHRICHTIGUNGEN
+    // ============================================================
+    async function requestNotificationPermission() {
+        if (!('Notification' in window)) { showToast('❌ Benachrichtigungen nicht verfügbar'); return; }
+        const perm = await Notification.requestPermission();
+        updateNotifStatus(perm);
+        if (perm === 'granted') showToast('✅ Benachrichtigungen aktiviert');
+        else showToast('⚠️ Berechtigung nicht erteilt');
+    }
+
+    function updateNotifStatus(perm) {
+        const btn = document.getElementById('notif-btn');
+        const status = document.getElementById('notif-status');
+        if (!btn) return;
+        if (perm === 'granted') {
+            btn.textContent = '✅ Benachrichtigungen aktiv';
+            btn.className = 'w-full bg-green-50 text-green-700 font-bold py-3 rounded-xl text-sm';
+            if (status) status.textContent = 'Du wirst beim Öffnen der App an fällige Mazerationen erinnert.';
+        } else if (perm === 'denied') {
+            btn.textContent = '❌ Benachrichtigungen blockiert';
+            btn.className = 'w-full bg-red-50 text-red-600 font-bold py-3 rounded-xl text-sm';
+            if (status) status.textContent = 'In den Browser-Einstellungen freigeben.';
+        }
+    }
+
+    async function checkEndDateNotifications() {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        const protocols = await dbGetAll('protocols');
+        const today = new Date().toISOString().slice(0, 10);
+        const due = protocols.filter(p => p.macerationEndDate && p.macerationEndDate <= today && p.draft);
+        due.forEach(p => {
+            new Notification('🌿 Mazerat abziehen!', {
+                body: `${p.macerationName} (Charge ${p.batchNumber || '–'}) · Ende: ${(p.macerationEndDate || '').split('-').reverse().join('.')}`,
+                icon: './icons/icon-192.png',
+                tag: p.id,
+            });
+        });
+    }
+
+    // ============================================================
+    // JSON BACKUP / RESTORE
+    // ============================================================
+    async function exportAllJSON() {
+        const protocols = await dbGetAll('protocols');
+        const json = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), protocols }, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `mazeration-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`✅ ${protocols.length} Protokolle exportiert`);
+    }
+
+    async function importFromJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            const list = Array.isArray(data) ? data : (data.protocols || []);
+            let imported = 0;
+            for (const p of list) {
+                if (!p.id) continue;
+                const existing = await dbGet('protocols', p.id);
+                if (!existing) { await dbPut('protocols', p); imported++; }
+            }
+            showToast(`✅ ${imported} neue Protokolle importiert`);
+        } catch (e) {
+            showToast('❌ Import fehlgeschlagen – Datei prüfen');
+        }
+        event.target.value = '';
+    }
+
+    // ============================================================
     function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
     function showToast(msg, ms = 2500) {
         const t = document.getElementById('toast');
@@ -791,4 +1741,5 @@
     function setStatus(msg) { document.getElementById('status-bar').textContent = msg; }
     </script>
 </body>
+
 </html>

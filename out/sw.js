@@ -1,58 +1,55 @@
-// Service Worker für MazerationsMeister PWA - Vereinfachte Version
-const CACHE_NAME = 'mazerations-meister-v2';
+// Service Worker fuer MazerationsMeister PWA
+const CACHE_NAME = 'mazerations-meister-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/icon.ico',
-  '/images/gurktaler-logo.png'
+  '/images/gurktaler-logo.png',
+  '/mazeration-pwa.html',
+  '/mazeration-manifest.json'
 ];
 
-// Installation
 self.addEventListener('install', (event) => {
-  console.log('🔧 Service Worker: Installation');
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(
+      STATIC_ASSETS.filter(url => !url.includes('gurktaler-logo')) // Skip missing assets
+    ))
+  );
   self.skipWaiting();
 });
 
-// Aktivierung
 self.addEventListener('activate', (event) => {
-  console.log('🚀 Service Worker: Aktivierung');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
   );
 });
 
-// Vereinfachter Fetch-Handler
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests und Extensions
-  if (event.request.method !== 'GET' || 
-      event.request.url.startsWith('chrome-extension:')) {
-    return;
-  }
+  if (event.request.method !== 'GET' || event.request.url.startsWith('chrome-extension:')) return;
 
-  // Nur für statische Assets cachen
-  if (event.request.url.includes('/_next/static/') || 
-      event.request.url.endsWith('.ico') ||
-      event.request.url.endsWith('.png')) {
+  const url = event.request.url;
+  const shouldCache =
+    url.includes('/_next/static/') ||
+    url.endsWith('.ico') ||
+    url.endsWith('.png') ||
+    url.endsWith('mazeration-pwa.html') ||
+    url.endsWith('mazeration-manifest.json') ||
+    url.endsWith('tank-offline.html') ||
+    url.endsWith('tank-viewer.html');
+
+  if (shouldCache) {
     event.respondWith(
-      caches.match(event.request).then((response) => {
-        return response || fetch(event.request).then((fetchResponse) => {
-          const responseClone = fetchResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
-          return fetchResponse;
+      caches.match(event.request).then(cached => {
+        return cached || fetch(event.request).then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
+          return res;
         });
       })
     );
   }
 });
-
-console.log('� Service Worker: Geladen (Vereinfacht)');

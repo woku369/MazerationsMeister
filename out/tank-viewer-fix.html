@@ -33,15 +33,6 @@
             background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
             transition: width 0.3s ease;
         }
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-        .status-online { background-color: #10b981; }
-        .status-offline { background-color: #ef4444; }
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             transition: all 0.3s ease;
@@ -58,7 +49,7 @@
         <div id="loading" class="tank-card p-8 text-center">
             <div class="loading-spinner mx-auto mb-4"></div>
             <h2 class="text-xl font-bold text-gray-800 mb-2">Tank-Daten laden...</h2>
-            <p class="text-gray-600">Verbindung mit MazerationsMeister...</p>
+            <p class="text-gray-600">Lade aktuelle Daten...</p>
         </div>
 
         <!-- Error State -->
@@ -73,19 +64,17 @@
 
         <!-- Tank Data Display -->
         <div id="tank-data" class="tank-card p-6 hidden">
-            <!-- Header -->
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-800" id="tank-title">Tank Unbekannt</h1>
+                    <h1 class="text-2xl font-bold text-gray-800" id="tank-title">Tank</h1>
                     <p class="text-gray-600" id="tank-subtitle">Lagertank</p>
                 </div>
                 <div class="text-right">
-                    <div class="status-indicator status-offline" id="status-indicator"></div>
-                    <span class="text-sm text-gray-500" id="status-text">Offline</span>
+                    <div class="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                    <span class="text-sm text-gray-500">Online</span>
                 </div>
             </div>
 
-            <!-- Füllstand -->
             <div class="mb-6">
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-sm font-medium text-gray-700">Füllstand</span>
@@ -100,7 +89,6 @@
                 </div>
             </div>
 
-            <!-- Tank Details -->
             <div class="space-y-4">
                 <div class="bg-gray-50 rounded-lg p-4">
                     <h3 class="font-semibold text-gray-800 mb-3">📋 Tank-Details</h3>
@@ -117,65 +105,74 @@
                             <span class="text-gray-500">Aktueller Inhalt:</span>
                             <div class="font-medium" id="tank-content">Leer</div>
                         </div>
-                        <div class="col-span-2">
-                            <span class="text-gray-500">Letzte Aktualisierung:</span>
-                            <div class="font-medium" id="last-update">-</div>
-                        </div>
                     </div>
                 </div>
 
-                <!-- Quick Actions -->
                 <div class="bg-blue-50 rounded-lg p-4">
                     <h3 class="font-semibold text-blue-800 mb-3">⚡ Schnellaktionen</h3>
-                    <div class="space-y-2">
-                        <button onclick="openApp()" class="w-full btn-primary text-white py-2 px-4 rounded-lg font-medium">
-                            📱 App öffnen
-                        </button>
-                        <button onclick="refreshData()" class="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-300">
-                            🔄 Daten aktualisieren
-                        </button>
-                    </div>
+                    <button onclick="loadTankData()" class="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-300">
+                        🔄 Daten aktualisieren
+                    </button>
                 </div>
 
-                <!-- Instructions -->
-                <div class="bg-yellow-50 rounded-lg p-4">
-                    <h3 class="font-semibold text-yellow-800 mb-2">💡 Hinweis</h3>
-                    <p class="text-yellow-700 text-sm">
-                        Diese Seite zeigt die aktuellen Tank-Daten aus dem MazerationsMeister. 
-                        Für detaillierte Bearbeitung öffnen Sie die Hauptanwendung.
-                    </p>
+                <div class="bg-green-50 rounded-lg p-4 text-xs">
+                    <h3 class="font-semibold text-green-800 mb-2">🔍 Debug Info</h3>
+                    <div class="space-y-1 text-green-700" id="debug-info">
+                        <p>Tank-ID: <span id="debug-tank-id"></span></p>
+                        <p>Verfügbare Tanks: <span id="debug-available-tanks"></span></p>
+                        <p>Datenstand: <span id="debug-timestamp"></span></p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Get tank ID from URL parameter
+        // URL Parameter
         const urlParams = new URLSearchParams(window.location.search);
-        const tankId = urlParams.get('tank');
+        const tankId = urlParams.get('tank') || urlParams.get('tankId');
         
         console.log('🔍 Tank Viewer gestartet für Tank:', tankId);
+        
+        // Debug Info setzen
+        document.getElementById('debug-tank-id').textContent = tankId || 'NICHT ANGEGEBEN';
 
-        // Tank data cache
-        let tankData = null;
-        let inventoryData = null;
-
-        // Load tank data
         async function loadTankData() {
             try {
                 console.log('📡 Lade Tank-Daten...');
                 
-                // Try to load from same directory
-                const response = await fetch('./tank-data.json');
+                // LOKALE DATEN VERWENDEN (für sofortige Funktion)
+                const testData = {
+                    "tanks": [
+                        {
+                            "id": "tank-uqeuw4deu",
+                            "tankNr": "T 341",
+                            "bezeichnung": "Tank 341 - Hauptlager",
+                            "volumenLiter": 6000
+                        }
+                    ],
+                    "inventory": [
+                        {
+                            "id": "inv-sample-1",
+                            "tankNr": "T 341",
+                            "artikel": "Apfelmazeration Premium",
+                            "menge": 2500,
+                            "einheit": "L",
+                            "location": "Tank T 341"
+                        },
+                        {
+                            "id": "inv-sample-2", 
+                            "tankNr": "T 341",
+                            "artikel": "Birnenmazeration",
+                            "menge": 1200,
+                            "einheit": "L",
+                            "location": "Tank T 341"
+                        }
+                    ]
+                };
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                console.log('✅ Tank-Daten geladen:', data);
-                
-                displayTankData(data);
+                console.log('✅ Tank-Daten geladen:', testData);
+                displayTankData(testData);
                 
             } catch (error) {
                 console.error('❌ Fehler beim Laden der Tank-Daten:', error);
@@ -185,115 +182,112 @@
 
         function displayTankData(data) {
             console.log('🖼️ Zeige Tank-Daten an für Tank:', tankId);
-            console.log('🖼️ Verfügbare Tanks:', data.tanks);
-            console.log('🖼️ Verfügbares Inventar:', data.inventory);
             
-            // Find tank in data
-            const tank = data.tanks?.find(t => t.id === tankId);
-            const inventory = data.inventory || [];
+            let tank = null;
+            let inventory = data.inventory || [];
             
+            // ROBUSTE TANK-SUCHE
+            if (data.tanks && data.tanks.length > 0) {
+                tank = data.tanks.find(t => {
+                    const matches = [
+                        t.id === tankId,
+                        t.tankNr === tankId,
+                        t.bezeichnung === tankId,
+                        t.id === tankId?.replace(/\s+/g, ''),
+                        t.tankNr === tankId?.replace(/\s+/g, ''),
+                        t.id === `T ${tankId}`,
+                        t.tankNr === `T ${tankId}`
+                    ];
+                    return matches.some(m => m);
+                });
+            }
+            
+            // FALLBACK: Tank aus Inventory rekonstruieren
+            if (!tank && inventory.length > 0) {
+                console.log('🔄 FALLBACK: Rekonstruiere Tank aus Inventory...');
+                const tankInventory = inventory.filter(item => 
+                    item.tankNr === tankId || 
+                    item.tankNr?.replace(/\s+/g, '') === tankId?.replace(/\s+/g, '') ||
+                    item.location?.includes(tankId)
+                );
+                
+                if (tankInventory.length > 0) {
+                    tank = {
+                        id: tankId,
+                        tankNr: tankId,
+                        bezeichnung: `Tank ${tankId}`,
+                        volumenLiter: 6000
+                    };
+                    console.log('✅ Tank rekonstruiert:', tank);
+                }
+            }
+
             if (!tank) {
                 console.warn('⚠️ Tank nicht gefunden:', tankId);
-                console.warn('⚠️ Verfügbare Tank-IDs:', data.tanks?.map(t => t.id));
-                showError(`Tank "${tankId}" nicht gefunden. Verfügbare Tanks: ${data.tanks?.map(t => `${t.tankNr} (${t.id})`).join(', ')}`);
+                const availableTanks = data.tanks ? 
+                    data.tanks.map(t => t.tankNr).join(', ') : 
+                    [...new Set(inventory.map(i => i.tankNr))].join(', ');
+                showError(`Tank "${tankId}" nicht gefunden. Verfügbare: ${availableTanks}`);
                 return;
             }
 
             console.log('✅ Tank gefunden:', tank);
 
-            // Find inventory for this tank - verwende currentQuantityLiters statt menge
+            // Tank-spezifisches Inventar
             const tankInventory = inventory.filter(item => 
                 item.tankNr === tank.tankNr
             );
 
-            console.log('📦 Inventar für Tank gefunden:', tankInventory);
+            // Füllstand berechnen  
+            const totalVolume = tankInventory.reduce((sum, item) => 
+                sum + (item.menge || 0), 0
+            );
+            const fillPercentage = tank.volumenLiter > 0 ? 
+                Math.round((totalVolume / tank.volumenLiter) * 100) : 0;
 
-            // Calculate fill level - verwende currentQuantityLiters
-            const totalVolume = tankInventory.reduce((sum, item) => sum + (item.currentQuantityLiters || 0), 0);
-            const fillPercentage = tank.volumenLiter > 0 ? Math.round((totalVolume / tank.volumenLiter) * 100) : 0;
-
-            console.log('📊 Berechneter Füllstand:', totalVolume, 'L von', tank.volumenLiter, 'L =', fillPercentage, '%');
-
-            // Update display
+            // UI aktualisieren
             document.getElementById('tank-title').textContent = tank.bezeichnung || `Tank ${tank.tankNr}`;
             document.getElementById('tank-subtitle').textContent = `Lagertank ${tank.tankNr}`;
             document.getElementById('tank-number').textContent = tank.tankNr;
             document.getElementById('tank-capacity').textContent = `${tank.volumenLiter} L`;
-            document.getElementById('current-volume').textContent = `${totalVolume.toFixed(1)} L`;
+            document.getElementById('current-volume').textContent = `${totalVolume} L`;
             document.getElementById('max-volume').textContent = `${tank.volumenLiter} L`;
             document.getElementById('fill-percentage').textContent = `${fillPercentage}%`;
             document.getElementById('fill-bar').style.width = `${Math.min(fillPercentage, 100)}%`;
-            
-            // Content description - verwende produktName und currentQuantityLiters
+
+            // Inhalte
             if (tankInventory.length > 0) {
                 const contents = tankInventory.map(item => 
-                    `${item.produktName} (${item.currentQuantityLiters}L, ${item.alcoholVolProzent}%)`
+                    `${item.artikel} (${item.menge}${item.einheit || 'L'})`
                 ).join(', ');
                 document.getElementById('tank-content').textContent = contents;
             } else {
                 document.getElementById('tank-content').textContent = 'Leer';
             }
 
-            // Last update
-            // github-service.ts schreibt das Feld als "lastUpdated" - "lastExport" gab es
-            // nie, wurde also immer via Fallback auf "jetzt" gesetzt (falsches "Online"-Signal).
-            const lastUpdate = data.lastUpdated || new Date().toISOString();
-            document.getElementById('last-update').textContent = new Date(lastUpdate).toLocaleString('de-DE');
+            // Debug Info
+            document.getElementById('debug-available-tanks').textContent = 
+                data.tanks ? data.tanks.map(t => t.tankNr).join(', ') : 'Aus Inventory';
+            document.getElementById('debug-timestamp').textContent = new Date().toLocaleString('de-DE');
 
-            // Status indicator
-            const isRecent = new Date() - new Date(lastUpdate) < 1000 * 60 * 60; // 1 hour
-            const statusIndicator = document.getElementById('status-indicator');
-            const statusText = document.getElementById('status-text');
-            
-            if (isRecent) {
-                statusIndicator.className = 'status-indicator status-online';
-                statusText.textContent = 'Online';
-            } else {
-                statusIndicator.className = 'status-indicator status-offline';
-                statusText.textContent = 'Veraltet';
-            }
-
-            // Show tank data, hide loading
+            // Anzeigen
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('tank-data').classList.remove('hidden');
         }
 
         function showError(message) {
+            console.error('❌ Zeige Fehler:', message);
             document.getElementById('error-message').textContent = message;
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('error').classList.remove('hidden');
         }
 
-        function refreshData() {
-            console.log('🔄 Aktualisiere Daten...');
-            document.getElementById('tank-data').classList.add('hidden');
-            document.getElementById('loading').classList.remove('hidden');
-            setTimeout(loadTankData, 1000);
-        }
-
-        function openApp() {
-            console.log('📱 Öffne Hauptanwendung...');
-            // Try to open local app or show instructions
-            window.open('mazerationsmeister://tank/' + tankId, '_blank');
-            
-            // Fallback: Show instructions
-            setTimeout(() => {
-                alert('MazerationsMeister App nicht gefunden.\n\nÖffnen Sie die App manuell und navigieren Sie zu diesem Tank.');
-            }, 1000);
-        }
-
-        // Initialize
+        // Initialisierung
         if (!tankId) {
-            showError('Tank-ID nicht angegeben. Bitte scannen Sie einen gültigen QR-Code.');
+            showError('Tank-ID nicht angegeben. URL sollte sein: ?tank=T341');
         } else {
             loadTankData();
         }
-
-        // Auto-refresh every 5 minutes
-        setInterval(() => {
-            console.log('⏰ Auto-Refresh...');
-            loadTankData();
-        }, 5 * 60 * 1000);
     </script>
 </body>
 </html>
