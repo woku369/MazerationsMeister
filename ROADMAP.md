@@ -172,6 +172,36 @@ Unvoreingenommene Review der Lagerbestandsverwaltung und Buchungslogik, ausgelö
 
 > Arbeitsweise: ein Branch pro Aufgabe von `fresh-main`, lokal mit `npm run dev` testen, erst dann mergen. Reihenfolge 1→2→3 empfohlen, da 2 und 3 auf dem in 1 etablierten Buchungsmechanismus aufbauen. Aufgabe 7 und 8 sind jederzeit unabhängig als Lückenfüller machbar.
 
+### Phase 3.8: Cross-Modul-Kohärenz-Audit 🔴 KRITISCH (September 2026)
+
+Nach Abschluss von Phase 3.7 (alle 9 Aufgaben verifiziert) wurde ein zweiter, breiterer Check angefordert: Logik und Zusammenhang zwischen Mazeration (Klein-/Großmengen), Lagerbestandsverwaltung (Import/Export, Zugang/Abgang, LA) und Tankverwaltung (Visualisierung, Ein-/Ausgang, Lohnbrenner). Vollständiger Befund mit Datei/Zeilen-Belegen:
+
+📄 **`docs/REVIEW-2026-09-cross-modul-kohaerenz.md`**
+
+#### Aktive Bugs (nicht nur Architekturschwächen)
+- 🔴 **LA (Liter Absolutalkohol) wird bei keiner Buchung neu berechnet** und existiert in 3 widersprüchlichen Auswertungsvarianten gleichzeitig (`stock-service.ts`, `inventory-table.tsx`, `inventory-summary.tsx`, `inventory-management.tsx`)
+- 🔴 **`tank-viewer.html?view=all` zeigt für ALLE Tanks die Kapazität als Füllstand an** — das `hasUniqueNumber`-Flag, das die Seite braucht, wird beim Sync nie mitgeschickt
+- 🔴 **Faktor-1000-Fehler in der Sammelliste bei Kleinmengen-Protokollen** — Desktop-Schema fehlt `yieldVolumeUnit`, Sammelliste nimmt bei fehlendem Feld automatisch Liter an
+- 🔴 **Kumulativer XLSX-Export stürzt nach einem PWA-Import ab** — `allLoggedCalculatedValues` wird beim Import nicht mitgepflegt, nächster Export wirft TypeError
+
+#### Weitere Befunde
+- Tank-Zuordnung (`targetTankNr`, Import-`tankNr`) ist überall ungebundenes Freitextfeld — Tippfehler erzeugen stillschweigend Phantom-Tanks (5000L Standardgröße)
+- Zeitstempel-Bug in Tank-Viewer (`lastExport` vs. `lastUpdated`) — Anzeige zeigt immer "gerade eben", unabhängig vom tatsächlichen Sync-Alter
+- Lohnbrenner-Workflow (Gebinde raus/rein zum Fremdbrenner) ist im Datenmodell komplett nicht vorgesehen — echte Lücke, kein Bug
+- Klein-/Großmengen-Einheiten: Desktop zwangsgekoppelt, PWA frei kombinierbar — dieselbe fachliche Logik, unterschiedlich umgesetzt
+- Ausbeute-%-Framing driftet zwischen Desktop (nur "Verlust %") und PWA (zusätzlich "Ausbeute %")
+
+#### Aufgaben (siehe Review-Datei für vollständige Details)
+- [ ] **Aufgabe 10 – LA-Aktualisierung bei Buchung:** `StockService` berechnet `literAbsolutalkohol` bei jeder Mengenänderung konsistent neu, alle Auswertungsstellen vereinheitlichen
+- [ ] **Aufgabe 11 – Sammelliste Faktor-1000-Bug:** `yieldVolumeUnit` im Desktop-Schema ergänzen, Rückwärtskompatibilität für bestehende Protokolle ohne dieses Feld
+- [ ] **Aufgabe 12 – PWA-Import-Absturz beheben:** `allLoggedCalculatedValues` beim Import synchron mitpflegen, zusätzlich `generateCumulativeXlsx` defensiv gegen fehlende Einträge machen
+- [ ] **Aufgabe 13 – Tank-Viewer `?view=all` reparieren:** `hasUniqueNumber`-Flag korrekt durchreichen (Schema-Ergänzung nötig), Zeitstempel-Feldnamen vereinheitlichen
+- [ ] **Aufgabe 14 – Tank-Zuordnung validieren:** `targetTankNr` als Dropdown statt Freitext, Import-Warnung statt stiller Phantom-Tank-Erzeugung
+- [ ] **Aufgabe 15 – Lohnbrenner-Workflow:** erfordert vorab fachliche Klärung (einfacher Status vs. eigenes Bewegungsprotokoll), erst danach implementieren
+- [ ] **Aufgabe 16 – Klein-/Großmengen-Konsistenz:** bewusste Entscheidung Desktop vs. PWA-Verhalten, aktuell nur zufällig unterschiedlich
+
+> Priorität: Aufgabe 10–13 sind aktive Bugs mit falschen/abstürzenden Ergebnissen und sollten vor 14–16 behoben werden. Aufgabe 15 braucht eine Produktentscheidung, bevor Code geschrieben wird.
+
 ### Phase 4: Produktionsreife Implementierung 🚧
 
 #### 1. QR-Code Druckfunktion 🔴 AKTUELL
@@ -210,6 +240,7 @@ Unvoreingenommene Review der Lagerbestandsverwaltung und Buchungslogik, ausgelö
 ## Änderungsprotokoll
 
 ### September 2026
+- 🔴 **Cross-Modul-Kohärenz-Audit:** Mazeration/Lager/Tank modulübergreifend geprüft. 4 aktive Bugs gefunden (LA nie neu berechnet + 3 widersprüchliche Auswertungen, `?view=all` zeigt Kapazität als Füllstand für alle Tanks, Faktor-1000-Fehler in Sammelliste bei Kleinmengen, kumulativer XLSX-Export stürzt nach PWA-Import ab), plus Datenintegritäts- und Konsistenzlücken (Phantom-Tank-Erzeugung, Lohnbrenner-Workflow fehlt komplett). Details und Aufgaben 10–16 in Phase 3.8 und `docs/REVIEW-2026-09-cross-modul-kohaerenz.md`.
 - ✅ **Nachbesserung + zweite Gegenprüfung:** Aufgabe 4 (Tank-ID-Normalisierung) und Aufgabe 8 (Aufräumen) wurden in VS Code nachgebessert und erneut gegen den Code verifiziert – beide jetzt tatsächlich erledigt. `tank-data.json`: 0 von 50 Tanks mit `id !== tankNr` (vorher 41). Toter Code in `inventory-management.tsx` entfernt (1247 → 961 Zeilen). `webSecurity: true` in allen 4 Electron-Dateien. TypeScript kompiliert mit 0 Fehlern.
 - ⚠️ **Gegenprüfung „9 Aufgaben erledigt" (erste Runde):** VS-Code-Session meldete alle 9 Aufgaben aus Phase 3.7 als erledigt. Evidenzbasierte Prüfung gegen den tatsächlichen Code ergab: 4 sauber erledigt (1, 2, 6, 7), 3 teilweise mit Substanzverlust (3, 5, 9), 2 sachlich nicht erledigt trotz gegenteiliger Commit-Message (4, 8). Größter Einzelbefund: Aufgabe 4 (Tank-ID-Normalisierung) wurde nur umbenannt statt migriert – 41 von 50 Tanks in `tank-data.json` haben weiterhin `id !== tankNr`. Details je Aufgabe in Phase 3.7 oben.
 - 🔴 **Architektur-Review Lagerbestand & Buchungslogik:** kritischer Befund – Buchungsdialog aktualisiert `currentQuantityLiters` nicht, 5 unsynchronisierte Persistenzmechanismen, Tank-ID-Inkonsistenz nur kaschiert, Formeln 4–5× dupliziert. Details und Aufgabenliste in `docs/REVIEW-2026-09-lagerbestand-buchungslogik.md` und Phase 3.7 oben. Zwei Phase-3-Punkte als „behoben" korrigiert (Backup-Snapshots weiterhin 117 Dateien im Repo; XSS-Fix in `?view=all` regressiert).
