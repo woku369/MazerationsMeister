@@ -200,7 +200,7 @@ Nach Abschluss von Phase 3.7 (alle 9 Aufgaben verifiziert) wurde ein zweiter, br
 
 #### Aufgaben (siehe Review-Datei für vollständige Details)
 - [x] ✅ **Aufgabe 10 – LA-Aktualisierung bei Buchung:** Erledigt. `StockService` (`addEntry`/`updateEntry`/`applyTransaction`) berechnet `literAbsolutalkohol` jetzt bei jeder Mengen-/Konzentrationsänderung neu. Alle 3 Auswertungsstellen (Tabelle, Summary, Rohexport) rechnen jetzt konsistent live über `calcLA`. Neue Tests in `stock-service.test.ts`, dafür `vitest.config.ts` ergänzt (Alias-Auflösung fehlte).
-- [ ] **Aufgabe 11 – Sammelliste Faktor-1000-Bug:** `yieldVolumeUnit` im Desktop-Schema ergänzen, Rückwärtskompatibilität für bestehende Protokolle ohne dieses Feld
+- [x] ✅ **Aufgabe 11 – Sammelliste Faktor-1000-Bug:** Erledigt. `yieldVolumeUnit` im Desktop-Schema ergänzt, wird beim Speichern aus `plantWeightUnit` abgeleitet. Sammelliste (`getYieldUnit()`) leitet bei fehlendem Feld weiterhin korrekt aus `plantWeightUnit` ab statt fälschlich Liter anzunehmen — bereits gespeicherte Altprotokolle sind damit rückwirkend korrekt. Neue Tests für beide Fälle.
 - [ ] **Aufgabe 12 – PWA-Import-Absturz beheben:** `allLoggedCalculatedValues` beim Import synchron mitpflegen, zusätzlich `generateCumulativeXlsx` defensiv gegen fehlende Einträge machen
 - [ ] **Aufgabe 13 – Tank-Viewer `?view=all` reparieren:** `hasUniqueNumber`-Flag korrekt durchreichen (Schema-Ergänzung nötig), Zeitstempel-Feldnamen vereinheitlichen
 - [ ] **Aufgabe 14 – Tank-Zuordnung validieren:** `targetTankNr` als Dropdown statt Freitext, Import-Warnung statt stiller Phantom-Tank-Erzeugung
