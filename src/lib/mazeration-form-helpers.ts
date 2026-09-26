@@ -1,6 +1,13 @@
 import { differenceInMilliseconds, isValid } from 'date-fns';
 import { toVolumeLiters, calcLA } from './mazeration-calc';
 
+// Platzhalter für das leere Formular (PDF- und XLSX-Export)
+export const placeholderText = "____________________";
+export const placeholderDate = "__.__.____";
+export const placeholderTime = "__:__";
+export const placeholderNumber = "___,_";
+export const placeholderHours = "__,__ Std.";
+
 export const TARE_PER_CRATE_KG_FIXED = 2.00;
 
 export const getDerivedUnitsForProtocol = (plantWeightUnit?: 'g' | 'kg') => {
