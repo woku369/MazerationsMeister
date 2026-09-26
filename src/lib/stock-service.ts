@@ -1,6 +1,21 @@
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
+import { calcLA } from '@/lib/mazeration-calc';
 
 const STORAGE_KEY = 'inventoryItems';
+
+/**
+ * literAbsolutalkohol muss bei jeder Mengen-/Konzentrationsänderung neu
+ * berechnet werden, sonst läuft er gegenüber currentQuantityLiters auseinander
+ * (siehe docs/REVIEW-2026-09-cross-modul-kohaerenz.md, Befund B3/B4).
+ */
+function withRecalculatedLA(item: StoredInventoryItem): StoredInventoryItem {
+  return {
+    ...item,
+    literAbsolutalkohol: parseFloat(
+      calcLA(item.currentQuantityLiters ?? 0, item.alcoholVolProzent ?? 0).toFixed(2)
+    ),
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Pure transformation functions — no side effects, fully testable
@@ -10,7 +25,7 @@ export function addEntry(
   items: StoredInventoryItem[],
   item: StoredInventoryItem,
 ): StoredInventoryItem[] {
-  return [...items, item];
+  return [...items, withRecalculatedLA(item)];
 }
 
 export function removeEntry(
@@ -24,7 +39,8 @@ export function updateEntry(
   items: StoredInventoryItem[],
   updated: StoredInventoryItem,
 ): StoredInventoryItem[] {
-  return items.map(i => (i.id === updated.id ? updated : i));
+  const recalculated = withRecalculatedLA(updated);
+  return items.map(i => (i.id === recalculated.id ? recalculated : i));
 }
 
 export function applyTransaction(
@@ -37,11 +53,11 @@ export function applyTransaction(
     if (item.id !== id) return item;
     const current = item.currentQuantityLiters ?? 0;
     const next = type === 'Zugang' ? current + qty : current - qty;
-    return {
+    return withRecalculatedLA({
       ...item,
       currentQuantityLiters: Math.max(0, next),
       lastInventoryDate: new Date(),
-    };
+    });
   });
 }
 

@@ -858,7 +858,7 @@ export default function InventoryManagement() {
                           item.currentQuantityLiters,
                           item.alcoholVolProzent,
                           item.dichte20C,
-                          item.literAbsolutalkohol,
+                          calcLA(item.currentQuantityLiters, item.alcoholVolProzent),
                           item.lastInventoryDate ? (typeof item.lastInventoryDate === 'string' ? item.lastInventoryDate : (item.lastInventoryDate instanceof Date ? format(item.lastInventoryDate, 'yyyy-MM-dd') : '')) : '',
                           item.bemerkungen
                         ]);

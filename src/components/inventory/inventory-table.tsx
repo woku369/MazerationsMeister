@@ -243,11 +243,7 @@ export default function InventoryTable({ items, onDeleteItem, onEditItem, onReco
                   <TableCell className="text-right">{formatNumber(item.currentQuantityLiters)}</TableCell>
                   <TableCell className="text-right">{formatNumber(item.alcoholVolProzent, 1)}</TableCell>
                     <TableCell className="text-right">{item.dichte20C !== undefined ? formatNumber(item.dichte20C, 4) : '-'}</TableCell>
-                  <TableCell className="text-right">{
-                    item.literAbsolutalkohol !== undefined && item.literAbsolutalkohol !== null
-                      ? formatNumber(item.literAbsolutalkohol)
-                      : formatNumber(calcLA(item.currentQuantityLiters, item.alcoholVolProzent))
-                  }</TableCell>
+                  <TableCell className="text-right">{formatNumber(calcLA(item.currentQuantityLiters, item.alcoholVolProzent))}</TableCell>
                   <TableCell>{format(item.lastInventoryDate, 'dd.MM.yyyy')}</TableCell>
                   <TableCell>
                     {item.bemerkungen && item.bemerkungen.length > 30 ? (
