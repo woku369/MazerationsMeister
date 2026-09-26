@@ -14,6 +14,7 @@ import {
   calculateTaskDurationHours,
   calculateYieldAndLossDetails,
   calculateLADetails,
+  buildCalculatedValuesForImportedProtocol,
 } from '@/lib/mazeration-form-helpers';
 import { useCalculatedFormValues } from '@/hooks/use-calculated-form-values';
 import { generatePdf } from '@/lib/mazeration-pdf';
@@ -382,6 +383,13 @@ export default function MazerationForm() {
       }
 
       setLoggedProtocols(prev => [...prev, ...newProtocols]);
+      // allLoggedCalculatedValues muss synchron mitwachsen, sonst greift
+      // generateCumulativeXlsx beim naechsten Export mit undefined-Index daneben
+      // und stuerzt ab (siehe docs/REVIEW-2026-09-cross-modul-kohaerenz.md, Befund D5).
+      setAllLoggedCalculatedValues(prev => [
+        ...prev,
+        ...newProtocols.map(p => buildCalculatedValuesForImportedProtocol(p as unknown as Record<string, unknown>)),
+      ]);
       toast({
         title: `${newProtocols.length} Protokoll(e) importiert`,
         description: 'PWA-Protokolle wurden erfolgreich in die Desktop-App übernommen.',

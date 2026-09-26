@@ -168,6 +168,18 @@ export const generateSingleProtocolXlsx = (
 };
 
 
+// Sicherheitsnetz: falls allCalculatedValues aus irgendeinem Grund kürzer ist
+// als protocols (z.B. Datenmigration, manuelle localStorage-Bearbeitung),
+// soll der Export leere Werte für die Zeile schreiben statt abzustürzen.
+const FALLBACK_CALCULATED_VALUES: ReturnType<typeof useCalculatedFormValues>['calculatedValues'] = {
+  ratio: '1:X', macerationDuration: '0 Tage, 0 Stunden',
+  calculatedNetWeightKg: null, averageNetWeightPerCrateKg: null,
+  yieldDisplayUnit: 'l', lossAbsolute: null, lossPercentage: null, lossUnitDisplay: 'l',
+  eingesetzteLA: null, ausbeuteLA: null, verlustLA: null,
+  vorbereitungHours: null, verarbeitungKraeuterHours: null, verarbeitungMazeratHours: null,
+  reinigungHours: null, sonstigesHours: null, summeZeitaufzeichnungStunden: null,
+};
+
 // Function to generate CUMULATIVE XLSX (column-wise)
 export const generateCumulativeXlsx = (protocols: MazerationFormData[], allCalculatedValues: ReturnType<typeof useCalculatedFormValues>['calculatedValues'][]) => {
   const wb = XLSX.utils.book_new();
@@ -216,7 +228,7 @@ export const generateCumulativeXlsx = (protocols: MazerationFormData[], allCalcu
   rowHeaders.forEach(header => {
     const row: (string | number | undefined | null)[] = [header];
     protocols.forEach((protocol, index) => {
-      const calculatedValues = allCalculatedValues[index];
+      const calculatedValues = allCalculatedValues[index] ?? FALLBACK_CALCULATED_VALUES;
       const { calculatedNetWeightKg, averageNetWeightPerCrateKg } = calculateNetWeightDetailsForProtocol(protocol.numberOfCrates, protocol.grossWeightKg);
       const startDateTime = combineDateTime(protocol.macerationStart, protocol.macerationStartTime);
       const endDateTime = combineDateTime(protocol.macerationEnd, protocol.macerationEndTime);

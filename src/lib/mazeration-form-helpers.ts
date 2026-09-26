@@ -1,5 +1,8 @@
 import { differenceInMilliseconds, isValid } from 'date-fns';
-import { toVolumeLiters, calcLA } from './mazeration-calc';
+import { toVolumeLiters, calcLA, calculateNetWeightDetailsForProtocol } from './mazeration-calc';
+import type { useCalculatedFormValues } from '@/hooks/use-calculated-form-values';
+
+export type CalculatedValues = ReturnType<typeof useCalculatedFormValues>['calculatedValues'];
 
 // Platzhalter für das leere Formular (PDF- und XLSX-Export)
 export const placeholderText = "____________________";
@@ -151,3 +154,71 @@ export const calculateLADetails = (
 
   return { eingesetzteLA, ausbeuteLA, verlustLA };
 };
+
+/**
+ * Best-Effort calculatedValues für importierte Fremdprotokolle (z.B. PWA-Protokolle
+ * via GitHub-Import), die nie durch das Desktop-Formular liefen und daher kein
+ * zugehöriges calculatedValues aus dem Hook haben. Ohne dies laufen
+ * loggedProtocols/allLoggedCalculatedValues auseinander und
+ * generateCumulativeXlsx stürzt beim nächsten Export ab (siehe
+ * docs/REVIEW-2026-09-cross-modul-kohaerenz.md, Befund D5).
+ *
+ * Berechnet nur Werte aus rein numerischen Feldern, deren Namen zwischen
+ * PWA- und Desktop-Protokollen übereinstimmen (Ratio, Nettogewicht, Verlust,
+ * LA). Dauer/Zeitaufzeichnung-Stunden bleiben bewusst leer, da PWA und
+ * Desktop unterschiedliche Datumsfeld-Namen verwenden (z.B.
+ * macerationStartDate vs. macerationStart) — eine falsch berechnete Dauer
+ * wäre schlimmer als eine fehlende.
+ */
+export function buildCalculatedValuesForImportedProtocol(raw: Record<string, unknown>): CalculatedValues {
+  const plantWeightUnit = raw?.plantWeightUnit as 'g' | 'kg' | undefined;
+  const alcoholVolumeUnit = raw?.alcoholVolumeUnit as 'ml' | 'l' | undefined;
+  const { yieldUnit, lossUnit } = getDerivedUnitsForProtocol(plantWeightUnit);
+
+  const { calculatedNetWeightKg, averageNetWeightPerCrateKg } = calculateNetWeightDetailsForProtocol(
+    parseFormNumber(raw?.numberOfCrates),
+    parseFormNumber(raw?.grossWeightKg),
+    parseFormNumber(raw?.tarePerCrateKg) ?? TARE_PER_CRATE_KG_FIXED,
+    parseFormNumber(raw?.numberOfPallets),
+    parseFormNumber(raw?.tarePerPalletKg),
+  );
+
+  const { lossAbsolute, lossPercentage } = calculateYieldAndLossDetails(
+    plantWeightUnit,
+    parseFormNumber(raw?.alcoholVolume),
+    alcoholVolumeUnit,
+    parseFormNumber(raw?.yieldVolume),
+  );
+
+  const { eingesetzteLA, ausbeuteLA, verlustLA } = calculateLADetails(
+    plantWeightUnit,
+    parseFormNumber(raw?.alcoholVolume),
+    parseFormNumber(raw?.alcoholConcentration),
+    alcoholVolumeUnit,
+    parseFormNumber(raw?.yieldVolume),
+    parseFormNumber(raw?.endConcentration),
+  );
+
+  return {
+    ratio: calculateRatioDetails(
+      parseFormNumber(raw?.plantWeight), plantWeightUnit,
+      parseFormNumber(raw?.alcoholVolume), alcoholVolumeUnit,
+    ),
+    macerationDuration: '0 Tage, 0 Stunden',
+    calculatedNetWeightKg,
+    averageNetWeightPerCrateKg,
+    yieldDisplayUnit: yieldUnit,
+    lossAbsolute,
+    lossPercentage,
+    lossUnitDisplay: lossUnit,
+    eingesetzteLA,
+    ausbeuteLA,
+    verlustLA,
+    vorbereitungHours: null,
+    verarbeitungKraeuterHours: null,
+    verarbeitungMazeratHours: null,
+    reinigungHours: null,
+    sonstigesHours: null,
+    summeZeitaufzeichnungStunden: null,
+  };
+}
