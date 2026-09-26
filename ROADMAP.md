@@ -178,6 +178,13 @@ Nach Abschluss von Phase 3.7 (alle 9 Aufgaben verifiziert) wurde ein zweiter, br
 
 📄 **`docs/REVIEW-2026-09-cross-modul-kohaerenz.md`**
 
+#### Fachlicher Kontext (Klärungsrunde 25.09.2026)
+1. **Lager:** Tanklager mit Mazeraten/Destillaten in Tanks, Containern, Fässern, Ballons, Flaschen. Bestandsware, 1× jährlich amtlich inventiert (zollgeprüft) — dafür wird eine Liste importiert.
+2. **Mazerationen:** "Große" Mazerationen (Kisten/Litermengen) sind buchungs-, zoll- und inventurrelevant — Sprit wird abgebucht, Mazerat zugebucht. "Kleine" Mazerationen (Versuchsmaßstab) sind **nicht** buchungsrelevant. Entscheidung: bleibt rein manuell unterschieden (Tank-Feld bei kleinen Versuchen einfach leer lassen), kein neues Maßstab-Feld im Code.
+3. **Destillation Lohnbrand:** Mazerate verlassen das Haus in Containern/Fässern, werden extern destilliert, kommen als Destillate zurück. Buchungs- und zollrelevant. Entscheidung: eigener "Lohnbrand-Auftrag"-Datensatz mit Status-Tracking (siehe Aufgabe 15).
+4. **GFKC:** Wird aus Einzelkomponenten des Lagerbestands ausgemischt, gelagert, verlässt tranchenweise das Haus (Abgang, kommt nicht zurück). Buchungs- und zollrelevant. Entscheidung: neue Verschnitt-Buchungsfunktion nötig (siehe Aufgabe 17) — das bereits existierende "Reichweitenanalyse"-Konzept auf `pages-clean` ist ein Planungstool, keine Buchungsfunktion.
+5. **Mazeration↔Lager-Anbindung:** Muss nicht sein, kann aber — bestätigt die aktuelle Umsetzung (optionaler Bestätigungsdialog, Aufgabe 2) als richtig.
+
 #### Aktive Bugs (nicht nur Architekturschwächen)
 - 🔴 **LA (Liter Absolutalkohol) wird bei keiner Buchung neu berechnet** und existiert in 3 widersprüchlichen Auswertungsvarianten gleichzeitig (`stock-service.ts`, `inventory-table.tsx`, `inventory-summary.tsx`, `inventory-management.tsx`)
 - 🔴 **`tank-viewer.html?view=all` zeigt für ALLE Tanks die Kapazität als Füllstand an** — das `hasUniqueNumber`-Flag, das die Seite braucht, wird beim Sync nie mitgeschickt
@@ -197,10 +204,11 @@ Nach Abschluss von Phase 3.7 (alle 9 Aufgaben verifiziert) wurde ein zweiter, br
 - [ ] **Aufgabe 12 – PWA-Import-Absturz beheben:** `allLoggedCalculatedValues` beim Import synchron mitpflegen, zusätzlich `generateCumulativeXlsx` defensiv gegen fehlende Einträge machen
 - [ ] **Aufgabe 13 – Tank-Viewer `?view=all` reparieren:** `hasUniqueNumber`-Flag korrekt durchreichen (Schema-Ergänzung nötig), Zeitstempel-Feldnamen vereinheitlichen
 - [ ] **Aufgabe 14 – Tank-Zuordnung validieren:** `targetTankNr` als Dropdown statt Freitext, Import-Warnung statt stiller Phantom-Tank-Erzeugung
-- [ ] **Aufgabe 15 – Lohnbrenner-Workflow:** erfordert vorab fachliche Klärung (einfacher Status vs. eigenes Bewegungsprotokoll), erst danach implementieren
-- [ ] **Aufgabe 16 – Klein-/Großmengen-Konsistenz:** bewusste Entscheidung Desktop vs. PWA-Verhalten, aktuell nur zufällig unterschiedlich
+- [ ] **Aufgabe 15 – Lohnbrenner-Workflow:** ✅ Entschieden (Klärungsrunde 25.09.2026) — eigener "Lohnbrand-Auftrag"-Datensatz: Ausgangsmenge/-datum/Lohnbrenner-Name, Status "unterwegs", später Rücklaufmenge/-datum. Noch zu implementieren.
+- [ ] **Aufgabe 16 – Klein-/Großmengen-Konsistenz:** ✅ Entschieden — bleibt wie bisher rein manuell (Tank-Zuordnung bei kleinen Versuchen einfach leer lassen), kein neues Maßstab-Feld. Kein Code-Änderungsbedarf, nur dokumentiert.
+- [ ] **Aufgabe 17 – GFKC-Verschnitt-Buchung (NEU):** Eigener Vorgang: mehrere Lagerposten werden verbraucht, ein neuer Posten entsteht, der per normalem Abgang tranchenweise reduziert wird. **Wichtig:** Das bereits konzipierte/teilweise implementierte "Reichweitenanalyse"-Feature auf Branch `pages-clean` (`docs/REICHWEITENANALYSE_KONZEPT.md`, `src/lib/range-calculator.ts`, `src/app/reichweite/`) ist ein **Planungs-/Prognose-Tool** ("wie lange reichen die Vorräte") mit fertiger FIFO-Gebinde-Empfehlungslogik (`ContainerRecommendation`) — aber **keine Ausführungs-/Buchungsfunktion**. Für Aufgabe 17 muss die eigentliche Verschnitt-Buchung (Verbrauch + neuer Posten + Tranchen-Abgang) neu entworfen werden, kann sich aber an der vorhandenen FIFO-Logik orientieren.
 
-> Priorität: Aufgabe 10–13 sind aktive Bugs mit falschen/abstürzenden Ergebnissen und sollten vor 14–16 behoben werden. Aufgabe 15 braucht eine Produktentscheidung, bevor Code geschrieben wird.
+> Priorität (bestätigt 25.09.2026): Aufgabe 10–13 zuerst (aktive Bugs mit falschen/abstürzenden Ergebnissen), da heute schon spürbar. Aufgabe 14–17 (inkl. Lohnbrand und GFKC-Verschnitt) danach als größeres Vorhaben.
 
 ### Phase 4: Produktionsreife Implementierung 🚧
 
