@@ -1,7 +1,6 @@
-
+﻿
 
 "use client";
-let lastProduktName = '';
 
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
@@ -27,11 +26,11 @@ import * as StockService from '@/lib/stock-service';
 import { calcLA } from '@/lib/mazeration-calc';
 
 export default function InventoryManagement() {
-  // State für erkannte Spalten und Import-Warnungen
+  // State fÃ¼r erkannte Spalten und Import-Warnungen
   const [importHeaders, setImportHeaders] = useState<string[]>([]);
   const [importHeaderWarnings, setImportHeaderWarnings] = useState<string[]>([]);
   
-  // Hilfsfunktion zum Löschen aller Artikeldefinitionen (nur bei expliziter Anforderung)
+  // Hilfsfunktion zum LÃ¶schen aller Artikeldefinitionen (nur bei expliziter Anforderung)
   const clearArtikelDefinitionen = () => {
     setArtikelDefinitionen([]);
     if (typeof window !== 'undefined') {
@@ -56,7 +55,7 @@ export default function InventoryManagement() {
     }
   }, []);
 
-  // State für Artikeldefinitionen (aus LocalStorage)
+  // State fÃ¼r Artikeldefinitionen (aus LocalStorage)
   // ...existing code...
   const [artikelDefinitionen, setArtikelDefinitionen] = useState<ArtikelDefinition[]>(() => {
     if (typeof window !== 'undefined') {
@@ -67,7 +66,7 @@ export default function InventoryManagement() {
     }
     return [];
   });
-  // State für Lagerartikel
+  // State fÃ¼r Lagerartikel
   const [inventoryItems, setInventoryItems] = useState<StoredInventoryItem[]>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('inventoryItems');
@@ -77,7 +76,7 @@ export default function InventoryManagement() {
     }
     return [];
   });
-  // State für Transaktionen
+  // State fÃ¼r Transaktionen
   const [inventoryTransactions, setInventoryTransactions] = useState<InventoryTransaction[]>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('inventoryTransactions');
@@ -101,9 +100,9 @@ export default function InventoryManagement() {
   const [editingItem, setEditingItem] = useState<StoredInventoryItem | null>(null);
   const [editingArtikelDefinition, setEditingArtikelDefinition] = useState<ArtikelDefinition | null>(null);
   const [itemForTransaction, setItemForTransaction] = useState<StoredInventoryItem | null>(null);
-  // Flag, ob gerade ein Import läuft
+  // Flag, ob gerade ein Import lÃ¤uft
   const [isImporting, setIsImporting] = useState(false);
-  // Synchronisiere Kennzeichen in allen Lagerartikeln, wenn sich der Artikelstamm ändert und kein Import läuft
+  // Synchronisiere Kennzeichen in allen Lagerartikeln, wenn sich der Artikelstamm Ã¤ndert und kein Import lÃ¤uft
   useEffect(() => {
     if (isImporting) return;
     if (artikelDefinitionen.length === 0 || inventoryItems.length === 0) return;
@@ -119,7 +118,7 @@ export default function InventoryManagement() {
 
   const { toast } = useToast();
 
-  // Automatisches Speichern im localStorage bei Änderungen
+  // Automatisches Speichern im localStorage bei Ã„nderungen
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('inventoryItems', JSON.stringify(inventoryItems));
@@ -138,7 +137,7 @@ export default function InventoryManagement() {
     }
   }, [inventoryTransactions]);
 
-  // XLSX Import für Artikelstamm und Lagerbestand
+  // XLSX Import fÃ¼r Artikelstamm und Lagerbestand
   const handleImportXLSX = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -161,17 +160,17 @@ export default function InventoryManagement() {
 
         const normalize = (s: any) => ('' + (s || '')).toLowerCase().replace(/\s+/g, '').replace(/\u00A0/g, '');
 
-        // Aliases für App-Felder
+        // Aliases fÃ¼r App-Felder
         const COLUMN_ALIASES: Record<string, string[]> = {
           artikelNummer: ['artikel-nr.', 'artnr', 'artikelnummer', 'art.-nr', 'artnr.'],
           produktName: ['produktname', 'sorte', 'prod', 'produkt'],
           chargenNummer: ['charge', 'chargen', 'chargen-nummer'],
           category: ['kategorie', 'prod', 'category'],
           kennzeichen: ['kennzeichen', 'merkmal', 'zeichen'],
-          tankNr: ['tank-nr.', 'tanknr', 'behälter', 'behaelter'],
+          tankNr: ['tank-nr.', 'tanknr', 'behÃ¤lter', 'behaelter'],
           currentQuantityLiters: ['menge(l)', 'menge/lt', 'menge lt', 'menge/ l', 'menge/ l', 'menge/lt.', 'menge/kg', 'menge/kg.'],
           alcoholVolProzent: ['alkoholvol%', 'alk.%vol', 'alkoholvol', 'vol%', 'vol'],
-          dichte20C: ['dichte20c', 'dichte20°c', 'dichte 20°c', 'spez.', 'spez', 'dichte'],
+          dichte20C: ['dichte20c', 'dichte20Â°c', 'dichte 20Â°c', 'spez.', 'spez', 'dichte'],
           literAbsolutalkohol: ['literabsolutalkohol', 'l absolutalk.', 'la'],
           lastInventoryDate: ['inventurdatum', 'letztebuchung', 'datum', 'stichtag'],
           bemerkungen: ['bemerkungen', 'notiz', 'info', 'bemerkung'],
@@ -190,12 +189,12 @@ export default function InventoryManagement() {
           if (found !== undefined && found !== -1) appFieldIndex[field] = found;
         });
 
-        // Prüfe, ob es sich um Artikelstamm- oder Lagerbestand-Import handelt
+        // PrÃ¼fe, ob es sich um Artikelstamm- oder Lagerbestand-Import handelt
         const isArtikelStammImport = typeof appFieldIndex['produktName'] === 'number' && typeof appFieldIndex['artikelNummer'] === 'number';
         const isLagerbestandImport = typeof appFieldIndex['chargenNummer'] === 'number' && (typeof appFieldIndex['currentQuantityLiters'] === 'number' || normalizedHeader.includes('menge/kg'));
 
         const rawRows = Array.isArray(json) && json.length > dataStartIndex ? json.slice(dataStartIndex) : [];
-        // Bereinige Reihen: nur Arrays, trim Strings und entferne vollständig leere Zeilen
+        // Bereinige Reihen: nur Arrays, trim Strings und entferne vollstÃ¤ndig leere Zeilen
         const rows: any[][] = rawRows
           .filter(r => Array.isArray(r))
           .map(r => (r as any[]).map(cell => (typeof cell === 'string' ? cell.trim() : cell)))
@@ -223,7 +222,7 @@ export default function InventoryManagement() {
             };
           }).filter(a => a.produktName && String(a.produktName).trim() !== '');
           setArtikelDefinitionen(neueArtikelDefinitionen);
-          toast({ title: 'Artikelstamm importiert', description: `${neueArtikelDefinitionen.length} Artikel wurden zum Artikelstamm hinzugefügt.` });
+          toast({ title: 'Artikelstamm importiert', description: `${neueArtikelDefinitionen.length} Artikel wurden zum Artikelstamm hinzugefÃ¼gt.` });
           setIsImporting(false);
           return;
         }
@@ -231,7 +230,7 @@ export default function InventoryManagement() {
         if (isLagerbestandImport) {
           const neueInventoryItems: StoredInventoryItem[] = rows.map((row: any[]) => {
             const getByField = (f: string) => (typeof appFieldIndex[f] === 'number' ? row[appFieldIndex[f]] : undefined);
-            // Versuch: falls Menge in kg statt lt geliefert wird, wir übernehmen Wert trotzdem (Anpassung kann später erfolgen)
+            // Versuch: falls Menge in kg statt lt geliefert wird, wir Ã¼bernehmen Wert trotzdem (Anpassung kann spÃ¤ter erfolgen)
             const mengeLtRaw = getByField('currentQuantityLiters');
             const mengeKgRaw = normalizedHeader.includes('menge/kg') ? row[normalizedHeader.indexOf('menge/kg')] : undefined;
             const menge = parseNumber(mengeLtRaw ?? mengeKgRaw) ?? 0;
@@ -257,7 +256,7 @@ export default function InventoryManagement() {
             } as StoredInventoryItem;
           }).filter(i => i.produktName && String(i.produktName).trim() !== '');
           setInventoryItems(neueInventoryItems);
-          toast({ title: 'Lagerbestand importiert', description: `${neueInventoryItems.length} Lagerartikel wurden hinzugefügt.` });
+          toast({ title: 'Lagerbestand importiert', description: `${neueInventoryItems.length} Lagerartikel wurden hinzugefÃ¼gt.` });
           
           // Tank-Definitionen automatisch synchronisieren nach dem Import
           syncTankDefinitionsWithInventory();
@@ -268,13 +267,13 @@ export default function InventoryManagement() {
 
         // Wenn kein Typ erkannt wurde
         setImportHeaderWarnings([`Die Datei konnte nicht eindeutig als Artikelstamm oder Lagerbestand erkannt werden. Gefundene Header: ${header.join(', ')}`]);
-        toast({ title: 'Import fehlgeschlagen', description: 'Die Datei hat nicht das erwartete Format. Bitte überprüfen Sie die Datei und versuchen Sie es erneut.', variant: 'destructive' });
+        toast({ title: 'Import fehlgeschlagen', description: 'Die Datei hat nicht das erwartete Format. Bitte Ã¼berprÃ¼fen Sie die Datei und versuchen Sie es erneut.', variant: 'destructive' });
         setIsImporting(false);
       } catch (err) {
         console.error('Import-Fehler', err);
         toast({ title: 'Import fehlgeschlagen', description: 'Fehler beim Verarbeiten der Datei.', variant: 'destructive' });
       } finally {
-        // Immer Import-Flag resetten und File-Input zurücksetzen
+        // Immer Import-Flag resetten und File-Input zurÃ¼cksetzen
         try { setIsImporting(false); } catch (e) {}
         try { if (input) input.value = ''; } catch (e) {}
       }
@@ -289,8 +288,8 @@ export default function InventoryManagement() {
   const handleDeleteItem = (itemId: string) => {
     setInventoryItems(prev => StockService.removeEntry(prev, itemId));
     toast({
-      title: 'Artikelcharge gelöscht',
-      description: `Die Artikelcharge wurde aus dem Lagerbestand entfernt. Zugehörige Transaktionen bleiben im Protokoll.`,
+      title: 'Artikelcharge gelÃ¶scht',
+      description: `Die Artikelcharge wurde aus dem Lagerbestand entfernt. ZugehÃ¶rige Transaktionen bleiben im Protokoll.`,
       variant: 'destructive'
     });
   };
@@ -320,16 +319,16 @@ export default function InventoryManagement() {
       };
     });
     setArtikelDefinitionen(prev => [...prev, ...neueArtikel]);
-    toast({ title: 'Artikelstamm aktualisiert', description: `${neueArtikel.length} Produkte aus Lagerbestand übernommen.` });
+    toast({ title: 'Artikelstamm aktualisiert', description: `${neueArtikel.length} Produkte aus Lagerbestand Ã¼bernommen.` });
   }, [inventoryItems]);
-  // Handler für Kopieren der Warnungen (muss im Komponenten-Body stehen)
+  // Handler fÃ¼r Kopieren der Warnungen (muss im Komponenten-Body stehen)
   const handleCopyWarnings = () => {
     if (importWarnings.length > 0) {
       navigator.clipboard.writeText(importWarnings.join('\n'));
       toast({ title: 'Warnungen kopiert', description: 'Die Warnungen wurden in die Zwischenablage kopiert.' });
     }
   };
-  // XLSX Export für Artikelübersicht
+  // XLSX Export fÃ¼r ArtikelÃ¼bersicht
   const generateSummaryXlsx = (itemsToSummarize: StoredInventoryItem[]) => {
     const wb = XLSX.utils.book_new();
     const sheetData: (string | number | undefined | null)[][] = [];
@@ -387,14 +386,14 @@ export default function InventoryManagement() {
         XLSX.writeFile(wb, exportPath);
 
         // Dialog mit Auswahl
-        const auswahl = window.prompt('Export erfolgreich! Was möchten Sie tun?\n1 = Datei öffnen\n2 = Exportordner öffnen\nAbbrechen = nichts tun', '');
+        const auswahl = window.prompt('Export erfolgreich! Was mÃ¶chten Sie tun?\n1 = Datei Ã¶ffnen\n2 = Exportordner Ã¶ffnen\nAbbrechen = nichts tun', '');
         if (auswahl === '1') {
           shell.openPath(exportPath);
         } else if (auswahl === '2') {
           shell.openPath(exportDir);
         }
       } catch (err) {
-        // Fehler beim Öffnen ignorieren
+        // Fehler beim Ã–ffnen ignorieren
       }
     } else {
       // Fallback: Standardverhalten
@@ -402,12 +401,12 @@ export default function InventoryManagement() {
     }
 
     toast({
-      title: "Lagerübersicht Exportiert",
-      description: `Die Lagerübersicht wurde als XLSX-Datei im Exportordner (${exportDir || 'Arbeitsverzeichnis'}) gespeichert.`,
+      title: "LagerÃ¼bersicht Exportiert",
+      description: `Die LagerÃ¼bersicht wurde als XLSX-Datei im Exportordner (${exportDir || 'Arbeitsverzeichnis'}) gespeichert.`,
     });
   };
 
-  // XLSX Export für Transaktionsprotokoll
+  // XLSX Export fÃ¼r Transaktionsprotokoll
   const generateTransactionXlsx = (transactionsToExport: InventoryTransaction[]) => {
     const wb = XLSX.utils.book_new();
     const sheetData: (string | number | undefined | null)[][] = [];
@@ -433,7 +432,7 @@ export default function InventoryManagement() {
       description: "Das Transaktionsprotokoll wurde als XLSX-Datei heruntergeladen.",
     });
   };
-  // Handler für Artikeldefinition löschen
+  // Handler fÃ¼r Artikeldefinition lÃ¶schen
   const handleDeleteArtikelDefinition = (definitionId: string) => {
     setArtikelDefinitionen(prevDefs => {
       const updated = prevDefs.filter(def => def.id !== definitionId);
@@ -443,20 +442,20 @@ export default function InventoryManagement() {
       return updated;
     });
     toast({
-      title: 'Artikeldefinition gelöscht',
+      title: 'Artikeldefinition gelÃ¶scht',
       description: `Die Artikeldefinition wurde aus dem Artikelstamm entfernt.`,
       variant: 'destructive'
     });
   };
 
-  // Handler für Export Summary
+  // Handler fÃ¼r Export Summary
   const handleExportSummary = () => {
     // ...implementiere Export-Logik oder rufe vorhandene Funktion auf...
     // Annahme: generateSummaryXlsx ist vorhanden
     if (inventoryItems.length === 0) {
       toast({
         title: "Keine Daten zum Exportieren",
-        description: "Es sind keine Lagerartikel zum Erstellen einer Übersicht vorhanden.",
+        description: "Es sind keine Lagerartikel zum Erstellen einer Ãœbersicht vorhanden.",
         variant: "destructive",
       });
       return;
@@ -464,7 +463,7 @@ export default function InventoryManagement() {
     generateSummaryXlsx(inventoryItems);
   };
 
-  // Handler für Export Transactions
+  // Handler fÃ¼r Export Transactions
   const handleExportTransactions = () => {
     if (inventoryTransactions.length === 0) {
       toast({
@@ -477,7 +476,7 @@ export default function InventoryManagement() {
     generateTransactionXlsx(inventoryTransactions);
   };
 
-  // Handler für Save Item
+  // Handler fÃ¼r Save Item
   const handleSaveItem = (itemData: any) => {
     if (itemData.id) {
       const updatedItem: StoredInventoryItem = {
@@ -511,22 +510,22 @@ export default function InventoryManagement() {
       };
       setInventoryItems(prev => StockService.addEntry(prev, newItem));
       toast({
-        title: 'Artikelcharge hinzugefügt',
-        description: `${newItem.produktName} (${newItem.artikelNummer} / ${newItem.chargenNummer || 'N/A'}) wurde zum Lagerbestand hinzugefügt.`,
+        title: 'Artikelcharge hinzugefÃ¼gt',
+        description: `${newItem.produktName} (${newItem.artikelNummer} / ${newItem.chargenNummer || 'N/A'}) wurde zum Lagerbestand hinzugefÃ¼gt.`,
       });
     }
     
     // Tank-Definitionen automatisch synchronisieren nach dem Speichern
     syncTankDefinitionsWithInventory();
     
-    // Dialog schließen
+    // Dialog schlieÃŸen
     setIsAddEditDialogOpen(false);
     setEditingItem(null);
   };
 
-  // Handler für Save Artikeldefinition
+  // Handler fÃ¼r Save Artikeldefinition
   const handleSaveArtikelDefinition = (definitionData: ArtikelDefinitionFormInput) => {
-    // Nur prüfen, wenn eine Artikelnummer eingegeben wurde (nicht leer, nicht undefined)
+    // Nur prÃ¼fen, wenn eine Artikelnummer eingegeben wurde (nicht leer, nicht undefined)
     const artikelNummerTrimmed = (definitionData.artikelNummer ?? '').trim();
     let isDuplicateArtikelNummer = false;
     if (artikelNummerTrimmed.length > 0) {
@@ -536,7 +535,7 @@ export default function InventoryManagement() {
       if (isDuplicateArtikelNummer) {
         toast({
           title: 'Fehler: Artikelnummer existiert bereits',
-          description: `Die Artikelnummer "${artikelNummerTrimmed}" wird bereits für einen anderen Artikel verwendet. Bitte wählen Sie eine eindeutige Artikelnummer.`,
+          description: `Die Artikelnummer "${artikelNummerTrimmed}" wird bereits fÃ¼r einen anderen Artikel verwendet. Bitte wÃ¤hlen Sie eine eindeutige Artikelnummer.`,
           variant: 'destructive'
         });
         return;
@@ -569,13 +568,13 @@ export default function InventoryManagement() {
       };
       setArtikelDefinitionen(prevDefs => [...prevDefs, newDefinition]);
       toast({
-        title: 'Artikeldefinition hinzugefügt',
-        description: `Neuer Artikel "${newDefinition.produktName}" (${newDefinition.artikelNummer}) wurde zum Artikelstamm hinzugefügt.`
+        title: 'Artikeldefinition hinzugefÃ¼gt',
+        description: `Neuer Artikel "${newDefinition.produktName}" (${newDefinition.artikelNummer}) wurde zum Artikelstamm hinzugefÃ¼gt.`
       });
     }
     handleCloseArtikelDefinitionDialog();
   };
-  // Handler für Artikeldefinition-Dialog
+  // Handler fÃ¼r Artikeldefinition-Dialog
   const handleOpenArtikelDefinitionDialogForNew = () => {
     setEditingArtikelDefinition(null);
     setIsArtikelDefinitionDialogOpen(true);
@@ -590,7 +589,7 @@ export default function InventoryManagement() {
     setEditingArtikelDefinition(null);
   };
 
-  // Handler für Transaktions-Dialog
+  // Handler fÃ¼r Transaktions-Dialog
   const handleOpenTransactionDialog = (item: StoredInventoryItem, type: 'Zugang' | 'Abgang') => {
     setItemForTransaction(item);
     setCurrentTransactionType(type);
@@ -630,7 +629,7 @@ export default function InventoryManagement() {
     handleCloseTransactionDialog();
   };
   useEffect(() => { setClientMounted(true); }, []);
-  // DEAKTIVIERT: Automatisches Laden verhindert, da es importierte Daten überschreibt
+  // DEAKTIVIERT: Automatisches Laden verhindert, da es importierte Daten Ã¼berschreibt
   // Verwenden Sie stattdessen den manuellen "Daten aus Speicherpfad importieren" Button
   /*
   useEffect(() => {
@@ -661,7 +660,7 @@ export default function InventoryManagement() {
   }, [localExportPath, oneDrivePath]);
   */
 
-  // Ergänze die Funktion saveAllData im Komponenten-Scope
+  // ErgÃ¤nze die Funktion saveAllData im Komponenten-Scope
   const saveAllData = () => {
     // Beispiel: Daten speichern
     localStorage.setItem('artikelDefinitionen', JSON.stringify(artikelDefinitionen));
@@ -694,7 +693,7 @@ export default function InventoryManagement() {
           toast({ title: 'Backup gespeichert', description: `Backup als ${exportPath} gespeichert.` });
           return;
         } catch (err) {
-          // Falls Schreiben mit Electron fehlschlägt, fallthrough zum Browser-Download
+          // Falls Schreiben mit Electron fehlschlÃ¤gt, fallthrough zum Browser-Download
           console.warn('Electron write failed, fallback to browser download', err);
         }
       }
@@ -731,7 +730,7 @@ export default function InventoryManagement() {
       )}
       {isImporting && (
         <div className="fixed top-0 left-0 w-full bg-yellow-100 text-yellow-900 text-center py-2 z-50 shadow">
-          <span>Import läuft ... bitte warten</span>
+          <span>Import lÃ¤uft ... bitte warten</span>
         </div>
       )}
       {/* Einstellungen-Dialog immer rendern */}
@@ -769,7 +768,7 @@ export default function InventoryManagement() {
             </div>
           </div>
           <div className="flex gap-2 justify-end mt-4">
-            <Button onClick={() => setIsSettingsDialogOpen(false)} variant="default">Schließen</Button>
+            <Button onClick={() => setIsSettingsDialogOpen(false)} variant="default">SchlieÃŸen</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -783,7 +782,7 @@ export default function InventoryManagement() {
         </div>
       ) : (
         <div className="space-y-8">
-          {/* Einstellungen öffnen */}
+          {/* Einstellungen Ã¶ffnen */}
           <div className="mb-2 flex justify-end">
             <div className="flex items-center gap-2">
               <Button type="button" onClick={() => setIsSettingsDialogOpen(true)} variant="outline" className="border-primary text-primary">Speicher-Einstellungen</Button>
@@ -796,7 +795,7 @@ export default function InventoryManagement() {
             <div className="mb-4">
               <label className="block text-sm font-medium text-primary mb-2">Import XLSX</label>
               <input type="file" accept=".xlsx,.xls" onChange={handleImportXLSX} className="block" />
-              <p className="text-muted-foreground text-xs mt-1">Importiere Artikelstammdaten oder Lagerbestände als XLSX. Die Kategorie muss nachträglich ergänzt werden.</p>
+              <p className="text-muted-foreground text-xs mt-1">Importiere Artikelstammdaten oder LagerbestÃ¤nde als XLSX. Die Kategorie muss nachtrÃ¤glich ergÃ¤nzt werden.</p>
             </div>
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-semibold text-primary">Artikelstamm verwalten</h2>
@@ -837,7 +836,7 @@ export default function InventoryManagement() {
                 </CardHeader>
                 <CardContent className="flex flex-col sm:flex-row gap-4">
                     <Button onClick={handleExportSummary} variant="outline" className="text-accent border-accent hover:bg-accent/10 flex-1">
-                        <Download className="mr-2 h-4 w-4" /> Lagerübersicht exportieren (XLSX)
+                        <Download className="mr-2 h-4 w-4" /> LagerÃ¼bersicht exportieren (XLSX)
                     </Button>
                     <Button onClick={handleExportTransactions} variant="outline" className="text-accent border-accent hover:bg-accent/10 flex-1">
                         <Download className="mr-2 h-4 w-4" /> Transaktionsprotokoll exportieren (XLSX)
@@ -847,7 +846,7 @@ export default function InventoryManagement() {
                       const wb = XLSX.utils.book_new();
                       const sheetData: (string | number | undefined | null)[][] = [];
                       sheetData.push([
-                        "Artikel-Nr.", "Produktname", "Charge", "Kategorie", "TankNr", "Menge (L)", "Alkohol %", "Dichte 20°C", "Liter Absolutalkohol", "Inventurdatum", "Bemerkungen"
+                        "Artikel-Nr.", "Produktname", "Charge", "Kategorie", "TankNr", "Menge (L)", "Alkohol %", "Dichte 20Â°C", "Liter Absolutalkohol", "Inventurdatum", "Bemerkungen"
                       ]);
                       inventoryItems.forEach(item => {
                         sheetData.push([
@@ -887,7 +886,7 @@ export default function InventoryManagement() {
                           const { shell } = window.require('electron');
                           const exportPath = path.join(exportDir, fileName);
                           XLSX.writeFile(wb, exportPath);
-                          const auswahl = window.prompt('Export erfolgreich! Was möchten Sie tun?\n1 = Datei öffnen\n2 = Exportordner öffnen\nAbbrechen = nichts tun', '');
+                          const auswahl = window.prompt('Export erfolgreich! Was mÃ¶chten Sie tun?\n1 = Datei Ã¶ffnen\n2 = Exportordner Ã¶ffnen\nAbbrechen = nichts tun', '');
                           if (auswahl === '1') {
                             shell.openPath(exportPath);
                           } else if (auswahl === '2') {
@@ -936,7 +935,7 @@ export default function InventoryManagement() {
             initialData={editingArtikelDefinition}
           />
 
-          {/* Dialog für Import-Warnungen */}
+          {/* Dialog fÃ¼r Import-Warnungen */}
           <Dialog open={isWarningDialogOpen} onOpenChange={setIsWarningDialogOpen}>
             <DialogContent>
               <DialogHeader>
@@ -951,7 +950,7 @@ export default function InventoryManagement() {
               </div>
               <div className="flex gap-2 justify-end">
                 <Button onClick={handleCopyWarnings} variant="outline">Warnungen kopieren</Button>
-                <Button onClick={() => setIsWarningDialogOpen(false)} variant="default">Schließen</Button>
+                <Button onClick={() => setIsWarningDialogOpen(false)} variant="default">SchlieÃŸen</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -959,290 +958,4 @@ export default function InventoryManagement() {
       )}
   </div>
     );
-
-  return (
-  <div className="space-y-8">
-      {/* Einstellungen öffnen */}
-      <div className="mb-2 flex justify-end">
-        <Button onClick={() => setIsSettingsDialogOpen(true)} variant="outline" className="border-primary text-primary">Speicher-Einstellungen</Button>
-      </div>
-
-      {/* Neuer Button: Aktuellen Lagerbestand als XLSX exportieren */}
-      <div className="mb-4">
-        <Button onClick={() => {
-          // Exportiere alle inventoryItems als XLSX
-          const wb = XLSX.utils.book_new();
-          const sheetData: (string | number | undefined | null)[][] = [];
-          sheetData.push([
-            "Artikel-Nr.", "Produktname", "Charge", "Kategorie", "TankNr", "Menge (L)", "Alkohol %", "Dichte 20°C", "Liter Absolutalkohol", "Inventurdatum", "Bemerkungen"
-          ]);
-          inventoryItems.forEach(item => {
-            // Berechne Liter Absolutalkohol, falls nicht vorhanden
-            let literAbsolutalkohol = item.literAbsolutalkohol;
-            if (literAbsolutalkohol === undefined || literAbsolutalkohol === null) {
-              const menge = parseFloat(String(item.currentQuantityLiters).replace(',', '.'));
-              const alc = parseFloat(String(item.alcoholVolProzent).replace(',', '.'));
-              if (!isNaN(menge) && !isNaN(alc)) {
-                literAbsolutalkohol = menge * (alc / 100);
-              } else {
-                literAbsolutalkohol = 0;
-              }
-            }
-            sheetData.push([
-              item.artikelNummer,
-              item.produktName,
-              item.chargenNummer,
-              item.category,
-              item.tankNr,
-              item.currentQuantityLiters,
-              item.alcoholVolProzent,
-              item.dichte20C,
-              literAbsolutalkohol,
-              item.lastInventoryDate ? (typeof item.lastInventoryDate === 'string' ? item.lastInventoryDate : (item.lastInventoryDate instanceof Date ? format(item.lastInventoryDate, 'yyyy-MM-dd') : '')) : '',
-              item.bemerkungen
-            ]);
-          });
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheetData), "Aktueller_Lagerbestand");
-          // Exportpfad aus Einstellungen holen
-          let exportDir = '';
-          if (typeof window !== 'undefined') {
-            exportDir = localStorage.getItem('exportPath') || '';
-          }
-          // Fallback: Arbeitsverzeichnis
-          if (!exportDir) {
-            if (typeof window !== 'undefined' && window.require) {
-              const path = window.require('path');
-              exportDir = path.join(process.cwd());
-            } else {
-              exportDir = '';
-            }
-          }
-          const fileName = `Lagerbestand_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.xlsx`;
-          if (typeof window !== 'undefined' && window.require) {
-            try {
-              const fs = window.require('fs');
-              const path = window.require('path');
-              const { shell } = window.require('electron');
-              const exportPath = path.join(exportDir, fileName);
-              XLSX.writeFile(wb, exportPath);
-              const auswahl = window.prompt('Export erfolgreich! Was möchten Sie tun?\n1 = Datei öffnen\n2 = Exportordner öffnen\nAbbrechen = nichts tun', '');
-              if (auswahl === '1') {
-                shell.openPath(exportPath);
-              } else if (auswahl === '2') {
-                shell.openPath(exportDir);
-              }
-            } catch (err) {
-              // Fehler ignorieren
-            }
-          } else {
-            XLSX.writeFile(wb, fileName);
-          }
-          toast({
-            title: "Lagerbestand exportiert",
-            description: `Der aktuelle Lagerbestand wurde als XLSX-Datei im Exportordner (${exportDir || 'Arbeitsverzeichnis'}) gespeichert.`,
-          });
-        }} variant="outline" className="text-accent border-accent hover:bg-accent/10">
-          <Download className="mr-2 h-4 w-4" /> Aktuellen Lagerbestand exportieren (XLSX)
-        </Button>
-      </div>
-      {/* Dialog für Import-Warnungen */}
-      <Dialog open={isWarningDialogOpen} onOpenChange={setIsWarningDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Import-Warnungen</DialogTitle>
-          </DialogHeader>
-          <div className="max-h-96 overflow-auto mb-4">
-            <ul className="text-sm whitespace-pre-wrap">
-              {importWarnings.map((w, i) => (
-                <li key={i + '-' + String(w).slice(0,20)}>{w}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="flex gap-2 justify-end">
-            <Button onClick={handleCopyWarnings} variant="outline">Warnungen kopieren</Button>
-            <Button onClick={() => setIsWarningDialogOpen(false)} variant="default">Schließen</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      {/* Section for Artikelstamm */}
-      <section className="space-y-4">
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-primary mb-2">Import XLSX</label>
-          <input type="file" accept=".xlsx,.xls" onChange={handleImportXLSX} className="block" />
-          <p className="text-muted-foreground text-xs mt-1">Importiere Artikelstammdaten oder Lagerbestände als XLSX. Die Kategorie muss nachträglich ergänzt werden.</p>
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-primary mb-2">Import gespeicherter Daten</label>
-          <Button type="button" variant="outline" onClick={() => {
-            let importPath = '';
-            if (typeof window !== 'undefined') {
-              importPath = localStorage.getItem('dataPath') || '';
-            }
-            if (importPath && typeof window !== 'undefined' && window.require) {
-              try {
-                const fs = window.require('fs');
-                const path = window.require('path');
-                const filePath = path.join(importPath, 'lagerbestand.json');
-                if (fs.existsSync(filePath)) {
-                  const data = fs.readFileSync(filePath, 'utf-8');
-                  const items = JSON.parse(data);
-                  if (Array.isArray(items)) setInventoryItems(items);
-                  toast({ title: 'Daten importiert', description: 'Lagerbestand wurde aus dem Datenpfad geladen.' });
-                } else {
-                  toast({ title: 'Import fehlgeschlagen', description: 'Keine gespeicherten Daten gefunden.', variant: 'destructive' });
-                }
-              } catch (err) {
-                toast({ title: 'Import fehlgeschlagen', description: String(err), variant: 'destructive' });
-              }
-            } else {
-              toast({ title: 'Import nicht möglich', description: 'Kein Datenpfad gesetzt oder Umgebung nicht unterstützt.', variant: 'destructive' });
-            }
-          }}>Daten aus Speicherpfad importieren</Button>
-          <p className="text-muted-foreground text-xs mt-1">Lädt den aktuellen Lagerbestand aus dem eingestellten Daten-Speicherpfad.</p>
-        </div>
-        <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold text-primary">Artikelstamm verwalten</h2>
-            <Button onClick={handleOpenArtikelDefinitionDialogForNew} variant="outline" className="border-primary text-primary hover:bg-primary/10">
-                <BookOpen className="mr-2 h-4 w-4" /> Neuen Artikel definieren
-            </Button>
-        </div>
-        <ArtikelDefinitionTable
-          definitions={artikelDefinitionen}
-          onEditDefinition={handleOpenArtikelDefinitionDialogForEdit}
-          onDeleteDefinition={handleDeleteArtikelDefinition}
-        />
-      </section>
-
-      <Separator className="my-8" />
-
-      {/* Section for Lagerbestand & Chargen & Protokoll */}
-      <section className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-semibold text-primary">Lagerbestand, Chargen &amp; Protokoll</h2>
-           <div className="flex gap-2">
-             <Button onClick={handleOpenAddEditDialogForNew} className="bg-primary hover:bg-primary/90">
-                <PlusCircle className="mr-2 h-4 w-4" /> Neue Charge/Bestand anlegen
-            </Button>
-           </div>
-        </div>
-        
-        <InventorySummary items={inventoryItems} />
-        
-        <InventoryTable 
-          items={inventoryItems} 
-          onDeleteItem={handleDeleteItem}
-          onEditItem={handleOpenAddEditDialogForEdit}
-          onRecordTransaction={handleOpenTransactionDialog}
-        />
-        
-        <div className="mt-8">
-          <Card>
-            <CardHeader>
-                <CardTitle className="text-xl text-primary">Datenexport</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col sm:flex-row gap-4">
-                <Button onClick={handleExportSummary} variant="outline" className="text-accent border-accent hover:bg-accent/10 flex-1">
-                    <Download className="mr-2 h-4 w-4" /> Lagerübersicht exportieren (XLSX)
-                </Button>
-                <Button onClick={handleExportTransactions} variant="outline" className="text-accent border-accent hover:bg-accent/10 flex-1">
-                    <Download className="mr-2 h-4 w-4" /> Transaktionsprotokoll exportieren (XLSX)
-                </Button>
-                <Button onClick={() => {
-                  // Exportiere alle inventoryItems als XLSX
-                  const wb = XLSX.utils.book_new();
-                  const sheetData: (string | number | undefined | null)[][] = [];
-                  sheetData.push([
-                    "Artikel-Nr.", "Produktname", "Charge", "Kategorie", "TankNr", "Menge (L)", "Alkohol %", "Dichte 20°C", "Liter Absolutalkohol", "Inventurdatum", "Bemerkungen"
-                  ]);
-                  inventoryItems.forEach(item => {
-                    sheetData.push([
-                      item.artikelNummer,
-                      item.produktName,
-                      item.chargenNummer,
-                      item.category,
-                      item.tankNr,
-                      item.currentQuantityLiters,
-                      item.alcoholVolProzent,
-                      item.dichte20C,
-                      item.literAbsolutalkohol,
-                      item.lastInventoryDate ? (typeof item.lastInventoryDate === 'string' ? item.lastInventoryDate : (item.lastInventoryDate instanceof Date ? format(item.lastInventoryDate, 'yyyy-MM-dd') : '')) : '',
-                      item.bemerkungen
-                    ]);
-                  });
-                  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheetData), "Aktueller_Lagerbestand");
-                  // Exportpfad aus Einstellungen holen
-                  let exportDir = '';
-                  if (typeof window !== 'undefined') {
-                    exportDir = localStorage.getItem('exportPath') || '';
-                  }
-                  // Fallback: Arbeitsverzeichnis
-                  if (!exportDir) {
-                    if (typeof window !== 'undefined' && window.require) {
-                      const path = window.require('path');
-                      exportDir = path.join(process.cwd());
-                    } else {
-                      exportDir = '';
-                    }
-                  }
-                  const fileName = `Lagerbestand_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.xlsx`;
-                  if (typeof window !== 'undefined' && window.require) {
-                    try {
-                      const fs = window.require('fs');
-                      const path = window.require('path');
-                      const { shell } = window.require('electron');
-                      const exportPath = path.join(exportDir, fileName);
-                      XLSX.writeFile(wb, exportPath);
-                      const auswahl = window.prompt('Export erfolgreich! Was möchten Sie tun?\n1 = Datei öffnen\n2 = Exportordner öffnen\nAbbrechen = nichts tun', '');
-                      if (auswahl === '1') {
-                        shell.openPath(exportPath);
-                      } else if (auswahl === '2') {
-                        shell.openPath(exportDir);
-                      }
-                    } catch (err) {
-                      // Fehler ignorieren
-                    }
-                  } else {
-                    XLSX.writeFile(wb, fileName);
-                  }
-                  toast({
-                    title: "Lagerbestand exportiert",
-                    description: `Der aktuelle Lagerbestand wurde als XLSX-Datei im Exportordner (${exportDir || 'Arbeitsverzeichnis'}) gespeichert.`,
-                  });
-                }} variant="outline" className="text-accent border-accent hover:bg-accent/10 flex-1">
-                  <Download className="mr-2 h-4 w-4" /> Aktuellen Lagerbestand exportieren (XLSX)
-                </Button>
-            </CardContent>
-          </Card>
-
-          <InventoryTransactionTable transactions={inventoryTransactions} />
-        </div>
-      </section>
-
-
-      <AddInventoryItemDialog
-        isOpen={isAddEditDialogOpen}
-        onClose={() => { setIsAddEditDialogOpen(false); setEditingItem(null); }}
-        onSaveItem={handleSaveItem}
-        initialData={editingItem}
-        artikelDefinitionen={artikelDefinitionen} 
-      />
-
-      <RecordTransactionDialog
-        isOpen={isTransactionDialogOpen}
-        onClose={handleCloseTransactionDialog}
-        onSaveTransaction={handleSaveTransaction}
-        itemToTransact={itemForTransaction}
-        transactionType={currentTransactionType}
-      />
-
-      <AddEditArtikelDefinitionDialog
-        isOpen={isArtikelDefinitionDialogOpen}
-        onClose={handleCloseArtikelDefinitionDialog}
-        onSaveDefinition={handleSaveArtikelDefinition}
-        initialData={editingArtikelDefinition}
-      />
-    </div>
-  );
 }
-
-// Ende der Komponente

@@ -374,7 +374,7 @@ export class TankDataGitHubSync {
             }
 
             const inventory = data.inventory?.filter(item => item.tankNr === tank.tankNr) || [];
-            const totalQuantity = inventory.reduce((sum, item) => sum + (item.menge || 0), 0);
+            const totalQuantity = inventory.reduce((sum, item) => sum + (item.currentQuantityLiters || 0), 0);
 
             document.getElementById('content').innerHTML = \`
                 <div class="tank-card">
@@ -390,7 +390,7 @@ export class TankDataGitHubSync {
         function displayAllTanks(data) {
             const tanksHtml = data.tanks?.map(tank => {
                 const inventory = data.inventory?.filter(item => item.tankNr === tank.tankNr) || [];
-                const totalQuantity = inventory.reduce((sum, item) => sum + (item.menge || 0), 0);
+                const totalQuantity = inventory.reduce((sum, item) => sum + (item.currentQuantityLiters || 0), 0);
 
                 return \`
                     <div class="tank-card">

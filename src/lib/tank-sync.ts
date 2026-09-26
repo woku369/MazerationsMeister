@@ -21,13 +21,7 @@ export function syncTankDefinitionsWithInventory(): void {
 
   const inventoryItems: StoredInventoryItem[] = JSON.parse(storedInventory);
   const currentTanks: TankDefinition[] = storedTanks ? JSON.parse(storedTanks) : [];
-  
-  // Stelle sicher dass id === tankNr (Invariante: id ist der menschenlesbare Tank-Schlüssel)
-  const correctedTanks = currentTanks.map(tank => ({
-    ...tank,
-    id: tank.tankNr,
-  }));
-  
+
   // Sammle alle eindeutigen Tank-Nummern aus dem Inventar
   const uniqueTankNrs = new Set<string>();
   inventoryItems.forEach(item => {
@@ -36,35 +30,29 @@ export function syncTankDefinitionsWithInventory(): void {
     }
   });
 
-  const existingTankNrs = new Set(correctedTanks.map(tank => tank.tankNr));
-  let hasChanges = correctedTanks.length !== currentTanks.length || 
-                   correctedTanks.some((tank, i) => tank.id !== currentTanks[i]?.id);
+  const existingTankNrs = new Set(currentTanks.map(tank => tank.tankNr));
+  let hasChanges = false;
 
-  // Füge neue Tanks hinzu, die im Inventar gefunden wurden
+  // Füge neue Tanks hinzu, die im Inventar gefunden wurden (id === tankNr per Invariante)
   uniqueTankNrs.forEach(tankNr => {
     if (!existingTankNrs.has(tankNr)) {
       const newTank: TankDefinition = {
-        id: tankNr, // Verwende tankNr direkt als ID für Konsistenz
+        id: tankNr,
         tankNr: tankNr,
         bezeichnung: `Auto-erkannt: ${tankNr}`,
-        volumenLiter: 5000, // Standardkapazität 5.000L, kann manuell angepasst werden
+        volumenLiter: 5000,
       };
-      correctedTanks.push(newTank);
+      currentTanks.push(newTank);
       hasChanges = true;
     }
   });
 
   if (hasChanges) {
-    localStorage.setItem('tankDefinitions', JSON.stringify(correctedTanks));
-    console.log('✅ Tank-Sync: Tank-Definitionen korrigiert und gespeichert:', correctedTanks.length, 'Tanks');
-    console.log('🔍 Tank-Sync Debug: Korrigierte IDs:', correctedTanks.map(t => `${t.tankNr}(${t.id})`));
-    
-    // Event für andere Komponenten aussenden
+    localStorage.setItem('tankDefinitions', JSON.stringify(currentTanks));
+    console.log('✅ Tank-Sync: Neue Tanks hinzugefügt:', currentTanks.length);
     window.dispatchEvent(new CustomEvent('tankDefinitionsUpdated', {
-      detail: { tanks: correctedTanks }
+      detail: { tanks: currentTanks }
     }));
-  } else {
-    console.log('ℹ️ Tank-Sync: Keine Änderungen nötig');
   }
 }
 

@@ -42,7 +42,7 @@
     },
     {
       "id": "Fass-1",
-      "tankNr": "Fass",
+      "tankNr": "Fass-1",
       "bezeichnung": "Fass-1",
       "volumenLiter": 106.8,
       "containerType": "other",
@@ -52,7 +52,7 @@
     },
     {
       "id": "Fass-2",
-      "tankNr": "Fass",
+      "tankNr": "Fass-2",
       "bezeichnung": "Fass-2",
       "volumenLiter": 321.59999999999997,
       "containerType": "other",
@@ -62,7 +62,7 @@
     },
     {
       "id": "Fass-3",
-      "tankNr": "Fass",
+      "tankNr": "Fass-3",
       "bezeichnung": "Fass-3",
       "volumenLiter": 289.32,
       "containerType": "other",
@@ -72,7 +72,7 @@
     },
     {
       "id": "Fass-4",
-      "tankNr": "Fass",
+      "tankNr": "Fass-4",
       "bezeichnung": "Fass-4",
       "volumenLiter": 185.51999999999998,
       "containerType": "other",
@@ -82,7 +82,7 @@
     },
     {
       "id": "Fass-5",
-      "tankNr": "Fass",
+      "tankNr": "Fass-5",
       "bezeichnung": "Fass-5",
       "volumenLiter": 100,
       "containerType": "other",
@@ -92,7 +92,7 @@
     },
     {
       "id": "Fass-6",
-      "tankNr": "Fass",
+      "tankNr": "Fass-6",
       "bezeichnung": "Fass-6",
       "volumenLiter": 100,
       "containerType": "other",
@@ -102,7 +102,7 @@
     },
     {
       "id": "Fl-1",
-      "tankNr": "Fl",
+      "tankNr": "Fl-1",
       "bezeichnung": "Fl-1",
       "volumenLiter": 100,
       "containerType": "other",
@@ -112,7 +112,7 @@
     },
     {
       "id": "Fl-2",
-      "tankNr": "Fl",
+      "tankNr": "Fl-2",
       "bezeichnung": "Fl-2",
       "volumenLiter": 100,
       "containerType": "other",
@@ -122,7 +122,7 @@
     },
     {
       "id": "Fl-3",
-      "tankNr": "Fl",
+      "tankNr": "Fl-3",
       "bezeichnung": "Fl-3",
       "volumenLiter": 100,
       "containerType": "other",
@@ -132,7 +132,7 @@
     },
     {
       "id": "Fl-4",
-      "tankNr": "Fl",
+      "tankNr": "Fl-4",
       "bezeichnung": "Fl-4",
       "volumenLiter": 100,
       "containerType": "other",
@@ -142,7 +142,7 @@
     },
     {
       "id": "Fl-5",
-      "tankNr": "Fl",
+      "tankNr": "Fl-5",
       "bezeichnung": "Fl-5",
       "volumenLiter": 100,
       "containerType": "other",
@@ -152,7 +152,7 @@
     },
     {
       "id": "B-1",
-      "tankNr": "B",
+      "tankNr": "B-1",
       "bezeichnung": "B-1",
       "volumenLiter": 100,
       "containerType": "other",
@@ -162,7 +162,7 @@
     },
     {
       "id": "B-2",
-      "tankNr": "B",
+      "tankNr": "B-2",
       "bezeichnung": "B-2",
       "volumenLiter": 100,
       "containerType": "other",
@@ -172,7 +172,7 @@
     },
     {
       "id": "B-3",
-      "tankNr": "B",
+      "tankNr": "B-3",
       "bezeichnung": "B-3",
       "volumenLiter": 100,
       "containerType": "other",
@@ -182,7 +182,7 @@
     },
     {
       "id": "B-4",
-      "tankNr": "B",
+      "tankNr": "B-4",
       "bezeichnung": "B-4",
       "volumenLiter": 100,
       "containerType": "other",
@@ -192,7 +192,7 @@
     },
     {
       "id": "B-5",
-      "tankNr": "B",
+      "tankNr": "B-5",
       "bezeichnung": "B-5",
       "volumenLiter": 100,
       "containerType": "other",
@@ -202,7 +202,7 @@
     },
     {
       "id": "B-6",
-      "tankNr": "B",
+      "tankNr": "B-6",
       "bezeichnung": "B-6",
       "volumenLiter": 100,
       "containerType": "other",
@@ -212,7 +212,7 @@
     },
     {
       "id": "B-7",
-      "tankNr": "B",
+      "tankNr": "B-7",
       "bezeichnung": "B-7",
       "volumenLiter": 100,
       "containerType": "other",
@@ -222,7 +222,7 @@
     },
     {
       "id": "B-8",
-      "tankNr": "B",
+      "tankNr": "B-8",
       "bezeichnung": "B-8",
       "volumenLiter": 100,
       "containerType": "other",
@@ -232,7 +232,7 @@
     },
     {
       "id": "B-9",
-      "tankNr": "B",
+      "tankNr": "B-9",
       "bezeichnung": "B-9",
       "volumenLiter": 100,
       "containerType": "other",
@@ -242,7 +242,7 @@
     },
     {
       "id": "B-10",
-      "tankNr": "B",
+      "tankNr": "B-10",
       "bezeichnung": "B-10",
       "volumenLiter": 100,
       "containerType": "other",
@@ -252,7 +252,7 @@
     },
     {
       "id": "B-11",
-      "tankNr": "B",
+      "tankNr": "B-11",
       "bezeichnung": "B-11",
       "volumenLiter": 100,
       "containerType": "other",
@@ -262,7 +262,7 @@
     },
     {
       "id": "B-12",
-      "tankNr": "B",
+      "tankNr": "B-12",
       "bezeichnung": "B-12",
       "volumenLiter": 100,
       "containerType": "other",
@@ -272,7 +272,7 @@
     },
     {
       "id": "B-13",
-      "tankNr": "B",
+      "tankNr": "B-13",
       "bezeichnung": "B-13",
       "volumenLiter": 100,
       "containerType": "other",
@@ -282,7 +282,7 @@
     },
     {
       "id": "B-14",
-      "tankNr": "B",
+      "tankNr": "B-14",
       "bezeichnung": "B-14",
       "volumenLiter": 100,
       "containerType": "other",
@@ -292,7 +292,7 @@
     },
     {
       "id": "B-15",
-      "tankNr": "B",
+      "tankNr": "B-15",
       "bezeichnung": "B-15",
       "volumenLiter": 100,
       "containerType": "other",
@@ -302,7 +302,7 @@
     },
     {
       "id": "B-16",
-      "tankNr": "B",
+      "tankNr": "B-16",
       "bezeichnung": "B-16",
       "volumenLiter": 100,
       "containerType": "other",
@@ -312,7 +312,7 @@
     },
     {
       "id": "B-17",
-      "tankNr": "B",
+      "tankNr": "B-17",
       "bezeichnung": "B-17",
       "volumenLiter": 100,
       "containerType": "other",
@@ -322,7 +322,7 @@
     },
     {
       "id": "B-18",
-      "tankNr": "B",
+      "tankNr": "B-18",
       "bezeichnung": "B-18",
       "volumenLiter": 100,
       "containerType": "other",
@@ -332,7 +332,7 @@
     },
     {
       "id": "B-19",
-      "tankNr": "B",
+      "tankNr": "B-19",
       "bezeichnung": "B-19",
       "volumenLiter": 100,
       "containerType": "other",
@@ -342,7 +342,7 @@
     },
     {
       "id": "B-20",
-      "tankNr": "B",
+      "tankNr": "B-20",
       "bezeichnung": "B-20",
       "volumenLiter": 100,
       "containerType": "other",
@@ -352,7 +352,7 @@
     },
     {
       "id": "B-21",
-      "tankNr": "B",
+      "tankNr": "B-21",
       "bezeichnung": "B-21",
       "volumenLiter": 100,
       "containerType": "other",
@@ -362,7 +362,7 @@
     },
     {
       "id": "B-22",
-      "tankNr": "B",
+      "tankNr": "B-22",
       "bezeichnung": "B-22",
       "volumenLiter": 100,
       "containerType": "other",
@@ -372,7 +372,7 @@
     },
     {
       "id": "B-23",
-      "tankNr": "B",
+      "tankNr": "B-23",
       "bezeichnung": "B-23",
       "volumenLiter": 100,
       "containerType": "other",
@@ -382,7 +382,7 @@
     },
     {
       "id": "B-24",
-      "tankNr": "B",
+      "tankNr": "B-24",
       "bezeichnung": "B-24",
       "volumenLiter": 100,
       "containerType": "other",
@@ -392,7 +392,7 @@
     },
     {
       "id": "B-25",
-      "tankNr": "B",
+      "tankNr": "B-25",
       "bezeichnung": "B-25",
       "volumenLiter": 100,
       "containerType": "other",
@@ -412,7 +412,7 @@
     },
     {
       "id": "IBC-1",
-      "tankNr": "IBC",
+      "tankNr": "IBC-1",
       "bezeichnung": "IBC-1",
       "volumenLiter": 591.6239999999999,
       "containerType": "other",
@@ -462,7 +462,7 @@
     },
     {
       "id": "K-1",
-      "tankNr": "K",
+      "tankNr": "K-1",
       "bezeichnung": "K-1",
       "volumenLiter": 100,
       "containerType": "other",
@@ -472,7 +472,7 @@
     },
     {
       "id": "K-2",
-      "tankNr": "K",
+      "tankNr": "K-2",
       "bezeichnung": "K-2",
       "volumenLiter": 100,
       "containerType": "other",
@@ -482,7 +482,7 @@
     },
     {
       "id": "K-3",
-      "tankNr": "K",
+      "tankNr": "K-3",
       "bezeichnung": "K-3",
       "volumenLiter": 100,
       "containerType": "other",
@@ -492,7 +492,7 @@
     },
     {
       "id": "Cont-1",
-      "tankNr": "Cont",
+      "tankNr": "Cont-1",
       "bezeichnung": "Cont-1",
       "volumenLiter": 166.68,
       "containerType": "other",

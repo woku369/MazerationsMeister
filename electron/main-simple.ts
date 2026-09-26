@@ -118,7 +118,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: false,
+      webSecurity: true,
       allowRunningInsecureContent: false
     },
     icon: path.join(__dirname, '../public/icon.ico'),
