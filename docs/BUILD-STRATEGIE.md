@@ -1,9 +1,10 @@
 # Build-Strategie & Aufräumplan
 
-Stand: 27.09.2026. Diese Datei beantwortet drei Fragen, die historisch gewachsen unklar geworden sind:
+Stand: 27.09.2026. Diese Datei beantwortet vier Fragen, die historisch gewachsen unklar geworden sind:
 1. Welcher Build-Befehl ist für welchen Zweck der *gültige*?
 2. Wie entstehen EXE / portable EXE, und welche Ordner brauche ich dafür?
 3. Was ist Altlast und kann weg?
+4. Wie sollte versioniert werden, und wo landen versionierte Builds eindeutig unterscheidbar?
 
 Alles hier ist durch Lesen des tatsächlichen Codes (package.json, electron/, scripts/, .github/workflows/) und der GitHub-Actions-Historie verifiziert, nicht geraten.
 
@@ -25,7 +26,7 @@ Auch für die Electron-Pakete gilt das: Jedes Build-Skript (`electron-build`, `b
 
 **Konsequenz:** `out/` sollte gar nicht mehr committet werden. Das war auch die Ursache für die wiederholte "out/-Verschmutzung" in dieser Session (jeder `next dev`-Aufruf schreibt seinen Dev-Cache in denselben Ordner, da `distDir: 'out'` in `next.config.ts` gesetzt ist — dev und Produktions-Export teilen sich den Ordner).
 
-→ Siehe Abschnitt 5, Schritt 1 für den konkreten Aufräumschritt (noch nicht ausgeführt, nur dokumentiert).
+→ Siehe Abschnitt 6, Schritt 1 für den konkreten Aufräumschritt (noch nicht ausgeführt, nur dokumentiert).
 
 ## 3. Gültige Build-Befehle (nach Zweck)
 
@@ -82,7 +83,40 @@ Drei verschiedene Pakete, drei verschiedene Tools/Konfigurationen, für denselbe
 | `nsis`-Konfiguration in `package.json` | ⚠️ **inkonsistent** | Vorhanden inkl. eigenem `artifactName: "...-Setup-....exe"`, aber `win.target` listet nur `"portable"` — NSIS wird also nie tatsächlich gebaut. Entweder gewollt entfernen oder `"nsis"` wieder in `win.target` aufnehmen. |
 | committeter `out/`-Ordner im Repo | ⚠️ **überflüssig** | Siehe Abschnitt 2 — für keinen der beiden Deployment-Wege tatsächlich nötig |
 
-## 5. Aufräumplan (dokumentiert, **noch nicht ausgeführt**)
+## 5. Versionierung — aktueller Zustand: praktisch nicht vorhanden
+
+Geprüft, nicht angenommen:
+- `package.json` steht auf `"version": "0.1.0"` — trotz 20+ dokumentierter, teils größerer Ausbaustufen (Aufgabe 1–21 in dieser Roadmap) nie erhöht.
+- Diese Versionsnummer wird **nirgends im laufenden Programm angezeigt** — kein Code liest `package.json`s `version`-Feld zur Laufzeit aus.
+- Stattdessen steht in `src/components/layout/header.tsx` (Zeile 65) ein **hart codierter, unabhängiger String**: `"Mazerations-Meister V 1.0"`. Der stimmt weder mit `package.json` (0.1.0) noch mit dem tatsächlichen Funktionsumfang überein und wird bei jeder neuen Funktion nicht mitgepflegt.
+- Die einzige Stelle, an der `package.json`s Version überhaupt eine Rolle spielt, ist das Platzhalter-Makro `${version}` in den `artifactName`-Vorlagen der electron-builder-Konfiguration (z.B. `MazerationsMeister-Portable-${version}.exe`) — nützt aber nichts, solange die Zahl nie erhöht wird.
+- Die drei electron-packager-Alternativskripte (`build-portable`-npm-Skript, `scripts/build-fast.js`, `scripts/build-portable.js`) verwenden **gar keine Versions-Platzhalter** — sie erzeugen immer denselben Dateinamen (`MazerationsMeister.exe` bzw. `MazerationsMeister-Optimized.exe`) und überschreiben sich bei jedem Lauf selbst. Das ist ein weiterer Grund, sich (siehe Abschnitt 4) auf electron-builder als einzigen Weg festzulegen.
+- Es existiert **kein einziger Git-Tag** im Repository.
+
+### Empfohlene Versionierungsstrategie
+
+1. **`package.json`s `version`-Feld wird die einzige Quelle der Wahrheit** (Semantic Versioning `MAJOR.MINOR.PATCH`):
+   - `PATCH` (0.1.**1**) — Bugfixes, Datenkorrekturen ohne neue Funktion (z.B. Aufgabe 18)
+   - `MINOR` (0.**2**.0) — neue Funktionen ohne Breaking Change (z.B. Aufgabe 15 Lohnbrand, Aufgabe 17 Rezepturen)
+   - `MAJOR` (**1**.0.0) — grundlegende Änderungen an Datenformaten/Architektur, oder schlicht der Punkt, an dem die App als produktionsreif erklärt wird
+2. **Bei jedem Release-relevanten Commit** `npm version patch|minor|major` verwenden (bumpt `package.json` und erzeugt automatisch einen passenden Git-Commit) statt die Zahl von Hand zu editieren.
+3. **Git-Tag pro Release** (`git tag v0.2.0 && git push --tags`) — macht jeden Auslieferungsstand im Verlauf eindeutig wiederfindbar, unabhängig vom Build-Ordner.
+4. **`header.tsx`s hartcodierten String durch die echte Version ersetzen** — z.B. per `import pkg from '../../../package.json'` (Next.js kann JSON importieren) statt eines von Hand gepflegten Texts. Kleiner, risikoarmer Fix, aber bewusst noch nicht umgesetzt (siehe Hinweis unten).
+5. **Web-Export (GitHub Pages) braucht keine eigene Versionsnummer im Dateinamen** — dort gibt es ohnehin nur einen aktuellen Stand, der Git-Commit-Hash reicht als Referenz.
+
+### Eindeutiger, versionierter Build-Ordner (für die portable EXE)
+
+Aktuell landet jeder Build undifferenziert in `dist/` (electron-builder) bzw. wird dort von den Packager-Skripten sogar aktiv vorher gelöscht ("Bereinige alten Build..."). Es gibt keine Historie lauffähiger Vorgänger-Builds.
+
+**Empfehlung:** `artifactName` in der electron-builder-Konfiguration um ein Versions-Unterverzeichnis erweitern:
+```jsonc
+"artifactName": "${version}/MazerationsMeister-Portable-${version}.exe"
+```
+Ergebnis: `dist/0.2.0/MazerationsMeister-Portable-0.2.0.exe`, `dist/0.3.0/...` usw. — jede Version bekommt ihren eigenen, eindeutig benannten Unterordner, ältere Builds werden nicht mehr stillschweigend überschrieben. `dist/` bleibt wie bisher nicht Teil des Git-Trackings (nur lokale Build-Ablage); alte Versionsordner bei Bedarf von Hand aufräumen (z.B. nur die letzten 2–3 Versionen behalten).
+
+> ⚠️ **Nicht umgesetzt, nur dokumentiert:** Ob electron-builder Unterverzeichnisse in `artifactName` tatsächlich wie erwartet anlegt, ließe sich nur durch einen echten Windows-Build verifizieren — das ist in dieser (Linux-)Umgebung nicht möglich. Vor dem nächsten echten Portable-Build einmal testweise ausprobieren, bevor darauf verlassen wird.
+
+## 6. Aufräumplan (dokumentiert, **noch nicht ausgeführt**)
 
 Reihenfolge nach Risiko, niedrigstes zuerst:
 
@@ -94,5 +128,6 @@ Reihenfolge nach Risiko, niedrigstes zuerst:
 6. **`nsis`-Konfigurationsblock** in `package.json` entweder entfernen oder bewusst aktivieren (`"nsis"` zu `win.target` hinzufügen, falls ein Setup-Installer neben der portablen Version gewünscht ist).
 7. **`.github/workflows/deploy.yml`** Trigger-Liste auf `[fresh-main]` reduzieren (die anderen beiden Branch-Namen existieren nicht mehr).
 8. **`.next`-Bundling in der electron-builder-Konfiguration** hinterfragen — vermutlich entfernbar, aber nur mit Testbuild verifizieren.
+9. **Versionierung einführen:** `header.tsx`s hartcodierten „V 1.0"-String durch die echte `package.json`-Version ersetzen, erste bewusste `npm version minor` (→ 0.2.0) für den aktuellen Stand setzen, Git-Tag dafür anlegen, `artifactName` um `${version}/`-Unterordner erweitern (mit Testbuild verifizieren). Risiko: gering (reine Anzeige- und Namensänderung), aber erst sinnvoll, sobald Schritt 5 (ein einziger Packaging-Weg) geklärt ist.
 
 Jeder Schritt ist einzeln und risikoarm genug, um separat committet zu werden.
