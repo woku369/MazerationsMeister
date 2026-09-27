@@ -222,6 +222,17 @@ Nach Abschluss von Phase 3.7 (alle 9 Aufgaben verifiziert) wurde ein zweiter, br
   - ✅ **Erledigt (18 Zeilen, 27.09.2026):** `Fass` (6), `Fl` (5), `Cont` (1), `IBC` (1) sowie 5 weitere Einzelzeilen aus den Gruppen `B`/`K`, deren Inhalt auch innerhalb dieser sonst mehrdeutigen Gruppen für sich genommen eindeutig war (`Koenigskerze`→B-1, `Oregano`→B-15, `Zirbe`/M→B-16, `GFKC-A`→B-17, `Zirbe`/Dest→K-1) — jeweils automatisch per Namensabgleich (ASCII-normalisiert) korrigiert, da genau 1 Inventar-Zeile auf genau 1 Tank mit identischem Inhalt traf. Verifiziert: 0 verbleibende alte Referenzen für diese 18 Fälle.
   - ⚠️ **Offen (23 Zeilen):** `B` (21) und `K` (2) — mehrere Gebinde mit identischem `produktName` je Gruppe (`Marc d SWS`×5, `Zitronenmelisse`×5, `Pfefferminze`×3, `Salbei`×3, `Sauvignon Bl`×3, `Thymian`×2 in B; `VL Zirbe`×2 in K). Anzahl Inventar-Zeilen und Anzahl Tanks mit diesem Inhalt stimmen je Produkt exakt überein (keine Dateninkonsistenz), aber die *Zuordnung zum konkreten Behälter* ist ohne physische Bestätigung reine Vermutung — bei zollrelevanten Daten bewusst nicht geraten. Anfrage an den Nutzer für die Behälter↔Chargennummer-Zuordnung gestellt (27.09.2026). **Blockiert bis Vor-Ort-Termin** (Nutzer, 27.09.2026: "Kann ich nur vor Ort erledigen.") — bei Sauvignon Bl (B-18/19/20) sind sogar alle Kennzahlen identisch, da hilft nur die physische Beschriftung am Behälter, keine Systemdaten. Kein weiterer Handlungsbedarf bis dahin.
 - [x] ✅ **Aufgabe 19 – LA-Bilanz bei Mazerationen live sichtbar machen (NEU, Nutzer-Feedback 26.09.2026):** Eingesetzte LA / Ausbeute LA / Verlust LA wurden bereits korrekt berechnet (`calculateLADetails`), aber nirgends live angezeigt — nur in PDF/XLSX-Einzelprotokoll-Exporten vergraben, in der Sammelliste fehlte eine eigene Verlust-Spalte samt Summe komplett. Praxisbeispiel des Nutzers (500L Sprit @60% → 480L Mazerat @53% = 45,6 LA Verlust) end-to-end verifiziert. Neuer "Reinalkohol-Bilanz"-Block im Desktop-Formular, live-Anzeige in der PWA, neue "LA Verlust"-Spalte + Summenzeile in Sammelliste (Desktop + PWA, Tabelle/PDF/XLSX) — damit ist auch der kumulierte Verlust über einen Zeitraum nachvollziehbar, nicht nur pro Charge.
+- [x] ✅ **Aufgabe 20 – Menüpunkt „Anleitungen" überarbeiten, ergänzen, updaten (Nutzer-Anfrage 27.09.2026, „ganz wichtig"):** Stand war seit der QR-Code-Einführung nicht mehr aktualisiert — zwei von vier Abschnitten waren reine „Coming Soon"-Platzhalter (Inventarverwaltung, Mazerationsverwaltung), die seither dazugekommenen Module Rezepturen (GFKC) und Lohnbrand-Aufträge fehlten komplett, und die GitHub-Integration war nirgends erklärt. Löst außerdem den alten Phase-4-Punkt „Anleitungen-Sektion aktualisieren" (siehe unten) ein. Komplett neu aufgebaut, jeder Abschnitt anhand der tatsächlichen UI-Texte verifiziert (Button-Labels, Feldnamen, Dialoge aus dem echten Code, nichts erfunden):
+  - **Mazerationen:** Formular-Aufbau, Reinalkohol-Bilanz (LA), Zieltank-Einbuchung, Export-Optionen inkl. PWA-Import.
+  - **Sammelliste:** Auswahl + XLSX-Export mit LA-Kennzahlen.
+  - **Lagerverwaltung:** Artikelstamm, XLSX-Import/Export, Zugang/Abgang buchen (grünes/orangenes Symbol je Artikel-Zeile).
+  - **Rezepturen (GFKC)** *(neuer Abschnitt)*: Komponenten mit fix/reduzierbar, Alkoholkorrektur mit echter Sprit-Konzentration, Produzieren & Buchen inkl. LA-Bilanz.
+  - **Lohnbrand-Aufträge** *(neuer Abschnitt)*: Auftrag anlegen, Unterwegs-Status, Rücklauf verbuchen inkl. live berechnetem Brennverlust.
+  - **QR-Code Tankverwaltung:** inhaltlich korrigiert — beschrieb bisher nur den lokalen WLAN-Modus; jetzt werden beide echten Betriebsarten erklärt (GitHub-Pages-Modus für ortsunabhängigen Zugriff als empfohlener Standardweg, lokaler Fallback nur als Rückfallebene).
+  - **GitHub-Integration** *(komplett neuer Abschnitt)*: Token einrichten, Auto-Sync konfigurieren — vorher nirgends dokumentiert, obwohl Voraussetzung für ortsunabhängige QR-Codes.
+  - **OneDrive-Synchronisation:** beibehalten, gestrafft.
+
+  Statisches Export-Bundle (`out/`) neu gebaut, damit die live auf GitHub Pages ausgelieferte Seite den aktuellen Stand zeigt, nicht nur der Quellcode. Im Browser end-to-end verifiziert: alle 8 Abschnitte klappen korrekt auf/zu, 0 Konsolenfehler.
 
 > Priorität (bestätigt 25.09.2026): Aufgabe 10–13 zuerst (aktive Bugs mit falschen/abstürzenden Ergebnissen), da heute schon spürbar. Aufgabe 14–17 (inkl. Lohnbrand und GFKC-Verschnitt) danach als größeres Vorhaben. Aufgabe 18 (Datenkorrektur) sollte zeitnah geklärt werden, da sie die Korrektheit der Tank-Anzeige direkt betrifft — der eindeutige Teil (14 Zeilen) kann jederzeit sicher automatisch nachgezogen werden.
 
@@ -230,14 +241,16 @@ Nach Abschluss von Phase 3.7 (alle 9 Aufgaben verifiziert) wurde ein zweiter, br
 #### 1. QR-Code Druckfunktion 🔴 AKTUELL
 - Tank-Auswahl per Checkbox, Multi-Tank-Auswahl, Print-Preview, PDF-Export
 
-#### 2. GitHub-Integration fertigstellen 🔴
-- Token-Management über Einstellungen, automatische Backup-Commits, Versionsverlauf
+#### 2. GitHub-Integration fertigstellen 🟡 TEILWEISE ERLEDIGT
+- ✅ Token-Management über Einstellungen (vorhanden, seit 27.09.2026 zusätzlich als Single Point of Truth konsolidiert, siehe Phase 3)
+- ✅ Automatische Backup-Commits (Auto-Sync in den Einstellungen, konfigurierbares Intervall)
+- [ ] Versionsverlauf (frühere GitHub-Commits/Stände direkt in der App durchsuchen) — weiterhin offen
 
 #### 3. Mobile Tank-Scan Offline-Funktionalität 🔴 KERNFUNKTION
 - Vollständige Tank-Info auch ohne Netzwerk, Cross-Network Zugriff
 
-#### 4. Anleitungen-Sektion aktualisieren
-- Neue QR-Code-Workflows, GitHub-Integration, Mobile-First Hinweise
+#### 4. Anleitungen-Sektion aktualisieren ✅ ERLEDIGT (27.09.2026, siehe Aufgabe 20)
+- Neue QR-Code-Workflows, GitHub-Integration, Mobile-First Hinweise — alles nachgezogen, plus Rezepturen (GFKC) und Lohnbrand-Aufträge ergänzt, die es beim Anlegen dieses Punkts noch gar nicht gab.
 
 ### Phase 4: Cloud & Production-Ready 🚀
 
