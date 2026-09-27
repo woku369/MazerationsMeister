@@ -99,19 +99,16 @@
       "output": "dist"
     },
     "files": [
-      ".next/**/*",
       "electron/**/*",
-      "public/**/*",
-      "src/**/*",
       "package.json",
-      "next.config.ts",
-      "tailwind.config.ts",
-      "postcss.config.mjs",
-      "tsconfig.json",
       "!node_modules/@img/**",
       "!node_modules/sharp/**"
     ],
     "extraResources": [
+      {
+        "from": "out",
+        "to": "out"
+      },
       {
         "from": "public",
         "to": "public"
@@ -128,12 +125,7 @@
       ],
       "icon": "public/icon.ico",
       "forceCodeSigning": false,
-      "extraFiles": [
-        {
-          "from": ".next",
-          "to": ".next"
-        }
-      ]
+      "extraFiles": []
     },
     "portable": {
       "artifactName": "MazerationsMeister-Portable-${version}.exe",

@@ -34,7 +34,7 @@ async function startSimpleServer(): Promise<string> {
   try {
     console.log('Starting simple static server...');
     
-    const staticPath = path.join(app.getAppPath(), 'out');
+    const staticPath = path.join(process.resourcesPath, 'out');
     console.log('Serving from:', staticPath);
     
     server = createServer((req, res) => {

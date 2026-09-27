@@ -5,7 +5,6 @@ const nextConfig: NextConfig = {
   // Static Export für Electron
   output: 'export',
   trailingSlash: true,
-  distDir: 'out',
   typescript: {
     ignoreBuildErrors: true,
   },

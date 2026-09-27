@@ -64,7 +64,7 @@ function getMimeType(filepath) {
 async function startSimpleServer() {
     try {
         console.log('Starting simple static server...');
-        const staticPath = path.join(electron_1.app.getAppPath(), 'out');
+        const staticPath = path.join(process.resourcesPath, 'out');
         console.log('Serving from:', staticPath);
         server = (0, http_1.createServer)((req, res) => {
             try {
