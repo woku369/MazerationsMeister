@@ -242,6 +242,18 @@ Nach Abschluss von Phase 3.7 (alle 9 Aufgaben verifiziert) wurde ein zweiter, br
 
 > Priorität (bestätigt 25.09.2026): Aufgabe 10–13 zuerst (aktive Bugs mit falschen/abstürzenden Ergebnissen), da heute schon spürbar. Aufgabe 14–17 (inkl. Lohnbrand und GFKC-Verschnitt) danach als größeres Vorhaben. Aufgabe 18 (Datenkorrektur) sollte zeitnah geklärt werden, da sie die Korrektheit der Tank-Anzeige direkt betrifft — der eindeutige Teil (14 Zeilen) kann jederzeit sicher automatisch nachgezogen werden.
 
+### Plan für nächste Woche (Nutzer, 27.09.2026 – rein informativ, noch keine Umsetzung)
+
+Reihenfolge, mit der der Nutzer plant, auf Echtdaten umzusteigen:
+
+1. **Offene Punkte aus dieser Roadmap abarbeiten** (QR-Code-Konsolidierung, Build-Aufräumplan, Branch-Löschung, Versionierung, Aufgabe-18-Rest nach Vor-Ort-Termin).
+2. **Inventurlagerstand 31.12.2025 einspielen** — inkl. vollständiger Tank-/Gebindezuordnung (welche Charge in welchem Tank/IBC/Fass liegt).
+   - ⚠️ **Bekannte Lücke dafür:** Die tatsächlichen Füllkapazitäten der Tanks und übrigen Gebinde (IBC, Fass, etc.) fehlen noch vollständig. Nutzer wünscht eine Liste/Eingabemöglichkeit, um diese Kapazitäten zu erfassen, bevor der Echtdaten-Import sinnvoll möglich ist. **Das ist der nächste konkrete Arbeitsschritt vor dem Import selbst.**
+3. **Erste Zubuchung Sprit**, danach **Versand von 3 IBCs GFKC an Mozart** (Lohnabfüller) verbuchen.
+4. **Mazerationen des laufenden Jahres nacherfassen** — Sprit ausbuchen, Mazerate einbuchen.
+
+Noch nicht bewertet, ob die dafür nötige Kapazitäts-Erfassung ein neuer Bildschirm, eine Erweiterung der bestehenden Tank-Management-Ansicht, oder ein XLSX-Import/Export sein soll — das wird geklärt, wenn dieser Punkt dran ist.
+
 ### Phase 4: Produktionsreife Implementierung 🚧
 
 #### 1. QR-Code Druckfunktion 🔴 AKTUELL
