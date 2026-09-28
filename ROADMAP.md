@@ -242,20 +242,24 @@ Nach Abschluss von Phase 3.7 (alle 9 Aufgaben verifiziert) wurde ein zweiter, br
 
 > Priorität (bestätigt 25.09.2026): Aufgabe 10–13 zuerst (aktive Bugs mit falschen/abstürzenden Ergebnissen), da heute schon spürbar. Aufgabe 14–17 (inkl. Lohnbrand und GFKC-Verschnitt) danach als größeres Vorhaben. Aufgabe 18 (Datenkorrektur) sollte zeitnah geklärt werden, da sie die Korrektheit der Tank-Anzeige direkt betrifft — der eindeutige Teil (14 Zeilen) kann jederzeit sicher automatisch nachgezogen werden.
 
-### Plan für nächste Woche (Nutzer, 27.09.2026 – rein informativ, noch keine Umsetzung)
+### Plan für die nächsten zwei Wochen (Nutzer, 28.09.2026 – rein informativ, noch keine Umsetzung)
 
-Reihenfolge, mit der der Nutzer plant, auf Echtdaten umzusteigen:
+Löst den kürzeren „Plan für nächste Woche" vom 27.09. ab, jetzt konkretisiert und erweitert:
 
-1. **Offene Punkte aus dieser Roadmap abarbeiten** (QR-Code-Konsolidierung, Build-Aufräumplan, Branch-Löschung, Versionierung, Aufgabe-18-Rest nach Vor-Ort-Termin).
-2. **Inventurlagerstand 31.12.2025 einspielen** — inkl. vollständiger Tank-/Gebindezuordnung (welche Charge in welchem Tank/IBC/Fass liegt).
-   - ⚠️ **Geklärt (27.09.2026): Kapazitäten fehlen als Daten, nicht als Funktion.** Geprüft bis zum allerersten Git-Commit dieses Repos zurück: Es gab nie echte, individuell erfasste Füllkapazitäten — durchgehend Platzhalter (`5000` für Tanks, `100` für die gruppierten Gebinde B/Fl/K) bzw. bei `Fass`/`Cont`/`IBC` krumme Zahlen, die eher wie eine zufällig eingefrorene *Füllmenge* aus der Aufgabe-4-Migration aussehen als eine echte Kapazität. Ein "alter Datenstand mit echten Kapazitäten" existiert in diesem Repo nicht zum Anknüpfen.
-     - **Die Eingabemöglichkeit selbst ist aber bereits da:** Jeder der 50 Tank-/Gebinde-Einträge hat in der Tank-Verwaltung einen "Bearbeiten"-Button mit editierbarem Kapazitätsfeld — kein Code-Bedarf.
-     - Aus den Tanknummern-Präfixen lässt sich die Typ-Zuordnung ableiten: `Fass`=Fass (6), `Fl`=Flasche (5), `K`=Kanne (3), `B`=Ballon (25), `Cont`=Container (1), `IBC`=IBC-Container (1), `T`=fest verrohrte Tanks (9, brauchen ohnehin Einzelwerte). Nutzer nannte zwei Standardgrößen (IBC 1.000 L, Fass 200 L), die übrigen (Flasche/Kanne/Ballon/Cont) kann er **erst nächste Woche vor Ort** exakt benennen — bewusst nicht geraten/vorbelegt.
-     - **Für nächste Woche vorgeschlagen (noch nicht umgesetzt):** Sobald die Standardgrößen je Typ feststehen, könnte eine kleine Massen-Vorbelegung je Präfix-Gruppe (z.B. alle `Fass-*` auf 200 L) die 50 Einzel-Bearbeitungen ersetzen, mit weiterhin möglicher Einzel-Korrektur für Ausreißer über den bestehenden "Bearbeiten"-Button.
-3. **Erste Zubuchung Sprit**, danach **Versand von 3 IBCs GFKC an Mozart** (Lohnabfüller) verbuchen. ✅ Buchungsfunktion dafür bereits vorgezogen umgesetzt, siehe Aufgabe 22.
-4. **Mazerationen des laufenden Jahres nacherfassen** — Sprit ausbuchen, Mazerate einbuchen.
+1. **Änderungsliste fertig abarbeiten** — App lauffähig haben (offene Roadmap-Punkte: QR-Code-Konsolidierung, Build-Aufräumplan, Branch-Löschung, Versionierung, Aufgabe-18-Rest nach Vor-Ort-Termin).
+2. **Inventurdaten 31.12.2025 einspielen** und mit den Istwerten vergleichen.
+   - ⚠️ **Geklärt (27.09.2026): Kapazitäten fehlen als Daten, nicht als Funktion.** Geprüft bis zum allerersten Git-Commit dieses Repos zurück: nie echte, individuell erfasste Füllkapazitäten vorhanden — durchgehend Platzhalter (`5000` für Tanks, `100` für die gruppierten Gebinde B/Fl/K) bzw. bei `Fass`/`Cont`/`IBC` krumme Zahlen, die eher eine eingefrorene *Füllmenge* aus der Aufgabe-4-Migration sind als eine echte Kapazität. Eingabemöglichkeit selbst ist aber bereits da (Bearbeiten-Button je Tank/Gebinde) — kein Code-Bedarf, nur die Werte fehlen noch (Nutzer bringt sie vor Ort mit).
+   - ⚠️ **Wichtiger Vorbehalt (28.09.2026, siehe „Inventur (Gesamtablauf)" oben):** Der Vergleich mit den Istwerten trifft direkt auf das ABV-Messmethoden-Problem (Mazerat-ABV per Spindel systematisch verzerrt durch Extraktgehalt). Für den anstehenden Vergleich heißt das: Abweichungen bei Mazerat-Posten sind zu erwarten und nicht zwangsläufig ein Fehler im System.
+3. **Korrekturen, falls nötig** — dafür existiert die Korrektur-Buchung mit Pflicht-Begründung aus Aufgabe 25.
+4. **Echtdatenstand als verifiziert bestätigen.**
+5. **Spritzubuchung.**
+6. **Mazerate der heurigen Saison zubuchen.**
+7. **GFKC-N Ausmischung** (Rezepturen-Modul aus Aufgabe 17).
+8. **Retoure GFKC-M von Mozart** (Zugang-Buchung, siehe Diskussion zu Aufgabe 22).
+9. **GFKC-N an Mozart versenden** (Aufgabe 22).
+10. **GFKC-M von Mozart in GFKC-N umbauen und einlagern** (Rezepturen-Modul + „Einlagern" aus Aufgabe 24).
 
-Noch nicht bewertet, ob die dafür nötige Kapazitäts-Erfassung ein neuer Bildschirm, eine Erweiterung der bestehenden Tank-Management-Ansicht, oder ein XLSX-Import/Export sein soll — das wird geklärt, wenn dieser Punkt dran ist.
+Nutzer-Einschätzung: „Das ist Arbeit genug, vermutlich sind noch einige Bugs zu beheben, aber der Plan steht."
 
 - [x] ✅ **Aufgabe 22 – Versand an Lohnabfüller (Nutzer-Anfrage 28.09.2026, vorgezogen aus dem Plan für nächste Woche, „Kontingent ist noch da"):** Beim Recherchieren der Gurktaler-Skills aufgefallen: der geplante „Versand 3 IBCs GFKC an Mozart" ist **kein Lohnbrand** (Mazerat raus, Destillat zurück, gleiche Einheit) — Mozart ist der **Lohnabfüller** (fertige Ware raus, abgefüllte Flaschen Wochen später zurück, andere Einheit). Dafür gab es keine passende Buchungsfunktion. Nutzer-Entscheidung: nur der Versand (Abgang) wird getrackt, kein Rücklauf-Tracking für Fertigware/Flaschen (liegt außerhalb dessen, was diese App sonst führt — Tanks/Gebinde in Litern). Neuer Menüpunkt „Versand an Lohnabfüller" (`/versand`): Lohnabfüller-Name (Default „Mozart"), Versanddatum, beliebig viele Gebinde aus dem echten Lagerbestand, bucht sofort Abgang für alle gewählten Gebinde, fortlaufende Versandnummer `LF-<Jahr>-<001>` (bewusst nicht `LA-`, das ist schon die Abkürzung für Liter Absolutalkohol). LA-Bilanz wird weiterhin für die interne Alkohol-Buchhaltung berechnet und angezeigt — **kein Steuerbetrag**, da Buchungen laut Nutzer steuerfrei erfolgen. 5 neue Tests, end-to-end im Browser mit dem echten Szenario verifiziert (3×1.000L GFKC-M @53,5% → 1.605 LA, alle 3 IBCs korrekt auf 0 abgebucht).
   - **Nachtrag zur Chargennummernvergabe (Nutzer, 28.09.2026):** Real vergeben wird pro Jahr eine gemeinsame Nummer für alle Mazerationen (Jahreszahl + „00", z.B. 2026 → „2600" — Zitronenmelisse und Salbei von heuer bekommen beide „2600"). Ausnahme GFKC: Charge „GFKC-X" mit fortlaufendem Buchstaben, aktuell „M" im Umlauf, nächste wird „N", danach „O". Vom Nutzer explizit als „fachlich nicht korrekt, aber nicht änderbar" bezeichnet (externe Vorgabe) — für die Software heißt das: Chargennummer-Felder dürfen keine Eindeutigkeits-Validierung erzwingen, Duplikate über mehrere Mazerationen eines Jahres sind normal und korrekt.
