@@ -89,8 +89,12 @@ export const inventoryTransactionSchema = z.object({
   artikelNummer: z.string(), // Denormalized for easier display/filtering
   produktName: z.string(), // Denormalized for easier display/filtering
   chargenNummer: z.string(), // Denormalized, use empty string if not applicable
-  type: z.enum(['Zugang', 'Abgang']), 
-  quantityLiters: z.number().positive("Menge muss positiv sein"),
+  // 'Korrektur' = manuelle Inventur-Korrektur (Menge und/oder ABV direkt angepasst,
+  // z.B. Steigrohr-Ablesung nach dem Umpumpen) - kein echter Zugang/Abgang.
+  type: z.enum(['Zugang', 'Abgang', 'Korrektur']),
+  // Bei 'Korrektur' die Mengendifferenz (kann 0 sein, wenn nur der ABV korrigiert wurde,
+  // z.B. gespindelter Wert weicht vom rechnerischen Misch-ABV ab) - sonst wie bisher positiv.
+  quantityLiters: z.number().min(0, "Menge darf nicht negativ sein"),
   transactionDate: z.date(),
   notes: z.string(), // Use empty string if not applicable
 });

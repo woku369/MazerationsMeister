@@ -65,7 +65,7 @@ export function applyTransaction(
 
 function makeTransactionEntry(
   item: StoredInventoryItem,
-  type: 'Zugang' | 'Abgang',
+  type: InventoryTransaction['type'],
   qty: number,
   opts: { notes?: string; date?: Date } = {},
 ): InventoryTransaction {
@@ -117,6 +117,36 @@ export function recordNewEntry(
 ): { items: StoredInventoryItem[]; transactions: InventoryTransaction[] } {
   const updatedItems = addEntry(items, item);
   const entry = makeTransactionEntry(item, 'Zugang', item.currentQuantityLiters, opts);
+  return { items: updatedItems, transactions: [...transactions, entry] };
+}
+
+/**
+ * Wie updateEntry (bestehenden Posten direkt bearbeiten), aber schreibt
+ * zusätzlich einen "Korrektur"-Journal-Eintrag mit dem Vorher/Nachher-Wert.
+ *
+ * Für Inventur-Korrekturen: der rechnerische Misch-ABV aus dem Poolen ist
+ * eine gute Näherung, aber bei der Inventur wird pro Tank gespindelt bzw.
+ * die tatsächliche Menge per Steigrohr-Differenz (vorher/nachher) ermittelt -
+ * das reale Ergebnis kann vom rechnerischen abweichen und muss korrigierbar
+ * sein, OHNE dass die Korrektur im Buchungsjournal verschwindet (derselbe
+ * Lückentyp wie Aufgabe 23, hier für den direkten "Bearbeiten"-Weg).
+ */
+export function recordCorrection(
+  items: StoredInventoryItem[],
+  transactions: InventoryTransaction[],
+  updated: StoredInventoryItem,
+  opts: { notes?: string; date?: Date } = {},
+): { items: StoredInventoryItem[]; transactions: InventoryTransaction[] } {
+  const before = items.find(i => i.id === updated.id);
+  const updatedItems = updateEntry(items, updated);
+  if (!before) return { items: updatedItems, transactions };
+
+  const mengeDelta = Math.abs((updated.currentQuantityLiters ?? 0) - (before.currentQuantityLiters ?? 0));
+  const vorherText = `${before.currentQuantityLiters.toFixed(2)} L @ ${before.alcoholVolProzent}%`;
+  const nachherText = `${updated.currentQuantityLiters.toFixed(2)} L @ ${updated.alcoholVolProzent}%`;
+  const detailNote = `Inventur-Korrektur: ${vorherText} → ${nachherText}${opts.notes ? ` (${opts.notes})` : ''}`;
+
+  const entry = makeTransactionEntry(updated, 'Korrektur', parseFloat(mengeDelta.toFixed(3)), { ...opts, notes: detailNote });
   return { items: updatedItems, transactions: [...transactions, entry] };
 }
 

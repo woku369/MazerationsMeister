@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { addEntry, updateEntry, applyTransaction, recordTransaction, recordNewEntry, poolIntoTank, recordPoolIntoTank } from '../stock-service';
+import { addEntry, updateEntry, applyTransaction, recordTransaction, recordNewEntry, poolIntoTank, recordPoolIntoTank, recordCorrection } from '../stock-service';
 import { calcLA } from '../mazeration-calc';
 import type { StoredInventoryItem, InventoryTransaction } from '@/schemas/inventorySchema';
 
@@ -160,5 +160,33 @@ describe('poolIntoTank: Einlagern mit Misch-ABV-Berechnung (Grundsatzfrage Tank-
     if (!result.ok) return;
     expect(result.transactions).toHaveLength(1);
     expect(result.transactions[0]).toMatchObject({ type: 'Zugang', quantityLiters: 1500, notes: 'Mazeration Zitronenmelisse (2600) - Einlagerung' });
+  });
+});
+
+describe('recordCorrection: Inventur-Korrektur (gespindelter ABV / Steigrohr-Differenz weicht vom rechnerischen Wert ab)', () => {
+  it('korrigiert Menge und ABV UND schreibt einen "Korrektur"-Journal-Eintrag mit Vorher/Nachher', () => {
+    const bestand = makeItem({ tankNr: 'T345', currentQuantityLiters: 4500, alcoholVolProzent: 53.33 });
+    const korrigiert = { ...bestand, currentQuantityLiters: 4480, alcoholVolProzent: 53.0 };
+    const result = recordCorrection([bestand], [], korrigiert);
+    expect(result.items[0]).toMatchObject({ currentQuantityLiters: 4480, alcoholVolProzent: 53.0 });
+    expect(result.transactions).toHaveLength(1);
+    expect(result.transactions[0].type).toBe('Korrektur');
+    expect(result.transactions[0].quantityLiters).toBeCloseTo(20, 2); // |4500 - 4480|
+    expect(result.transactions[0].notes).toContain('4500.00 L @ 53.33%');
+    expect(result.transactions[0].notes).toContain('4480.00 L @ 53%');
+  });
+
+  it('erlaubt eine Korrektur-Buchung mit Mengendifferenz 0, wenn nur der ABV korrigiert wird (gespindelter Wert)', () => {
+    const bestand = makeItem({ currentQuantityLiters: 4500, alcoholVolProzent: 53.33 });
+    const korrigiert = { ...bestand, alcoholVolProzent: 53.5 }; // nur ABV geaendert, Menge gleich
+    const result = recordCorrection([bestand], [], korrigiert);
+    expect(result.transactions[0].quantityLiters).toBe(0);
+    expect(result.transactions[0].type).toBe('Korrektur');
+  });
+
+  it('ist ein No-Op fuer das Journal, wenn der Posten unbekannt ist (aber aendert trotzdem den Bestand ueber updateEntry-Fallback)', () => {
+    const fremderPosten = makeItem({ id: 'unbekannt' });
+    const result = recordCorrection([], [], fremderPosten);
+    expect(result.transactions).toEqual([]);
   });
 });

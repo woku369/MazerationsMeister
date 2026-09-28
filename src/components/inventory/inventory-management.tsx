@@ -497,7 +497,13 @@ export default function InventoryManagement() {
           return def ? def.kennzeichen : '';
         })(),
       };
-      setInventoryItems(prev => StockService.updateEntry(prev, updatedItem));
+      // Ueber recordCorrection statt updateEntry, damit eine Inventur-Korrektur
+      // (z.B. gespindelter ABV weicht vom rechnerischen Misch-ABV ab, oder die
+      // Steigrohr-Differenz ergibt eine andere Menge) sichtbar im Buchungs-
+      // journal landet statt die Aenderung stillschweigend zu ueberschreiben.
+      const korrektur = StockService.recordCorrection(inventoryItems, inventoryTransactions, updatedItem);
+      setInventoryItems(korrektur.items);
+      setInventoryTransactions(korrektur.transactions);
       toast({
         title: 'Artikelcharge aktualisiert',
         description: `${updatedItem.produktName} (${updatedItem.artikelNummer} / ${updatedItem.chargenNummer || 'N/A'}) wurde erfolgreich aktualisiert.`,

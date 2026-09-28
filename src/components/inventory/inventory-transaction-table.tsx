@@ -109,6 +109,7 @@ export default function InventoryTransactionTable({ transactions }: InventoryTra
                 <SelectItem value="all">Alle Typen</SelectItem>
                 <SelectItem value="Zugang">Zugang</SelectItem>
                 <SelectItem value="Abgang">Abgang</SelectItem>
+                <SelectItem value="Korrektur">Korrektur</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -172,12 +173,14 @@ export default function InventoryTransactionTable({ transactions }: InventoryTra
                   <TableCell>{transaction.produktName}</TableCell>
                   <TableCell>{transaction.chargenNummer || 'N/A'}</TableCell>
                   <TableCell>
-                    <Badge 
-                        variant={transaction.type === 'Zugang' ? 'default' : 'destructive'}
+                    <Badge
+                        variant={transaction.type === 'Korrektur' ? 'outline' : transaction.type === 'Zugang' ? 'default' : 'destructive'}
                         className={
-                            transaction.type === 'Zugang' 
-                            ? 'bg-green-600/90 hover:bg-green-600/80 text-white' 
-                            : 'bg-orange-600/90 hover:bg-orange-600/80 text-white'
+                            transaction.type === 'Zugang'
+                            ? 'bg-green-600/90 hover:bg-green-600/80 text-white'
+                            : transaction.type === 'Abgang'
+                            ? 'bg-orange-600/90 hover:bg-orange-600/80 text-white'
+                            : 'bg-blue-600/90 hover:bg-blue-600/80 text-white border-0'
                         }
                     >
                       {transaction.type}

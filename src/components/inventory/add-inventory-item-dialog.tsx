@@ -86,7 +86,10 @@ export default function AddInventoryItemDialog({
           tankNr: initialData.tankNr,
           quantityLiters: initialData.currentQuantityLiters,
           alcoholVolProzent: initialData.alcoholVolProzent,
-          inventoryDate: initialData.lastInventoryDate,
+          // initialData kommt oft aus JSON.parse(localStorage) - lastInventoryDate ist dann ein
+          // String, kein echtes Date-Objekt, und die Zod-Validierung (z.date()) lehnt das beim
+          // Speichern sonst mit "Ungültiges Datum" ab, ohne dass sichtbar wird warum.
+          inventoryDate: initialData.lastInventoryDate ? new Date(initialData.lastInventoryDate) : new Date(),
           bemerkungen: initialData.bemerkungen,
         });
         const matchingDef = artikelDefinitionen.find(def => def.artikelNummer === initialData.artikelNummer);
@@ -150,6 +153,7 @@ export default function AddInventoryItemDialog({
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
         <DialogContent className="sm:max-w-[625px]">
           <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
             {/* Artikel-Auswahl aus Stammdaten */}
             <div className="mb-2">
               <label className="font-medium flex items-center gap-1"><BookHeart className="w-4 h-4 text-muted-foreground" />Artikel aus Stammdaten (optional)</label>
@@ -371,6 +375,7 @@ export default function AddInventoryItemDialog({
                 {isEditing ? 'Änderungen speichern' : 'Artikel hinzufügen'}
               </Button>
             </DialogFooter>
+          </form>
           </Form>
         </DialogContent>
       </Dialog>
