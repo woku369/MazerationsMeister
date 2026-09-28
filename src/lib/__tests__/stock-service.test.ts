@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { addEntry, updateEntry, applyTransaction, recordTransaction, recordNewEntry } from '../stock-service';
+import { addEntry, updateEntry, applyTransaction, recordTransaction, recordNewEntry, poolIntoTank, recordPoolIntoTank } from '../stock-service';
 import { calcLA } from '../mazeration-calc';
 import type { StoredInventoryItem, InventoryTransaction } from '@/schemas/inventorySchema';
 
@@ -92,5 +92,73 @@ describe('stock-service: Buchungsjournal (recordTransaction/recordNewEntry)', ()
     expect(transactions[0]).toMatchObject({
       itemId: 'item-2', produktName: 'GFKC-O', type: 'Zugang', quantityLiters: 917.58, notes: 'Rezeptur GFKC-O Produktion',
     });
+  });
+});
+
+describe('poolIntoTank: Einlagern mit Misch-ABV-Berechnung (Grundsatzfrage Tank-Pooling)', () => {
+  it('legt einen neuen Posten an, wenn der Zieltank noch leer ist', () => {
+    const result = poolIntoTank([], 'T345', {
+      produktName: 'Zitronenmelisse-Mazerat', category: 'M', alkoholVolProzent: 52, mengeLiter: 1500,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.items).toHaveLength(1);
+    expect(result.konsolidiertesItem.currentQuantityLiters).toBe(1500);
+    expect(result.konsolidiertesItem.alcoholVolProzent).toBe(52);
+    expect(result.vorherMenge).toBe(0);
+  });
+
+  it('verschmilzt neue Menge mit vorhandenem Bestand zu einem gewichteten Misch-ABV (Praxisbeispiel)', () => {
+    // 3000L @ 52% + 1500L @ 56% -> 4500L @ 53,333...%
+    const inventory = [makeItem({ id: 'bestand-1', tankNr: 'T345', produktName: 'Zitronenmelisse-Mazerat', currentQuantityLiters: 3000, alcoholVolProzent: 52 })];
+    const result = poolIntoTank(inventory, 'T345', {
+      produktName: 'Zitronenmelisse-Mazerat', category: 'M', alkoholVolProzent: 56, mengeLiter: 1500,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.items).toHaveLength(1); // aus 2 Zeilen wird 1
+    expect(result.konsolidiertesItem.currentQuantityLiters).toBeCloseTo(4500, 2);
+    expect(result.konsolidiertesItem.alcoholVolProzent).toBeCloseTo(53.333, 2);
+    expect(result.konsolidiertesItem.tankNr).toBe('T345');
+    expect(result.vorherMenge).toBe(3000);
+    expect(result.vorherAbv).toBeCloseTo(52, 2);
+  });
+
+  it('konsolidiert mehrere bereits vorhandene Altzeilen desselben Produkts im selben Tank zu einer', () => {
+    // 3 verschiedene Chargen im selben Tank, wie im Nutzerbeispiel beschrieben
+    const inventory = [
+      makeItem({ id: 'charge-1', tankNr: 'T345', produktName: 'Zitronenmelisse-Mazerat', currentQuantityLiters: 1000, alcoholVolProzent: 50 }),
+      makeItem({ id: 'charge-2', tankNr: 'T345', produktName: 'Zitronenmelisse-Mazerat', currentQuantityLiters: 1000, alcoholVolProzent: 52 }),
+      makeItem({ id: 'charge-3', tankNr: 'T345', produktName: 'Zitronenmelisse-Mazerat', currentQuantityLiters: 1000, alcoholVolProzent: 54 }),
+    ];
+    const result = poolIntoTank(inventory, 'T345', {
+      produktName: 'Zitronenmelisse-Mazerat', category: 'M', alkoholVolProzent: 56, mengeLiter: 1500,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.items).toHaveLength(1);
+    expect(result.vorherMenge).toBe(3000);
+    // (1000*50 + 1000*52 + 1000*54) / 3000 = 52
+    expect(result.vorherAbv).toBeCloseTo(52, 2);
+    expect(result.konsolidiertesItem.currentQuantityLiters).toBeCloseTo(4500, 2);
+  });
+
+  it('lehnt ab, wenn der Zieltank bereits ein anderes Produkt enthält', () => {
+    const inventory = [makeItem({ id: 'anderes', tankNr: 'T345', produktName: 'Salbei-Mazerat', currentQuantityLiters: 500, alcoholVolProzent: 50 })];
+    const result = poolIntoTank(inventory, 'T345', {
+      produktName: 'Zitronenmelisse-Mazerat', category: 'M', alkoholVolProzent: 52, mengeLiter: 1000,
+    });
+    expect(result.ok).toBe(false);
+  });
+
+  it('recordPoolIntoTank schreibt den Journal-Eintrag über die neu hinzugekommene Menge, nicht den Tank-Gesamtstand', () => {
+    const inventory = [makeItem({ id: 'bestand-1', tankNr: 'T345', produktName: 'Zitronenmelisse-Mazerat', currentQuantityLiters: 3000, alcoholVolProzent: 52 })];
+    const result = recordPoolIntoTank(inventory, [], 'T345', {
+      produktName: 'Zitronenmelisse-Mazerat', category: 'M', alkoholVolProzent: 56, mengeLiter: 1500,
+    }, { notes: 'Mazeration Zitronenmelisse (2600) - Einlagerung' });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.transactions).toHaveLength(1);
+    expect(result.transactions[0]).toMatchObject({ type: 'Zugang', quantityLiters: 1500, notes: 'Mazeration Zitronenmelisse (2600) - Einlagerung' });
   });
 });

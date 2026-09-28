@@ -120,6 +120,96 @@ export function recordNewEntry(
   return { items: updatedItems, transactions: [...transactions, entry] };
 }
 
+export type NeueMenge = {
+  produktName: string;
+  chargenNummer?: string;
+  category: string;
+  alkoholVolProzent: number;
+  mengeLiter: number;
+};
+
+export type PoolIntoTankResult =
+  | { ok: true; items: StoredInventoryItem[]; konsolidiertesItem: StoredInventoryItem; vorherMenge: number; vorherAbv: number }
+  | { ok: false; error: string };
+
+/**
+ * Bucht eine neue Menge in einen Tank ein und verschmilzt sie mit bereits
+ * vorhandenem Inhalt desselben Produkts zu EINEM Posten mit neu berechnetem
+ * Misch-ABV (gewichtet über LA) - statt wie addEntry() einfach eine weitere,
+ * separate Zeile im selben Tank anzulegen.
+ *
+ * Hintergrund: In einem fest verrohrten Tank vermischt sich neu eingebrachte
+ * Flüssigkeit physisch vollständig mit dem Bestand - mehrere Chargen aus
+ * verschiedenen Mazerationen im selben Tank sind danach EIN homogenes
+ * Gemisch mit einem tatsächlichen ABV, nicht mehrere Posten mit je eigenem
+ * ABV nebeneinander. Bereits vorhandene, nicht zusammengeführte Altzeilen
+ * desselben Produkts im Zieltank werden dabei gleich mit konsolidiert.
+ *
+ * Gibt einen Fehler zurück, wenn der Zieltank bereits ein ANDERES Produkt
+ * enthält (kein stilles Vermischen unterschiedlicher Produkte) - außer
+ * `allowMismatch` ist gesetzt.
+ */
+export function poolIntoTank(
+  items: StoredInventoryItem[],
+  tankNr: string,
+  neu: NeueMenge,
+  opts: { allowMismatch?: boolean } = {},
+): PoolIntoTankResult {
+  const inTank = items.filter(i => i.tankNr === tankNr);
+  const fremdprodukt = inTank.find(i => i.produktName !== neu.produktName);
+  if (fremdprodukt && !opts.allowMismatch) {
+    return { ok: false, error: `Tank ${tankNr} enthält bereits "${fremdprodukt.produktName}" - ein anderes Produkt als "${neu.produktName}".` };
+  }
+
+  const bestehende = inTank.filter(i => i.produktName === neu.produktName);
+  const vorherMenge = bestehende.reduce((s, i) => s + i.currentQuantityLiters, 0);
+  const vorherLA = bestehende.reduce((s, i) => s + calcLA(i.currentQuantityLiters, i.alcoholVolProzent), 0);
+  const vorherAbv = vorherMenge > 0 ? (vorherLA / vorherMenge) * 100 : 0;
+
+  const neueLA = calcLA(neu.mengeLiter, neu.alkoholVolProzent);
+  const gesamtMenge = vorherMenge + neu.mengeLiter;
+  const gesamtLA = vorherLA + neueLA;
+  const gesamtAbv = gesamtMenge > 0 ? (gesamtLA / gesamtMenge) * 100 : 0;
+
+  const basis = bestehende[0];
+  const konsolidiertesItem: StoredInventoryItem = withRecalculatedLA({
+    id: basis?.id ?? uuidv4(),
+    artikelNummer: basis?.artikelNummer ?? neu.produktName,
+    produktName: neu.produktName,
+    chargenNummer: neu.chargenNummer || basis?.chargenNummer || '',
+    category: neu.category || basis?.category || '',
+    tankNr,
+    currentQuantityLiters: parseFloat(gesamtMenge.toFixed(3)),
+    alcoholVolProzent: parseFloat(gesamtAbv.toFixed(3)),
+    lastInventoryDate: new Date(),
+    bemerkungen: basis?.bemerkungen ?? '',
+    kennzeichen: basis?.kennzeichen ?? 'S',
+  });
+
+  const ersetzteIds = new Set(bestehende.map(i => i.id));
+  const updatedItems = [...items.filter(i => !ersetzteIds.has(i.id)), konsolidiertesItem];
+
+  return { ok: true, items: updatedItems, konsolidiertesItem, vorherMenge, vorherAbv };
+}
+
+/**
+ * Wie poolIntoTank, aber schreibt zusätzlich einen "Zugang"-Journal-Eintrag
+ * über die tatsächlich neu hinzugekommene Menge (nicht über den neuen
+ * Tank-Gesamtstand).
+ */
+export function recordPoolIntoTank(
+  items: StoredInventoryItem[],
+  transactions: InventoryTransaction[],
+  tankNr: string,
+  neu: NeueMenge,
+  opts: { notes?: string; date?: Date; allowMismatch?: boolean } = {},
+): { ok: true; items: StoredInventoryItem[]; transactions: InventoryTransaction[]; konsolidiertesItem: StoredInventoryItem; vorherMenge: number; vorherAbv: number } | { ok: false; error: string } {
+  const result = poolIntoTank(items, tankNr, neu, { allowMismatch: opts.allowMismatch });
+  if (!result.ok) return result;
+  const entry = makeTransactionEntry(result.konsolidiertesItem, 'Zugang', neu.mengeLiter, opts);
+  return { ...result, transactions: [...transactions, entry] };
+}
+
 // ---------------------------------------------------------------------------
 // localStorage I/O — for use outside React components (e.g. mazeration-form)
 // ---------------------------------------------------------------------------
@@ -171,5 +261,19 @@ export function persistRecordTransaction(
   const result = recordTransaction(readAll(), readTransactions(), id, type, qty, opts);
   writeAll(result.items);
   writeTransactions(result.transactions);
+  return result;
+}
+
+/** Read → recordPoolIntoTank → write (beide Stores). */
+export function persistPoolIntoTank(
+  tankNr: string,
+  neu: NeueMenge,
+  opts: { notes?: string; date?: Date; allowMismatch?: boolean } = {},
+): ReturnType<typeof recordPoolIntoTank> {
+  const result = recordPoolIntoTank(readAll(), readTransactions(), tankNr, neu, opts);
+  if (result.ok) {
+    writeAll(result.items);
+    writeTransactions(result.transactions);
+  }
   return result;
 }
