@@ -38,7 +38,7 @@ describe('generateVersandNummer', () => {
 describe('createVersand', () => {
   it('bucht Abgang für jedes Gebinde und legt den Versand-Datensatz an', () => {
     const inventory = [makeInventoryItem()];
-    const { versaende, inventoryItems, versand } = createVersand([], inventory, {
+    const { versaende, inventoryItems, versand } = createVersand([], inventory, [], {
       lohnabfuellerName: 'Mozart',
       versanddatum: '2026-10-05',
       container: [{
@@ -59,7 +59,7 @@ describe('createVersand', () => {
       makeInventoryItem({ id: 'ibc-2', currentQuantityLiters: 1000, tankNr: 'IBC-2' }),
       makeInventoryItem({ id: 'ibc-3', currentQuantityLiters: 1000, tankNr: 'IBC-3' }),
     ];
-    const { inventoryItems, versand } = createVersand([], inventory, {
+    const { inventoryItems, versand } = createVersand([], inventory, [], {
       lohnabfuellerName: 'Mozart',
       versanddatum: '2026-10-05',
       container: [
@@ -70,6 +70,26 @@ describe('createVersand', () => {
     });
     expect(inventoryItems.every(i => i.currentQuantityLiters === 0)).toBe(true);
     expect(versand.versandLA).toBeCloseTo(3000 * 0.535, 3);
+  });
+});
+
+describe('Buchungsjournal', () => {
+  it('createVersand schreibt für jedes Gebinde einen Journal-Eintrag mit Referenz auf die Versandnummer', () => {
+    const inventory = [
+      makeInventoryItem({ id: 'ibc-1', currentQuantityLiters: 1000, tankNr: 'IBC-1' }),
+      makeInventoryItem({ id: 'ibc-2', currentQuantityLiters: 1000, tankNr: 'IBC-2' }),
+    ];
+    const { versand, transactions } = createVersand([], inventory, [], {
+      lohnabfuellerName: 'Mozart',
+      versanddatum: '2026-10-05',
+      container: [
+        { inventoryItemId: 'ibc-1', tankNr: 'IBC-1', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
+        { inventoryItemId: 'ibc-2', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
+      ],
+    });
+    expect(transactions).toHaveLength(2);
+    expect(transactions.every(t => t.type === 'Abgang')).toBe(true);
+    expect(transactions.every(t => t.notes.includes(versand.versandNummer))).toBe(true);
   });
 });
 

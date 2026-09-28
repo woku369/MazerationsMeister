@@ -32,7 +32,7 @@ describe('produziereRezeptur (Kernlücke aus der Bestandsaufnahme - die eigentli
     ];
     const rezeptur = buildFertigeRezeptur(inventory);
 
-    const result = produziereRezeptur([rezeptur], inventory, rezeptur.id, {
+    const result = produziereRezeptur([rezeptur], inventory, [], rezeptur.id, {
       zielTankNr: 'T 341',
       chargenNummer: 'GFKC-O-001',
     });
@@ -64,7 +64,7 @@ describe('produziereRezeptur (Kernlücke aus der Bestandsaufnahme - die eigentli
       makeInventoryItem({ id: 'sa', produktName: 'SA', currentQuantityLiters: 500, alcoholVolProzent: 40 }),
     ];
     const rezeptur = buildFertigeRezeptur(inventory);
-    const result = produziereRezeptur([rezeptur], inventory, rezeptur.id, { zielTankNr: 'T 1' });
+    const result = produziereRezeptur([rezeptur], inventory, [], rezeptur.id, { zielTankNr: 'T 1' });
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -85,7 +85,7 @@ describe('produziereRezeptur (Kernlücke aus der Bestandsaufnahme - die eigentli
       spritZugabeAlkoholgehalt: 96,
     };
 
-    const result = produziereRezeptur([rezeptur], [zm, sprit], rezeptur.id, { zielTankNr: 'T 1' });
+    const result = produziereRezeptur([rezeptur], [zm, sprit], [], rezeptur.id, { zielTankNr: 'T 1' });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
@@ -102,21 +102,21 @@ describe('produziereRezeptur (Kernlücke aus der Bestandsaufnahme - die eigentli
     rezeptur.basisMenge = 100;
     rezeptur = berechneRezeptur(rezeptur);
 
-    const result = produziereRezeptur([rezeptur], inventory, rezeptur.id, { zielTankNr: 'T 1' });
+    const result = produziereRezeptur([rezeptur], inventory, [], rezeptur.id, { zielTankNr: 'T 1' });
     expect(result.ok).toBe(false);
   });
 
   it('bricht mit Fehler ab, wenn kein Zieltank angegeben ist', () => {
     const inventory = [makeInventoryItem()];
     const rezeptur = buildFertigeRezeptur(inventory);
-    const result = produziereRezeptur([rezeptur], inventory, rezeptur.id, { zielTankNr: '' });
+    const result = produziereRezeptur([rezeptur], inventory, [], rezeptur.id, { zielTankNr: '' });
     expect(result.ok).toBe(false);
   });
 
   it('bricht mit Fehler ab, wenn die Rezeptur bereits produziert wurde', () => {
     const inventory = [makeInventoryItem()];
     const rezeptur = { ...buildFertigeRezeptur(inventory), status: 'produziert' as const };
-    const result = produziereRezeptur([rezeptur], inventory, rezeptur.id, { zielTankNr: 'T 1' });
+    const result = produziereRezeptur([rezeptur], inventory, [], rezeptur.id, { zielTankNr: 'T 1' });
     expect(result.ok).toBe(false);
   });
 
@@ -133,11 +133,23 @@ describe('produziereRezeptur (Kernlücke aus der Bestandsaufnahme - die eigentli
     rezeptur.basisMenge = 120;
     rezeptur = berechneRezeptur(rezeptur);
 
-    const result = produziereRezeptur([rezeptur], inventory, rezeptur.id, { zielTankNr: 'T 1' });
+    const result = produziereRezeptur([rezeptur], inventory, [], rezeptur.id, { zielTankNr: 'T 1' });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     // Nur die 100L Mazerat wurden abgebucht, Wasser ist nicht im Inventar
     expect(result.inventoryItems.find(i => i.id === 'zm')!.currentQuantityLiters).toBeCloseTo(900, 3);
     expect(result.inventoryItems).toHaveLength(2); // zm + neuer GFKC-Posten, kein Wasser-Item
+  });
+
+  it('schreibt für Komponenten-Abgang und Ergebnis-Zugang je einen Journal-Eintrag mit Rezeptur-Referenz', () => {
+    const inventory = [makeInventoryItem({ id: 'zm', currentQuantityLiters: 1000, alcoholVolProzent: 60 })];
+    const rezeptur = buildFertigeRezeptur(inventory);
+    const result = produziereRezeptur([rezeptur], inventory, [], rezeptur.id, { zielTankNr: 'T 1' });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.transactions).toHaveLength(2); // 1x Abgang Komponente, 1x Zugang fertiger Posten
+    expect(result.transactions[0]).toMatchObject({ type: 'Abgang', itemId: 'zm' });
+    expect(result.transactions[1]).toMatchObject({ type: 'Zugang', produktName: 'GFKC-O' });
+    expect(result.transactions.every(t => t.notes.includes(rezeptur.name))).toBe(true);
   });
 });

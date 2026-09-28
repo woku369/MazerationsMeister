@@ -38,7 +38,7 @@ describe('generateAuftragsNummer', () => {
 describe('createAuftrag', () => {
   it('bucht Abgang für jedes Gebinde und legt den Auftrag mit Status "unterwegs" an', () => {
     const inventory = [makeInventoryItem()];
-    const { auftraege, inventoryItems, auftrag } = createAuftrag([], inventory, {
+    const { auftraege, inventoryItems, auftrag } = createAuftrag([], inventory, [], {
       lohnbrennerName: 'Destillerie Beispiel',
       ausgangsdatum: '2026-09-01',
       container: [{
@@ -58,7 +58,7 @@ describe('createAuftrag', () => {
       makeInventoryItem({ id: 'item-1', currentQuantityLiters: 500 }),
       makeInventoryItem({ id: 'item-2', currentQuantityLiters: 300, tankNr: 'Fass-3' }),
     ];
-    const { inventoryItems } = createAuftrag([], inventory, {
+    const { inventoryItems } = createAuftrag([], inventory, [], {
       lohnbrennerName: 'X',
       ausgangsdatum: '2026-09-01',
       container: [
@@ -74,13 +74,13 @@ describe('createAuftrag', () => {
 describe('completeAuftrag', () => {
   it('bucht das Destillat als neuen Lagerposten ein und markiert den Auftrag als abgeschlossen', () => {
     const inventory = [makeInventoryItem()];
-    const { auftrag } = createAuftrag([], inventory, {
+    const { auftrag } = createAuftrag([], inventory, [], {
       lohnbrennerName: 'Destillerie Beispiel',
       ausgangsdatum: '2026-09-01',
       container: [{ inventoryItemId: 'item-1', tankNr: 'Fass-2', produktName: 'Mazerat Zitronenmelisse', chargenNummer: 'C1', mengeLiter: 300, alkoholVolProzent: 60 }],
     });
 
-    const { auftraege, inventoryItems } = completeAuftrag([auftrag], inventory, auftrag.id, {
+    const { auftraege, inventoryItems } = completeAuftrag([auftrag], inventory, [], auftrag.id, {
       ruecklaufdatum: '2026-09-15',
       ergebnisProduktName: 'Destillat Zitronenmelisse',
       ergebnisMengeLiter: 250,
@@ -102,7 +102,7 @@ describe('completeAuftrag', () => {
       id: 'a1', auftragsNummer: 'LB-2026-001', lohnbrennerName: 'X', status: 'abgeschlossen',
       ausgangsdatum: '', container: [], ausgangsLA: 0, createdAt: '', updatedAt: '',
     };
-    const { auftraege, inventoryItems } = completeAuftrag([auftrag], [], 'a1', {
+    const { auftraege, inventoryItems } = completeAuftrag([auftrag], [], [], 'a1', {
       ruecklaufdatum: '2026-09-15', ergebnisProduktName: 'X', ergebnisMengeLiter: 100,
       ergebnisAlkoholVolProzent: 70, zielTankNr: 'T 1',
     });
@@ -116,7 +116,7 @@ describe('completeAuftrag', () => {
       makeInventoryItem({ id: 'item-x', currentQuantityLiters: 600, alcoholVolProzent: 50 }),
       makeInventoryItem({ id: 'item-y', currentQuantityLiters: 300, alcoholVolProzent: 40 }),
     ];
-    const { auftrag } = createAuftrag([], inventory, {
+    const { auftrag } = createAuftrag([], inventory, [], {
       lohnbrennerName: 'Destillerie Beispiel',
       ausgangsdatum: '2026-09-01',
       container: [
@@ -133,7 +133,7 @@ describe('completeAuftrag', () => {
       makeInventoryItem({ id: 'item-x', currentQuantityLiters: 600, alcoholVolProzent: 50 }),
       makeInventoryItem({ id: 'item-y', currentQuantityLiters: 300, alcoholVolProzent: 40 }),
     ];
-    const { auftrag } = createAuftrag([], inventory, {
+    const { auftrag } = createAuftrag([], inventory, [], {
       lohnbrennerName: 'Destillerie Beispiel',
       ausgangsdatum: '2026-09-01',
       container: [
@@ -141,7 +141,7 @@ describe('completeAuftrag', () => {
         { inventoryItemId: 'item-y', tankNr: 'T Y', produktName: 'Mazerat Z (Charge 2)', mengeLiter: 300, alkoholVolProzent: 40 },
       ],
     });
-    const { auftraege } = completeAuftrag([auftrag], inventory, auftrag.id, {
+    const { auftraege } = completeAuftrag([auftrag], inventory, [], auftrag.id, {
       ruecklaufdatum: '2026-09-15',
       ergebnisProduktName: 'Destillat Z',
       ergebnisMengeLiter: 500,
@@ -150,6 +150,36 @@ describe('completeAuftrag', () => {
     });
     expect(auftraege[0].ergebnisLA).toBeCloseTo(400, 3);
     expect(auftraege[0].verlustLA).toBeCloseTo(20, 3);
+  });
+});
+
+describe('Buchungsjournal', () => {
+  it('createAuftrag schreibt einen Journal-Eintrag mit Referenz auf die Auftragsnummer', () => {
+    const inventory = [makeInventoryItem()];
+    const { auftrag, transactions } = createAuftrag([], inventory, [], {
+      lohnbrennerName: 'Destillerie Beispiel',
+      ausgangsdatum: '2026-09-01',
+      container: [{ inventoryItemId: 'item-1', tankNr: 'Fass-2', produktName: 'Mazerat Zitronenmelisse', chargenNummer: 'C1', mengeLiter: 300, alkoholVolProzent: 60 }],
+    });
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0]).toMatchObject({ itemId: 'item-1', type: 'Abgang', quantityLiters: 300 });
+    expect(transactions[0].notes).toContain(auftrag.auftragsNummer);
+  });
+
+  it('completeAuftrag schreibt einen weiteren Journal-Eintrag für den Rücklauf, ohne den Ausgangs-Eintrag zu verlieren', () => {
+    const inventory = [makeInventoryItem()];
+    const created = createAuftrag([], inventory, [], {
+      lohnbrennerName: 'Destillerie Beispiel',
+      ausgangsdatum: '2026-09-01',
+      container: [{ inventoryItemId: 'item-1', tankNr: 'Fass-2', produktName: 'Mazerat Zitronenmelisse', chargenNummer: 'C1', mengeLiter: 300, alkoholVolProzent: 60 }],
+    });
+    const { transactions } = completeAuftrag([created.auftrag], created.inventoryItems, created.transactions, created.auftrag.id, {
+      ruecklaufdatum: '2026-09-15', ergebnisProduktName: 'Destillat Zitronenmelisse',
+      ergebnisMengeLiter: 250, ergebnisAlkoholVolProzent: 75, zielTankNr: 'T 341',
+    });
+    expect(transactions).toHaveLength(2);
+    expect(transactions[0].type).toBe('Abgang');
+    expect(transactions[1]).toMatchObject({ type: 'Zugang', produktName: 'Destillat Zitronenmelisse', quantityLiters: 250 });
   });
 });
 

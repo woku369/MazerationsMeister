@@ -11,7 +11,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import * as StockService from './stock-service';
 import { calcLA } from './mazeration-calc';
-import type { StoredInventoryItem } from '@/schemas/inventorySchema';
+import type { StoredInventoryItem, InventoryTransaction } from '@/schemas/inventorySchema';
 import type { Rezeptur } from '@/schemas/rezepturSchema';
 
 const STORAGE_KEY = 'rezepturen';
@@ -27,7 +27,7 @@ export interface LaBilanz {
 }
 
 export type ProduziereRezepturErgebnis =
-  | { ok: true; rezepturen: Rezeptur[]; inventoryItems: StoredInventoryItem[]; laBilanz: LaBilanz }
+  | { ok: true; rezepturen: Rezeptur[]; inventoryItems: StoredInventoryItem[]; transactions: InventoryTransaction[]; laBilanz: LaBilanz }
   | { ok: false; error: string };
 
 /**
@@ -40,6 +40,7 @@ export type ProduziereRezepturErgebnis =
 export function produziereRezeptur(
   rezepturen: Rezeptur[],
   inventoryItems: StoredInventoryItem[],
+  transactions: InventoryTransaction[],
   rezepturId: string,
   params: {
     zielTankNr: string;
@@ -55,7 +56,10 @@ export function produziereRezeptur(
   if (!params.zielTankNr?.trim()) return { ok: false, error: 'Zieltank ist erforderlich.' };
 
   let items = [...inventoryItems];
+  let txs = transactions;
   let eingesetzteLA = 0;
+  const produktionsdatumDate = params.produktionsdatum ? new Date(params.produktionsdatum) : new Date();
+  const journalNotiz = `Rezeptur ${rezeptur.name}${rezeptur.variantenName ? ' – ' + rezeptur.variantenName : ''} Produktion`;
 
   // 1. Jede nicht-freie Komponente abbuchen (Menge = mengeFuerProduktion, falls
   //    skaliert, sonst mengeInLiter für einen 1:1-Testansatz)
@@ -74,7 +78,11 @@ export function produziereRezeptur(
 
     const alkoholgehalt = komp.alkoholgehaltManuell ?? komp.alkoholgehalt;
     eingesetzteLA += calcLA(menge, alkoholgehalt);
-    items = StockService.applyTransaction(items, komp.produktId, 'Abgang', menge);
+    const result = StockService.recordTransaction(items, txs, komp.produktId, 'Abgang', menge, {
+      notes: journalNotiz, date: produktionsdatumDate,
+    });
+    items = result.items;
+    txs = result.transactions;
   }
 
   // 2. Alkoholkorrektur: Sprit-Zugabe muss ebenfalls von einem echten Lagerposten
@@ -98,7 +106,11 @@ export function produziereRezeptur(
         };
       }
       eingesetzteLA += calcLA(spritZugabe, spritItem.alcoholVolProzent);
-      items = StockService.applyTransaction(items, spritId, 'Abgang', spritZugabe);
+      const result = StockService.recordTransaction(items, txs, spritId, 'Abgang', spritZugabe, {
+        notes: `${journalNotiz} (Alkoholkorrektur)`, date: produktionsdatumDate,
+      });
+      items = result.items;
+      txs = result.transactions;
     }
   }
 
@@ -118,11 +130,15 @@ export function produziereRezeptur(
     tankNr: params.zielTankNr,
     currentQuantityLiters: parseFloat(produzierteMenge.toFixed(3)),
     alcoholVolProzent: parseFloat(tatsaechlicherAlkohol.toFixed(2)),
-    lastInventoryDate: params.produktionsdatum ? new Date(params.produktionsdatum) : new Date(),
+    lastInventoryDate: produktionsdatumDate,
     bemerkungen: params.notizen || `Ausmischung ${rezeptur.name}${rezeptur.variantenName ? ' – ' + rezeptur.variantenName : ''}`,
     kennzeichen: 'S',
   };
-  items = StockService.addEntry(items, neuesItem);
+  {
+    const result = StockService.recordNewEntry(items, txs, neuesItem, { notes: journalNotiz, date: produktionsdatumDate });
+    items = result.items;
+    txs = result.transactions;
+  }
 
   const ergebnisLA = calcLA(neuesItem.currentQuantityLiters, neuesItem.alcoholVolProzent);
 
@@ -147,6 +163,7 @@ export function produziereRezeptur(
     ok: true,
     rezepturen: updatedRezepturen,
     inventoryItems: items,
+    transactions: txs,
     laBilanz: {
       eingesetzteLA: parseFloat(eingesetzteLA.toFixed(3)),
       ergebnisLA: parseFloat(ergebnisLA.toFixed(3)),
@@ -174,15 +191,16 @@ export function writeAll(rezepturen: Rezeptur[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(rezepturen));
 }
 
-/** Read → produziereRezeptur → write (beide Stores). */
+/** Read → produziereRezeptur → write (alle 3 Stores). */
 export function persistProduziereRezeptur(
   rezepturId: string,
   params: { zielTankNr: string; chargenNummer?: string; produktionsdatum?: string; notizen?: string },
 ): ProduziereRezepturErgebnis {
-  const result = produziereRezeptur(readAll(), StockService.readAll(), rezepturId, params);
+  const result = produziereRezeptur(readAll(), StockService.readAll(), StockService.readTransactions(), rezepturId, params);
   if (result.ok) {
     writeAll(result.rezepturen);
     StockService.writeAll(result.inventoryItems);
+    StockService.writeTransactions(result.transactions);
   }
   return result;
 }

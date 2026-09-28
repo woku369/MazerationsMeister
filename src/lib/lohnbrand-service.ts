@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import * as StockService from './stock-service';
 import { calcLA } from './mazeration-calc';
-import type { StoredInventoryItem } from '@/schemas/inventorySchema';
+import type { StoredInventoryItem, InventoryTransaction } from '@/schemas/inventorySchema';
 import type { LohnbrandAuftrag, LohnbrandContainer, LohnbrandStatus } from '@/schemas/lohnbrandSchema';
 
 /** Summe LA über alle Gebinde eines Auftrags (Ausgang oder geplanter Auftrag). */
@@ -34,13 +34,14 @@ export function generateAuftragsNummer(existing: LohnbrandAuftrag[], year: numbe
 export function createAuftrag(
   auftraege: LohnbrandAuftrag[],
   inventoryItems: StoredInventoryItem[],
+  transactions: InventoryTransaction[],
   params: {
     lohnbrennerName: string;
     ausgangsdatum: string;
     container: LohnbrandContainer[];
     bemerkungen?: string;
   },
-): { auftraege: LohnbrandAuftrag[]; inventoryItems: StoredInventoryItem[]; auftrag: LohnbrandAuftrag } {
+): { auftraege: LohnbrandAuftrag[]; inventoryItems: StoredInventoryItem[]; transactions: InventoryTransaction[]; auftrag: LohnbrandAuftrag } {
   const now = new Date().toISOString();
   const auftrag: LohnbrandAuftrag = {
     id: uuidv4(),
@@ -56,11 +57,17 @@ export function createAuftrag(
   };
 
   let items = inventoryItems;
+  let txs = transactions;
   for (const c of params.container) {
-    items = StockService.applyTransaction(items, c.inventoryItemId, 'Abgang', c.mengeLiter);
+    const result = StockService.recordTransaction(items, txs, c.inventoryItemId, 'Abgang', c.mengeLiter, {
+      notes: `Lohnbrand ${auftrag.auftragsNummer} (${params.lohnbrennerName}) - Ausgang`,
+      date: new Date(params.ausgangsdatum),
+    });
+    items = result.items;
+    txs = result.transactions;
   }
 
-  return { auftraege: [...auftraege, auftrag], inventoryItems: items, auftrag };
+  return { auftraege: [...auftraege, auftrag], inventoryItems: items, transactions: txs, auftrag };
 }
 
 /**
@@ -71,6 +78,7 @@ export function createAuftrag(
 export function completeAuftrag(
   auftraege: LohnbrandAuftrag[],
   inventoryItems: StoredInventoryItem[],
+  transactions: InventoryTransaction[],
   auftragId: string,
   ergebnis: {
     ruecklaufdatum: string;
@@ -79,10 +87,10 @@ export function completeAuftrag(
     ergebnisAlkoholVolProzent: number;
     zielTankNr: string;
   },
-): { auftraege: LohnbrandAuftrag[]; inventoryItems: StoredInventoryItem[] } {
+): { auftraege: LohnbrandAuftrag[]; inventoryItems: StoredInventoryItem[]; transactions: InventoryTransaction[] } {
   const now = new Date().toISOString();
   const auftrag = auftraege.find(a => a.id === auftragId);
-  if (!auftrag || auftrag.status !== 'unterwegs') return { auftraege, inventoryItems };
+  if (!auftrag || auftrag.status !== 'unterwegs') return { auftraege, inventoryItems, transactions };
 
   const neuesItem: StoredInventoryItem = {
     id: uuidv4(),
@@ -98,7 +106,10 @@ export function completeAuftrag(
     kennzeichen: 'S',
   };
 
-  const updatedItems = StockService.addEntry(inventoryItems, neuesItem);
+  const { items: updatedItems, transactions: updatedTransactions } = StockService.recordNewEntry(inventoryItems, transactions, neuesItem, {
+    notes: `Lohnbrand ${auftrag.auftragsNummer} (${auftrag.lohnbrennerName}) - Rücklauf`,
+    date: new Date(ergebnis.ruecklaufdatum),
+  });
 
   const ergebnisLA = calcLA(ergebnis.ergebnisMengeLiter, ergebnis.ergebnisAlkoholVolProzent);
   // Brennverlust: die Differenz zwischen ausgehender und zurückgekommener LA.
@@ -119,7 +130,7 @@ export function completeAuftrag(
     updatedAt: now,
   } : a);
 
-  return { auftraege: updatedAuftraege, inventoryItems: updatedItems };
+  return { auftraege: updatedAuftraege, inventoryItems: updatedItems, transactions: updatedTransactions };
 }
 
 // ---------------------------------------------------------------------------
@@ -141,20 +152,21 @@ export function writeAll(auftraege: LohnbrandAuftrag[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(auftraege));
 }
 
-/** Read → createAuftrag → write (beide Stores). Gibt den neuen Auftrag zurück. */
+/** Read → createAuftrag → write (alle 3 Stores). Gibt den neuen Auftrag zurück. */
 export function persistCreateAuftrag(params: {
   lohnbrennerName: string;
   ausgangsdatum: string;
   container: LohnbrandContainer[];
   bemerkungen?: string;
 }): LohnbrandAuftrag {
-  const result = createAuftrag(readAll(), StockService.readAll(), params);
+  const result = createAuftrag(readAll(), StockService.readAll(), StockService.readTransactions(), params);
   writeAll(result.auftraege);
   StockService.writeAll(result.inventoryItems);
+  StockService.writeTransactions(result.transactions);
   return result.auftrag;
 }
 
-/** Read → completeAuftrag → write (beide Stores). */
+/** Read → completeAuftrag → write (alle 3 Stores). */
 export function persistCompleteAuftrag(auftragId: string, ergebnis: {
   ruecklaufdatum: string;
   ergebnisProduktName: string;
@@ -162,7 +174,8 @@ export function persistCompleteAuftrag(auftragId: string, ergebnis: {
   ergebnisAlkoholVolProzent: number;
   zielTankNr: string;
 }): void {
-  const result = completeAuftrag(readAll(), StockService.readAll(), auftragId, ergebnis);
+  const result = completeAuftrag(readAll(), StockService.readAll(), StockService.readTransactions(), auftragId, ergebnis);
   writeAll(result.auftraege);
+  StockService.writeTransactions(result.transactions);
   StockService.writeAll(result.inventoryItems);
 }

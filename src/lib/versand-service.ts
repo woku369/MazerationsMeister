@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import * as StockService from './stock-service';
 import { calcLA } from './mazeration-calc';
-import type { StoredInventoryItem } from '@/schemas/inventorySchema';
+import type { StoredInventoryItem, InventoryTransaction } from '@/schemas/inventorySchema';
 import type { LohnabfuellerVersand, VersandContainer } from '@/schemas/versandSchema';
 
 /** Summe LA über alle Gebinde eines Versands. */
@@ -35,13 +35,14 @@ export function generateVersandNummer(existing: LohnabfuellerVersand[], year: nu
 export function createVersand(
   versaende: LohnabfuellerVersand[],
   inventoryItems: StoredInventoryItem[],
+  transactions: InventoryTransaction[],
   params: {
     lohnabfuellerName: string;
     versanddatum: string;
     container: VersandContainer[];
     bemerkungen?: string;
   },
-): { versaende: LohnabfuellerVersand[]; inventoryItems: StoredInventoryItem[]; versand: LohnabfuellerVersand } {
+): { versaende: LohnabfuellerVersand[]; inventoryItems: StoredInventoryItem[]; transactions: InventoryTransaction[]; versand: LohnabfuellerVersand } {
   const versand: LohnabfuellerVersand = {
     id: uuidv4(),
     versandNummer: generateVersandNummer(versaende),
@@ -54,11 +55,17 @@ export function createVersand(
   };
 
   let items = inventoryItems;
+  let txs = transactions;
   for (const c of params.container) {
-    items = StockService.applyTransaction(items, c.inventoryItemId, 'Abgang', c.mengeLiter);
+    const result = StockService.recordTransaction(items, txs, c.inventoryItemId, 'Abgang', c.mengeLiter, {
+      notes: `Versand ${versand.versandNummer} (${params.lohnabfuellerName})`,
+      date: new Date(params.versanddatum),
+    });
+    items = result.items;
+    txs = result.transactions;
   }
 
-  return { versaende: [...versaende, versand], inventoryItems: items, versand };
+  return { versaende: [...versaende, versand], inventoryItems: items, transactions: txs, versand };
 }
 
 // ---------------------------------------------------------------------------
@@ -80,15 +87,16 @@ export function writeAll(versaende: LohnabfuellerVersand[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(versaende));
 }
 
-/** Read → createVersand → write (beide Stores). Gibt den neuen Versand zurück. */
+/** Read → createVersand → write (alle 3 Stores). Gibt den neuen Versand zurück. */
 export function persistCreateVersand(params: {
   lohnabfuellerName: string;
   versanddatum: string;
   container: VersandContainer[];
   bemerkungen?: string;
 }): LohnabfuellerVersand {
-  const result = createVersand(readAll(), StockService.readAll(), params);
+  const result = createVersand(readAll(), StockService.readAll(), StockService.readTransactions(), params);
   writeAll(result.versaende);
   StockService.writeAll(result.inventoryItems);
+  StockService.writeTransactions(result.transactions);
   return result.versand;
 }

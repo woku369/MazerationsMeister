@@ -617,24 +617,15 @@ export default function InventoryManagement() {
   const handleSaveTransaction = (transaction: InventoryTransactionCoreData) => {
     if (!itemForTransaction || !currentTransactionType) return;
 
-    // 1. Transaktion speichern
-    const newTransaction: InventoryTransaction = {
-      ...transaction,
-      id: uuidv4(),
-      transactionDate: new Date(),
-      type: currentTransactionType,
-      itemId: itemForTransaction.id,
-      artikelNummer: itemForTransaction.artikelNummer,
-      produktName: itemForTransaction.produktName,
-      chargenNummer: itemForTransaction.chargenNummer || '',
-      notes: transaction.notes || '',
-    };
-    setInventoryTransactions(prev => [...prev, newTransaction]);
-
-    // 2. Lagerbestand aktualisieren
-    setInventoryItems(prev =>
-      StockService.applyTransaction(prev, itemForTransaction.id, currentTransactionType, transaction.quantityLiters)
+    // Bestand aktualisieren UND Journal-Eintrag schreiben - dieselbe Funktion,
+    // die auch Lohnbrand, Versand und Rezepturen benutzen, damit jede Buchung
+    // im selben Buchungsjournal landet, egal woher sie ausgelöst wurde.
+    const result = StockService.recordTransaction(
+      inventoryItems, inventoryTransactions, itemForTransaction.id, currentTransactionType, transaction.quantityLiters,
+      { notes: transaction.notes || '', date: transaction.transactionDate },
     );
+    setInventoryItems(result.items);
+    setInventoryTransactions(result.transactions);
 
     toast({
       title: 'Transaktion gespeichert',

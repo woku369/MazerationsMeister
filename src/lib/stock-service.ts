@@ -1,7 +1,9 @@
-import type { StoredInventoryItem } from '@/schemas/inventorySchema';
+import { v4 as uuidv4 } from 'uuid';
+import type { StoredInventoryItem, InventoryTransaction } from '@/schemas/inventorySchema';
 import { calcLA } from '@/lib/mazeration-calc';
 
 const STORAGE_KEY = 'inventoryItems';
+const TRANSACTIONS_KEY = 'inventoryTransactions';
 
 /**
  * literAbsolutalkohol muss bei jeder Mengen-/Konzentrationsänderung neu
@@ -61,6 +63,63 @@ export function applyTransaction(
   });
 }
 
+function makeTransactionEntry(
+  item: StoredInventoryItem,
+  type: 'Zugang' | 'Abgang',
+  qty: number,
+  opts: { notes?: string; date?: Date } = {},
+): InventoryTransaction {
+  return {
+    id: uuidv4(),
+    itemId: item.id,
+    artikelNummer: item.artikelNummer,
+    produktName: item.produktName,
+    chargenNummer: item.chargenNummer || '',
+    type,
+    quantityLiters: qty,
+    transactionDate: opts.date ?? new Date(),
+    notes: opts.notes || '',
+  };
+}
+
+/**
+ * Wie applyTransaction, aber schreibt zusätzlich einen Journal-Eintrag ins
+ * Buchungsjournal (dasselbe, das die manuelle Zugang/Abgang-Buchung in der
+ * Lagerverwaltung befüllt). Das ist die einzige Stelle, über die jede Buchung
+ * - egal ob manuell, Lohnbrand, Versand oder Rezeptur - chronologisch und
+ * belegbar im Journal landet, statt nur die Bestandsmenge zu ändern.
+ */
+export function recordTransaction(
+  items: StoredInventoryItem[],
+  transactions: InventoryTransaction[],
+  id: string,
+  type: 'Zugang' | 'Abgang',
+  qty: number,
+  opts: { notes?: string; date?: Date } = {},
+): { items: StoredInventoryItem[]; transactions: InventoryTransaction[] } {
+  const item = items.find(i => i.id === id);
+  const updatedItems = applyTransaction(items, id, type, qty);
+  if (!item) return { items: updatedItems, transactions };
+  return { items: updatedItems, transactions: [...transactions, makeTransactionEntry(item, type, qty, opts)] };
+}
+
+/**
+ * Wie addEntry (neuen Lagerposten anlegen), aber schreibt zusätzlich einen
+ * "Zugang"-Journal-Eintrag für den neuen Posten. Für Fälle wie Lohnbrand-
+ * Rücklauf oder Rezeptur-Produktion, wo ein komplett neuer Posten entsteht,
+ * statt eine Menge auf einen bestehenden Posten zu buchen.
+ */
+export function recordNewEntry(
+  items: StoredInventoryItem[],
+  transactions: InventoryTransaction[],
+  item: StoredInventoryItem,
+  opts: { notes?: string; date?: Date } = {},
+): { items: StoredInventoryItem[]; transactions: InventoryTransaction[] } {
+  const updatedItems = addEntry(items, item);
+  const entry = makeTransactionEntry(item, 'Zugang', item.currentQuantityLiters, opts);
+  return { items: updatedItems, transactions: [...transactions, entry] };
+}
+
 // ---------------------------------------------------------------------------
 // localStorage I/O — for use outside React components (e.g. mazeration-form)
 // ---------------------------------------------------------------------------
@@ -85,4 +144,32 @@ export function persistAddEntry(item: StoredInventoryItem): StoredInventoryItem[
   const updated = addEntry(readAll(), item);
   writeAll(updated);
   return updated;
+}
+
+export function readTransactions(): InventoryTransaction[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(TRANSACTIONS_KEY);
+    return raw ? (JSON.parse(raw) as InventoryTransaction[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function writeTransactions(transactions: InventoryTransaction[]): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(transactions));
+}
+
+/** Read → recordTransaction → write (beide Stores). Für einzelne Buchungen außerhalb von React-Komponenten. */
+export function persistRecordTransaction(
+  id: string,
+  type: 'Zugang' | 'Abgang',
+  qty: number,
+  opts: { notes?: string; date?: Date } = {},
+): { items: StoredInventoryItem[]; transactions: InventoryTransaction[] } {
+  const result = recordTransaction(readAll(), readTransactions(), id, type, qty, opts);
+  writeAll(result.items);
+  writeTransactions(result.transactions);
+  return result;
 }
