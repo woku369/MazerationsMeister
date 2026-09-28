@@ -501,7 +501,9 @@ export default function InventoryManagement() {
       // (z.B. gespindelter ABV weicht vom rechnerischen Misch-ABV ab, oder die
       // Steigrohr-Differenz ergibt eine andere Menge) sichtbar im Buchungs-
       // journal landet statt die Aenderung stillschweigend zu ueberschreiben.
-      const korrektur = StockService.recordCorrection(inventoryItems, inventoryTransactions, updatedItem);
+      const korrektur = StockService.recordCorrection(inventoryItems, inventoryTransactions, updatedItem, {
+        notes: itemData.korrekturGrund?.trim() || undefined,
+      });
       setInventoryItems(korrektur.items);
       setInventoryTransactions(korrektur.transactions);
       toast({

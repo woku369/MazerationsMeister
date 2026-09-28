@@ -91,6 +91,7 @@ export default function AddInventoryItemDialog({
           // Speichern sonst mit "Ungültiges Datum" ab, ohne dass sichtbar wird warum.
           inventoryDate: initialData.lastInventoryDate ? new Date(initialData.lastInventoryDate) : new Date(),
           bemerkungen: initialData.bemerkungen,
+          korrekturGrund: '',
         });
         const matchingDef = artikelDefinitionen.find(def => def.artikelNummer === initialData.artikelNummer);
         setSelectedDefinitionIdState(matchingDef?.id);
@@ -135,7 +136,19 @@ export default function AddInventoryItemDialog({
   };
 
   const onSubmit = (data: InventoryItemFormInput) => {
-    onSaveItem(data); 
+    // Bei einer Mengen- oder ABV-Änderung eines bestehenden Postens (z.B. Inventur-
+    // Korrektur nach Steigrohr-Ablesung) muss ein Grund angegeben werden, damit die
+    // Korrektur im Buchungsjournal nachvollziehbar/begründbar bleibt - nicht nur die
+    // reinen Vorher/Nachher-Zahlen.
+    if (isEditing && initialData) {
+      const mengeGeaendert = data.quantityLiters !== initialData.currentQuantityLiters;
+      const abvGeaendert = data.alcoholVolProzent !== initialData.alcoholVolProzent;
+      if ((mengeGeaendert || abvGeaendert) && !data.korrekturGrund?.trim()) {
+        form.setError('korrekturGrund', { type: 'manual', message: 'Bei einer Mengen- oder ABV-Änderung bitte einen Grund angeben (z.B. Steigrohr-Ablesung Inventur).' });
+        return;
+      }
+    }
+    onSaveItem(data);
   };
   
   const handleNumericInputChange = (field: any, rawValue: string) => {
@@ -313,6 +326,27 @@ export default function AddInventoryItemDialog({
                 </FormItem>
               )}
             />
+            {/* Korrektur-Grund - nur beim Bearbeiten, Pflicht wenn Menge/ABV geändert wurden */}
+            {isEditing && (
+              <FormField
+                control={form.control}
+                name="korrekturGrund"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Grund bei Mengen-/ABV-Korrektur (falls zutreffend)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="text"
+                        placeholder="z.B. Steigrohr-Ablesung Inventur 31.12., 13°C"
+                        {...field}
+                        value={field.value ?? ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             {/* Inventur-/Erfassungsdatum */}
             <FormField
               control={form.control}

@@ -41,6 +41,10 @@ export const inventoryItemFormSchema = z.object({
   inventoryDate: z.date({ required_error: "Inventur-/Erfassungsdatum ist erforderlich.", invalid_type_error: "Ungültiges Datum." }),
   bemerkungen: z.string().optional(),
   kennzeichen: z.string().min(1).default('S'),
+  // Grund für eine Mengen-/ABV-Korrektur beim Bearbeiten eines bestehenden Postens
+  // (z.B. Steigrohr-Ablesung bei der Inventur) - Pflicht nur wenn sich Menge oder
+  // ABV gegenüber dem Ausgangswert ändern, siehe onSubmit in AddInventoryItemDialog.
+  korrekturGrund: z.string().optional(),
 });
 
 export type InventoryItemFormInput = z.infer<typeof inventoryItemFormSchema>;
