@@ -734,6 +734,9 @@
             _tankOptions = data.tanks.map(t => t.bezeichnung || t.id || t.tankNr).filter(Boolean);
             const dl = document.getElementById('tank-options');
             dl.innerHTML = _tankOptions.map(n => `<option value="${esc(n)}">`).join('');
+            // Bereits (aus Entwurf) wiederhergestellte Zieltank-Zeilen erneut prüfen,
+            // da sie ggf. vor dem Laden dieser Liste angelegt wurden.
+            document.querySelectorAll('.target-tank-entry').forEach(checkTargetTankLabel);
         } catch (_) {}
     }
 
@@ -750,10 +753,12 @@
             <div class="flex items-center gap-2">
                 <input type="text" list="tank-options" value="${esc(entry?.tankLabel || '')}"
                     placeholder="Tank-Bezeichnung (z.B. T 341)"
-                    class="field-input flex-1 text-sm tt-label" oninput="updateTargetTankTotal()">
+                    class="field-input flex-1 text-sm tt-label"
+                    oninput="checkTargetTankLabel(this.closest('.target-tank-entry')); updateTargetTankTotal()">
                 <button type="button" onclick="removeTargetTank(this)"
                     class="text-gray-400 hover:text-red-400 text-xl leading-none px-1">×</button>
             </div>
+            <div class="tt-unknown-warning hidden text-xs text-amber-600">⚠️ Unbekannter Tank – wird trotzdem übernommen, bitte Schreibweise prüfen</div>
             <div class="grid grid-cols-2 gap-2">
                 <div>
                     <label class="field-label text-xs">Anfangsstand (L)</label>
@@ -771,12 +776,25 @@
             <div class="tt-diff calc-display hidden text-xs"></div>`;
         document.getElementById('target-tanks-list').appendChild(div);
         if (startVal && endVal) calcTargetTankDiff(div);
+        checkTargetTankLabel(div);
         updateTargetTankTotal();
     }
 
     function removeTargetTank(btn) {
         btn.closest('.target-tank-entry').remove();
         updateTargetTankTotal();
+    }
+
+    // Warnt (blockiert aber nicht) bei einer Tank-Bezeichnung, die nicht in
+    // tank-data.json bekannt ist - gleiches Prinzip wie die Desktop-App
+    // (Dropdown + Freitext-Escape-Hatch mit Warnhinweis, siehe Aufgabe 14),
+    // damit ein Tippfehler nicht unbemerkt einen neuen Phantom-Tank erzeugt.
+    function checkTargetTankLabel(entry) {
+        const warning = entry.querySelector('.tt-unknown-warning');
+        const label = entry.querySelector('.tt-label').value.trim();
+        const known = !label || _tankOptions.length === 0
+            || _tankOptions.some(t => t.toLowerCase() === label.toLowerCase());
+        warning.classList.toggle('hidden', known);
     }
 
     function calcTargetTankDiff(entry) {

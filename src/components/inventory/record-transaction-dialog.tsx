@@ -67,7 +67,15 @@ export default function RecordTransactionDialog({
 
   const onSubmit = (data: TransactionFormInput) => {
     if (!itemToTransact || !transactionType) return;
-    
+
+    if (transactionType === 'Abgang' && data.quantityLiters > itemToTransact.currentQuantityLiters) {
+      form.setError('quantityLiters', {
+        type: 'manual',
+        message: `Abgang darf den verfügbaren Bestand (${itemToTransact.currentQuantityLiters} L) nicht übersteigen.`,
+      });
+      return;
+    }
+
     const coreData: InventoryTransactionCoreData = {
       quantityLiters: data.quantityLiters,
       transactionDate: data.transactionDate,
@@ -109,7 +117,10 @@ export default function RecordTransactionDialog({
               name="quantityLiters"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Menge ({transactionType}) in Liter</FormLabel>
+                  <FormLabel>
+                    Menge ({transactionType}) in Liter
+                    {transactionType === 'Abgang' && ` (max. ${itemToTransact.currentQuantityLiters} L verfügbar)`}
+                  </FormLabel>
                   <FormControl>
                     <Input 
                       type="text" 
