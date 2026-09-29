@@ -159,7 +159,43 @@ describe('poolIntoTank: Einlagern mit Misch-ABV-Berechnung (Grundsatzfrage Tank-
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.transactions).toHaveLength(1);
-    expect(result.transactions[0]).toMatchObject({ type: 'Zugang', quantityLiters: 1500, notes: 'Mazeration Zitronenmelisse (2600) - Einlagerung' });
+    expect(result.transactions[0]).toMatchObject({ type: 'Zugang', quantityLiters: 1500 });
+    expect(result.transactions[0].notes).toContain('Mazeration Zitronenmelisse (2600) - Einlagerung');
+  });
+
+  it('kein Ersatz-Chargennummer-Verlust: bei gleicher Charge bleibt die Chargennummer ein einzelner Wert', () => {
+    const inventory = [makeItem({ id: 'bestand-1', tankNr: 'T345', produktName: 'Zitronenmelisse-Mazerat', chargenNummer: '2600', currentQuantityLiters: 3000, alcoholVolProzent: 52 })];
+    const result = poolIntoTank(inventory, 'T345', {
+      produktName: 'Zitronenmelisse-Mazerat', category: 'M', chargenNummer: '2600', alkoholVolProzent: 56, mengeLiter: 1500,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.konsolidiertesItem.chargenNummer).toBe('2600');
+  });
+
+  it('Chargenrückverfolgbarkeit beim Poolen (Aufgabe 27, Punkt 2 - externes Audit): unterschiedliche Chargennummern gehen nicht mehr stillschweigend verloren', () => {
+    const inventory = [makeItem({ id: 'rest-vorjahr', tankNr: 'T345', produktName: 'Zitronenmelisse-Mazerat', chargenNummer: '2500', currentQuantityLiters: 200, alcoholVolProzent: 50 })];
+    const result = poolIntoTank(inventory, 'T345', {
+      produktName: 'Zitronenmelisse-Mazerat', category: 'M', chargenNummer: '2600', alkoholVolProzent: 53, mengeLiter: 1800,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // Die kombinierte Chargennummer zeigt jetzt beide Ursprünge, statt nur "2600" zu übernehmen
+    expect(result.konsolidiertesItem.chargenNummer).toBe('2500 + 2600');
+    expect(result.komponenten).toEqual([
+      { chargenNummer: '2500', mengeLiter: 200 },
+      { chargenNummer: '2600', mengeLiter: 1800 },
+    ]);
+
+    const withJournal = recordPoolIntoTank(inventory, [], 'T345', {
+      produktName: 'Zitronenmelisse-Mazerat', category: 'M', chargenNummer: '2600', alkoholVolProzent: 53, mengeLiter: 1800,
+    });
+    expect(withJournal.ok).toBe(true);
+    if (!withJournal.ok) return;
+    const note = withJournal.transactions[0].notes;
+    expect(note).toContain('200.00 L (Charge 2500)');
+    expect(note).toContain('1800.00 L (Charge 2600)');
+    expect(note).toContain('2000.00 L (Charge 2500 + 2600)');
   });
 });
 

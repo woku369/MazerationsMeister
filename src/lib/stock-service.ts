@@ -158,9 +158,18 @@ export type NeueMenge = {
   mengeLiter: number;
 };
 
+// Ein Bestandteil, der beim Poolen in den konsolidierten Posten eingeflossen ist -
+// hält die Chargenherkunft fest, die sonst beim Verschmelzen verloren ginge
+// (siehe Aufgabe 27, Punkt 2 - externes Audit).
+export type PoolKomponente = { chargenNummer: string; mengeLiter: number };
+
 export type PoolIntoTankResult =
-  | { ok: true; items: StoredInventoryItem[]; konsolidiertesItem: StoredInventoryItem; vorherMenge: number; vorherAbv: number }
+  | { ok: true; items: StoredInventoryItem[]; konsolidiertesItem: StoredInventoryItem; vorherMenge: number; vorherAbv: number; komponenten: PoolKomponente[] }
   | { ok: false; error: string };
+
+function formatKomponente(k: PoolKomponente): string {
+  return `${k.mengeLiter.toFixed(2)} L${k.chargenNummer ? ` (Charge ${k.chargenNummer})` : ''}`;
+}
 
 /**
  * Bucht eine neue Menge in einen Tank ein und verschmilzt sie mit bereits
@@ -201,12 +210,26 @@ export function poolIntoTank(
   const gesamtLA = vorherLA + neueLA;
   const gesamtAbv = gesamtMenge > 0 ? (gesamtLA / gesamtMenge) * 100 : 0;
 
+  // Chargenherkunft sammeln, statt beim Verschmelzen stillschweigend nur eine
+  // Chargennummer zu übernehmen: alle tatsächlich beteiligten Chargen (aus den
+  // bestehenden Zeilen und der neuen Menge) fließen in die Komponenten-Liste
+  // ein, die recordPoolIntoTank() für den Journal-Eintrag nutzt. Sind sie alle
+  // gleich (Normalfall bei der realen Chargenvergabe, siehe Aufgabe 22), bleibt
+  // die Chargennummer wie bisher ein einzelner, sauberer Wert - nur wenn sich
+  // tatsächlich unterschiedliche Chargen mischen, wird das im Feld selbst sichtbar.
+  const komponenten: PoolKomponente[] = [
+    ...bestehende.map(i => ({ chargenNummer: i.chargenNummer || '', mengeLiter: i.currentQuantityLiters })),
+    { chargenNummer: neu.chargenNummer || '', mengeLiter: neu.mengeLiter },
+  ];
+  const distinkteChargen = Array.from(new Set(komponenten.map(k => k.chargenNummer).filter(Boolean)));
+  const kombinierteChargenNummer = distinkteChargen.length > 1 ? distinkteChargen.join(' + ') : (distinkteChargen[0] ?? '');
+
   const basis = bestehende[0];
   const konsolidiertesItem: StoredInventoryItem = withRecalculatedLA({
     id: basis?.id ?? uuidv4(),
     artikelNummer: basis?.artikelNummer ?? neu.produktName,
     produktName: neu.produktName,
-    chargenNummer: neu.chargenNummer || basis?.chargenNummer || '',
+    chargenNummer: kombinierteChargenNummer,
     category: neu.category || basis?.category || '',
     tankNr,
     currentQuantityLiters: parseFloat(gesamtMenge.toFixed(3)),
@@ -219,7 +242,7 @@ export function poolIntoTank(
   const ersetzteIds = new Set(bestehende.map(i => i.id));
   const updatedItems = [...items.filter(i => !ersetzteIds.has(i.id)), konsolidiertesItem];
 
-  return { ok: true, items: updatedItems, konsolidiertesItem, vorherMenge, vorherAbv };
+  return { ok: true, items: updatedItems, konsolidiertesItem, vorherMenge, vorherAbv, komponenten };
 }
 
 /**
@@ -233,10 +256,19 @@ export function recordPoolIntoTank(
   tankNr: string,
   neu: NeueMenge,
   opts: { notes?: string; date?: Date; allowMismatch?: boolean } = {},
-): { ok: true; items: StoredInventoryItem[]; transactions: InventoryTransaction[]; konsolidiertesItem: StoredInventoryItem; vorherMenge: number; vorherAbv: number } | { ok: false; error: string } {
+): { ok: true; items: StoredInventoryItem[]; transactions: InventoryTransaction[]; konsolidiertesItem: StoredInventoryItem; vorherMenge: number; vorherAbv: number; komponenten: PoolKomponente[] } | { ok: false; error: string } {
   const result = poolIntoTank(items, tankNr, neu, { allowMismatch: opts.allowMismatch });
   if (!result.ok) return result;
-  const entry = makeTransactionEntry(result.konsolidiertesItem, 'Zugang', neu.mengeLiter, opts);
+
+  // Nur bei einer tatsächlichen Verschmelzung (Tank hatte schon Inhalt) die
+  // Zusammensetzung im Journal festhalten - bei der ersten Einlagerung in
+  // einen leeren Tank gibt es nichts zu erklären.
+  const kompositionsNote = result.komponenten.length > 1
+    ? `Zusammensetzung: ${result.komponenten.map(formatKomponente).join(' + ')} → ${formatKomponente({ chargenNummer: result.konsolidiertesItem.chargenNummer, mengeLiter: result.konsolidiertesItem.currentQuantityLiters })}`
+    : undefined;
+  const notes = [opts.notes, kompositionsNote].filter(Boolean).join(' — ');
+
+  const entry = makeTransactionEntry(result.konsolidiertesItem, 'Zugang', neu.mengeLiter, { ...opts, notes });
   return { ...result, transactions: [...transactions, entry] };
 }
 
