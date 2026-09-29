@@ -20,12 +20,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ListChecks, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 type InventoryTransactionTableProps = {
   transactions: InventoryTransaction[];
 };
 
-type SortableKeys = keyof Pick<InventoryTransaction, 'transactionDate' | 'artikelNummer' | 'produktName' | 'chargenNummer' | 'type' | 'quantityLiters'>;
+type SortableKeys = keyof Pick<InventoryTransaction, 'transactionDate' | 'artikelNummer' | 'produktName' | 'chargenNummer' | 'tankNr' | 'type' | 'quantityLiters'>;
 
 const formatNumber = (num: number | undefined | null, precision: number = 2) => {
   if (num === undefined || num === null || isNaN(num)) return 'N/A';
@@ -34,6 +36,9 @@ const formatNumber = (num: number | undefined | null, precision: number = 2) => 
 
 export default function InventoryTransactionTable({ transactions }: InventoryTransactionTableProps) {
   const [transactionTypeFilter, setTransactionTypeFilter] = useState<string>('all');
+  const [searchText, setSearchText] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: SortableKeys | null; direction: 'ascending' | 'descending' }>({
     key: 'transactionDate', // Default sort by date
     direction: 'descending',  // Default sort descending
@@ -61,11 +66,41 @@ export default function InventoryTransactionTable({ transactions }: InventoryTra
     return <ArrowDown className="ml-2 h-3 w-3 text-primary" />;
   };
 
+  const hasActiveFilters = transactionTypeFilter !== 'all' || searchText.trim() !== '' || dateFrom !== '' || dateTo !== '';
+
+  const resetFilters = () => {
+    setTransactionTypeFilter('all');
+    setSearchText('');
+    setDateFrom('');
+    setDateTo('');
+  };
+
   const sortedAndFilteredTransactions = useMemo(() => {
     let filteredItems = [...transactions];
 
     if (transactionTypeFilter !== 'all') {
       filteredItems = filteredItems.filter(item => item.type === transactionTypeFilter);
+    }
+
+    const suche = searchText.trim().toLowerCase();
+    if (suche) {
+      filteredItems = filteredItems.filter(item =>
+        item.produktName.toLowerCase().includes(suche) ||
+        item.chargenNummer.toLowerCase().includes(suche) ||
+        item.artikelNummer.toLowerCase().includes(suche) ||
+        item.tankNr.toLowerCase().includes(suche)
+      );
+    }
+
+    if (dateFrom) {
+      const von = new Date(dateFrom);
+      filteredItems = filteredItems.filter(item => item.transactionDate >= von);
+    }
+    if (dateTo) {
+      // Ende des Tages, damit der "bis"-Tag selbst noch eingeschlossen ist
+      const bis = new Date(dateTo);
+      bis.setHours(23, 59, 59, 999);
+      filteredItems = filteredItems.filter(item => item.transactionDate <= bis);
     }
 
     if (sortConfig.key !== null) {
@@ -90,28 +125,49 @@ export default function InventoryTransactionTable({ transactions }: InventoryTra
       });
     }
     return filteredItems;
-  }, [transactions, transactionTypeFilter, sortConfig]);
+  }, [transactions, transactionTypeFilter, searchText, dateFrom, dateTo, sortConfig]);
 
   return (
     <Card className="shadow-lg mt-8">
       <CardHeader>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <CardTitle className="flex items-center text-xl text-primary">
-            <ListChecks className="mr-2 h-6 w-6" />
-            Transaktionsprotokoll
-          </CardTitle>
-          <div className="w-full sm:w-auto min-w-[200px]">
-            <Select value={transactionTypeFilter} onValueChange={setTransactionTypeFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Nach Typ filtern..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Alle Typen</SelectItem>
-                <SelectItem value="Zugang">Zugang</SelectItem>
-                <SelectItem value="Abgang">Abgang</SelectItem>
-                <SelectItem value="Korrektur">Korrektur</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <CardTitle className="flex items-center text-xl text-primary">
+              <ListChecks className="mr-2 h-6 w-6" />
+              Transaktionsprotokoll
+            </CardTitle>
+            <div className="w-full sm:w-auto min-w-[200px]">
+              <Select value={transactionTypeFilter} onValueChange={setTransactionTypeFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Nach Typ filtern..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle Typen</SelectItem>
+                  <SelectItem value="Zugang">Zugang</SelectItem>
+                  <SelectItem value="Abgang">Abgang</SelectItem>
+                  <SelectItem value="Korrektur">Korrektur</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3">
+            <div className="flex-1 w-full sm:max-w-xs">
+              <Label className="text-xs text-muted-foreground">Suche (Produkt, Charge, Artikel-Nr., Tank)</Label>
+              <Input value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="z.B. GFKC-N, T341, ..." />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Von</Label>
+              <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-auto" />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Bis</Label>
+              <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-auto" />
+            </div>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={resetFilters} className="text-muted-foreground">
+                Filter zurücksetzen
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -119,9 +175,9 @@ export default function InventoryTransactionTable({ transactions }: InventoryTra
         <ScrollArea className="w-full">
           <Table>
              <TableCaption>
-              {sortedAndFilteredTransactions.length === 0 && transactionTypeFilter === 'all' ? "Noch keine Transaktionen erfasst." : 
-               sortedAndFilteredTransactions.length === 0 && transactionTypeFilter !== 'all' ? `Keine Transaktionen vom Typ "${transactionTypeFilter}".` :
-               `Protokoll aller Lagerbewegungen.`}
+              {sortedAndFilteredTransactions.length === 0 && !hasActiveFilters ? "Noch keine Transaktionen erfasst." :
+               sortedAndFilteredTransactions.length === 0 && hasActiveFilters ? "Keine Transaktionen für die gewählten Filter gefunden." :
+               `Protokoll aller Lagerbewegungen (${sortedAndFilteredTransactions.length} von ${transactions.length}).`}
             </TableCaption>
             <TableHeader>
               <TableRow>
@@ -146,6 +202,11 @@ export default function InventoryTransactionTable({ transactions }: InventoryTra
                   </Button>
                 </TableHead>
                 <TableHead className="min-w-[100px]">
+                  <Button variant="ghost" onClick={() => requestSort('tankNr')} className="px-1 py-0 h-auto hover:bg-transparent">
+                    Tank-Nr. {getSortIcon('tankNr')}
+                  </Button>
+                </TableHead>
+                <TableHead className="min-w-[100px]">
                   <Button variant="ghost" onClick={() => requestSort('type')} className="px-1 py-0 h-auto hover:bg-transparent">
                     Typ {getSortIcon('type')}
                   </Button>
@@ -161,8 +222,8 @@ export default function InventoryTransactionTable({ transactions }: InventoryTra
             <TableBody>
               {sortedAndFilteredTransactions.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8 h-48">
-                    {transactionTypeFilter === 'all' ? "Noch keine Transaktionen erfasst." : `Keine Transaktionen vom Typ "${transactionTypeFilter}" gefunden.`}
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8 h-48">
+                    {!hasActiveFilters ? "Noch keine Transaktionen erfasst." : "Keine Transaktionen für die gewählten Filter gefunden."}
                   </TableCell>
                 </TableRow>
               )}
@@ -172,6 +233,7 @@ export default function InventoryTransactionTable({ transactions }: InventoryTra
                   <TableCell className="font-medium">{transaction.artikelNummer}</TableCell>
                   <TableCell>{transaction.produktName}</TableCell>
                   <TableCell>{transaction.chargenNummer || 'N/A'}</TableCell>
+                  <TableCell>{transaction.tankNr || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge
                         variant={transaction.type === 'Korrektur' ? 'outline' : transaction.type === 'Zugang' ? 'default' : 'destructive'}

@@ -6,6 +6,19 @@ const STORAGE_KEY = 'inventoryItems';
 const TRANSACTIONS_KEY = 'inventoryTransactions';
 
 /**
+ * Findet einen bereits bekannten Wert (Chargennummer oder Tank-Nr.), der sich vom
+ * eingegebenen Text nur in Groß-/Kleinschreibung oder Leerzeichen unterscheidet
+ * (z.B. "GFKC-N" vs. "GFKC-n") - ein echter neuer Wert (der Normalfall bei neuen
+ * Chargen) löst dabei bewusst KEINE Warnung aus, nur der Verdacht auf denselben,
+ * nur leicht anders geschriebenen Datensatz (Aufgabe 26 Punkt 5 / Aufgabe 27 Punkt 3).
+ */
+export function findAehnlichenWert(eingabe: string, bekannt: string[]): string | undefined {
+  const normalisiert = eingabe.trim().toLowerCase();
+  if (!normalisiert) return undefined;
+  return bekannt.find(c => c !== eingabe.trim() && c.trim().toLowerCase() === normalisiert);
+}
+
+/**
  * literAbsolutalkohol muss bei jeder Mengen-/Konzentrationsänderung neu
  * berechnet werden, sonst läuft er gegenüber currentQuantityLiters auseinander
  * (siehe docs/REVIEW-2026-09-cross-modul-kohaerenz.md, Befund B3/B4).
@@ -75,6 +88,8 @@ function makeTransactionEntry(
     artikelNummer: item.artikelNummer,
     produktName: item.produktName,
     chargenNummer: item.chargenNummer || '',
+    tankNr: item.tankNr || '',
+    alcoholVolProzent: item.alcoholVolProzent ?? 0,
     type,
     quantityLiters: qty,
     transactionDate: opts.date ?? new Date(),

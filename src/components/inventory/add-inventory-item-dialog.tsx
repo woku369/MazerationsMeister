@@ -33,6 +33,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { inventoryItemFormSchema, type InventoryItemFormInput, type StoredInventoryItem } from '@/schemas/inventorySchema';
+import { findAehnlichenWert } from '@/lib/stock-service';
 import type { ArtikelDefinition } from '@/schemas/artikelDefinitionSchema';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -45,6 +46,8 @@ type AddInventoryItemDialogProps = {
   onSaveItem: (data: InventoryItemFormInput) => void;
   initialData?: StoredInventoryItem | null; // For editing
   artikelDefinitionen: ArtikelDefinition[]; // For selecting an article
+  bekannteChargen?: string[]; // Bereits im Lager vorkommende Chargennummern, für Tippfehler-Warnung
+  bekannteTanks?: string[]; // Bereits bekannte Tank-/Lagerort-Bezeichnungen, für Tippfehler-Warnung
 };
 
 function getCategoryOptions(): string[] {
@@ -58,12 +61,14 @@ function getCategoryOptions(): string[] {
   return []; // Keine Default-Kategorien - User muss diese in Einstellungen anlegen
 }
 
-export default function AddInventoryItemDialog({ 
-    isOpen, 
-    onClose, 
-    onSaveItem, 
-    initialData, 
-    artikelDefinitionen 
+export default function AddInventoryItemDialog({
+    isOpen,
+    onClose,
+    onSaveItem,
+    initialData,
+    artikelDefinitionen,
+    bekannteChargen = [],
+    bekannteTanks = [],
 }: AddInventoryItemDialogProps) {
   const form = useForm<InventoryItemFormInput>({
     resolver: zodResolver(inventoryItemFormSchema),
@@ -235,15 +240,26 @@ export default function AddInventoryItemDialog({
             <FormField
               control={form.control}
               name="chargenNummer"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Chargennummer (optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="z.B. Charge A, 2024-001" {...field} value={field.value ?? ''} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const aehnlicheCharge = findAehnlichenWert(field.value ?? '', bekannteChargen);
+                return (
+                  <FormItem>
+                    <FormLabel>Chargennummer (optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="z.B. Charge A, 2024-001" list="bekannte-chargen" {...field} value={field.value ?? ''} />
+                    </FormControl>
+                    <datalist id="bekannte-chargen">
+                      {bekannteChargen.map(c => <option key={c} value={c} />)}
+                    </datalist>
+                    {aehnlicheCharge && (
+                      <p className="text-xs text-amber-600">
+                        ⚠️ Ähnlich zu bereits vorhandener Charge „{aehnlicheCharge}" — meintest du diese?
+                      </p>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
             {/* Kategorie */}
             <FormField
@@ -274,15 +290,26 @@ export default function AddInventoryItemDialog({
             <FormField
               control={form.control}
               name="tankNr"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tank-Nr. / Lagerort</FormLabel>
-                  <FormControl>
-                    <Input placeholder="z.B. T01, Regal 5B" {...field} value={field.value ?? ""} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const aehnlicherTank = findAehnlichenWert(field.value ?? '', bekannteTanks);
+                return (
+                  <FormItem>
+                    <FormLabel>Tank-Nr. / Lagerort</FormLabel>
+                    <FormControl>
+                      <Input placeholder="z.B. T01, Regal 5B" list="bekannte-tanks" {...field} value={field.value ?? ""} />
+                    </FormControl>
+                    <datalist id="bekannte-tanks">
+                      {bekannteTanks.map(t => <option key={t} value={t} />)}
+                    </datalist>
+                    {aehnlicherTank && (
+                      <p className="text-xs text-amber-600">
+                        ⚠️ Ähnlich zu bereits vorhandenem Tank „{aehnlicherTank}" — meintest du diesen?
+                      </p>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
             {/* Menge (Liter) */}
             <FormField

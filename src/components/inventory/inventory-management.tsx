@@ -418,7 +418,7 @@ export default function InventoryManagement() {
     const wb = XLSX.utils.book_new();
     const sheetData: (string | number | undefined | null)[][] = [];
     sheetData.push([
-      "Datum", "Artikel-Nr.", "Produktname", "Charge", "Typ", "Menge (L)", "Bemerkungen"
+      "Datum", "Artikel-Nr.", "Produktname", "Charge", "Tank-Nr.", "Typ", "Menge (L)", "Alkohol (%vol)", "Liter Absolutalkohol (LA)", "Bemerkungen"
     ]);
     transactionsToExport.forEach(transaction => {
       sheetData.push([
@@ -426,8 +426,11 @@ export default function InventoryManagement() {
         transaction.artikelNummer,
         transaction.produktName,
         transaction.chargenNummer || 'N/A',
+        transaction.tankNr || 'N/A',
         transaction.type,
         transaction.quantityLiters,
+        transaction.alcoholVolProzent,
+        calcLA(transaction.quantityLiters, transaction.alcoholVolProzent),
         transaction.notes || '',
       ]);
     });
@@ -930,7 +933,9 @@ export default function InventoryManagement() {
             onClose={() => { setIsAddEditDialogOpen(false); setEditingItem(null); }}
             onSaveItem={handleSaveItem}
             initialData={editingItem}
-            artikelDefinitionen={artikelDefinitionen} 
+            artikelDefinitionen={artikelDefinitionen}
+            bekannteChargen={Array.from(new Set(inventoryItems.map(i => i.chargenNummer).filter(Boolean)))}
+            bekannteTanks={Array.from(new Set(inventoryItems.map(i => i.tankNr).filter(Boolean)))}
           />
 
           <RecordTransactionDialog

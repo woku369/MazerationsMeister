@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { addEntry, updateEntry, applyTransaction, recordTransaction, recordNewEntry, poolIntoTank, recordPoolIntoTank, recordCorrection } from '../stock-service';
+import { addEntry, updateEntry, applyTransaction, recordTransaction, recordNewEntry, poolIntoTank, recordPoolIntoTank, recordCorrection, findAehnlichenWert } from '../stock-service';
 import { calcLA } from '../mazeration-calc';
 import type { StoredInventoryItem, InventoryTransaction } from '@/schemas/inventorySchema';
 
@@ -92,6 +92,12 @@ describe('stock-service: Buchungsjournal (recordTransaction/recordNewEntry)', ()
     expect(transactions[0]).toMatchObject({
       itemId: 'item-2', produktName: 'GFKC-O', type: 'Zugang', quantityLiters: 917.58, notes: 'Rezeptur GFKC-O Produktion',
     });
+  });
+
+  it('Journal-Eintrag speichert Tank und ABV als Snapshot zum Buchungszeitpunkt (Aufgabe 26, Punkt 6 - Export braucht LA-genaue Historie)', () => {
+    const posten = makeItem({ id: 'item-3', tankNr: 'T341', alcoholVolProzent: 53.5 });
+    const { transactions } = recordTransaction([posten], [], 'item-3', 'Abgang', 200, { notes: 'Versand LF-2026-002' });
+    expect(transactions[0]).toMatchObject({ tankNr: 'T341', alcoholVolProzent: 53.5 });
   });
 });
 
@@ -224,5 +230,27 @@ describe('recordCorrection: Inventur-Korrektur (gespindelter ABV / Steigrohr-Dif
     const fremderPosten = makeItem({ id: 'unbekannt' });
     const result = recordCorrection([], [], fremderPosten);
     expect(result.transactions).toEqual([]);
+  });
+});
+
+describe('findAehnlichenWert: Tippfehler-Warnung bei Chargennummer/Tank-Nr. (Aufgabe 26 Punkt 5 / Aufgabe 27 Punkt 3)', () => {
+  it('findet eine bekannte Charge, die sich nur in der Groß-/Kleinschreibung unterscheidet', () => {
+    expect(findAehnlichenWert('GFKC-n', ['GFKC-M', 'GFKC-N'])).toBe('GFKC-N');
+  });
+
+  it('meldet keine Ähnlichkeit für bloßes Leerzeichen am Rand (wird beim Speichern ohnehin getrimmt, keine echte Abweichung)', () => {
+    expect(findAehnlichenWert('2600 ', ['2600'])).toBeUndefined();
+  });
+
+  it('meldet keine Ähnlichkeit für eine tatsächlich neue Chargennummer (Normalfall)', () => {
+    expect(findAehnlichenWert('2601', ['2600', 'GFKC-N'])).toBeUndefined();
+  });
+
+  it('meldet keine Ähnlichkeit, wenn die Eingabe exakt einer bekannten Charge entspricht', () => {
+    expect(findAehnlichenWert('2600', ['2600'])).toBeUndefined();
+  });
+
+  it('meldet keine Ähnlichkeit bei leerer Eingabe', () => {
+    expect(findAehnlichenWert('', ['2600'])).toBeUndefined();
   });
 });

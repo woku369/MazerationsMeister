@@ -93,6 +93,13 @@ export const inventoryTransactionSchema = z.object({
   artikelNummer: z.string(), // Denormalized for easier display/filtering
   produktName: z.string(), // Denormalized for easier display/filtering
   chargenNummer: z.string(), // Denormalized, use empty string if not applicable
+  // Tank/Lagerort und Alkoholgehalt des Postens zum Buchungszeitpunkt - wie die
+  // übrigen denormalisierten Felder oben als Snapshot gespeichert, damit spätere
+  // Korrekturen/Umbuchungen die Historie nicht nachträglich verändern (siehe
+  // Aufgabe 26, Punkt 6: das Transaktionsprotokoll muss LA-genau nachvollziehbar
+  // bleiben, auch ohne den aktuellen Lagerbestand danebenzuhalten).
+  tankNr: z.string(),
+  alcoholVolProzent: z.number(),
   // 'Korrektur' = manuelle Inventur-Korrektur (Menge und/oder ABV direkt angepasst,
   // z.B. Steigrohr-Ablesung nach dem Umpumpen) - kein echter Zugang/Abgang.
   type: z.enum(['Zugang', 'Abgang', 'Korrektur']),

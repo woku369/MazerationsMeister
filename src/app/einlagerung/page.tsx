@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Droplets, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import * as StockService from '@/lib/stock-service';
+import { findAehnlichenWert } from '@/lib/stock-service';
 import { calcLA } from '@/lib/mazeration-calc';
 import { getTankDefinitions } from '@/lib/tank-sync';
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
@@ -85,6 +86,9 @@ export default function EinlagerungPage() {
     return s + (Number.isFinite(m) ? m : 0);
   }, 0);
   const restZuVerteilen = Number.isFinite(gesamt) ? gesamt - verteilteSumme : 0;
+
+  const bekannteChargen = Array.from(new Set(inventoryItems.map(i => i.chargenNummer).filter(Boolean)));
+  const aehnlicheCharge = findAehnlichenWert(chargenNummer, bekannteChargen);
 
   function handleEinlagern() {
     if (!produktName.trim()) {
@@ -167,7 +171,15 @@ export default function EinlagerungPage() {
             </div>
             <div>
               <Label>Chargennummer (optional)</Label>
-              <Input value={chargenNummer} onChange={e => setChargenNummer(e.target.value)} placeholder="z.B. 2600" />
+              <Input value={chargenNummer} onChange={e => setChargenNummer(e.target.value)} placeholder="z.B. 2600" list="bekannte-chargen-einlagerung" />
+              <datalist id="bekannte-chargen-einlagerung">
+                {bekannteChargen.map(c => <option key={c} value={c} />)}
+              </datalist>
+              {aehnlicheCharge && (
+                <p className="text-xs text-amber-600 mt-1">
+                  ⚠️ Ähnlich zu bereits vorhandener Charge „{aehnlicheCharge}" — meintest du diese?
+                </p>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
