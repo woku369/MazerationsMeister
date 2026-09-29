@@ -47,6 +47,7 @@ export default function VersandPage() {
   const [plombenNummern, setPlombenNummern] = useState('');
   const [externeLieferscheinNr, setExterneLieferscheinNr] = useState('');
   const [bruttogewichtKg, setBruttogewichtKg] = useState('');
+  const [taragewichtKg, setTaragewichtKg] = useState('');
 
   const loadAll = () => {
     setVersaende(VersandService.readAll());
@@ -65,6 +66,7 @@ export default function VersandPage() {
     setPlombenNummern('');
     setExterneLieferscheinNr('');
     setBruttogewichtKg('');
+    setTaragewichtKg('');
   }
 
   function addDraftRow() {
@@ -110,12 +112,14 @@ export default function VersandPage() {
       return;
     }
     const bruttogewicht = parseFloat(bruttogewichtKg.replace(',', '.'));
+    const taragewicht = parseFloat(taragewichtKg.replace(',', '.'));
     const versand = VersandService.persistCreateVersand({
       lohnabfuellerName: lohnabfuellerName.trim(),
       versanddatum,
       container,
       bemerkungen: bemerkungen.trim() || undefined,
       bruttogewichtKg: Number.isFinite(bruttogewicht) && bruttogewicht > 0 ? bruttogewicht : undefined,
+      taragewichtKg: Number.isFinite(taragewicht) && taragewicht > 0 ? taragewicht : undefined,
       plombenNummern: plombenNummern.trim() || undefined,
       externeLieferscheinNr: externeLieferscheinNr.trim() || undefined,
     });
@@ -160,13 +164,22 @@ export default function VersandPage() {
               </div>
               {v.bemerkungen && <p className="text-xs text-muted-foreground mt-1 italic">{v.bemerkungen}</p>}
               {(() => {
-                const nettoKg = VersandService.calcContainerNettogewichtKg(v.container);
+                const nettoKgSchaetzung = VersandService.calcContainerNettogewichtKg(v.container);
+                const nettoKgGewogen = v.bruttogewichtKg != null && v.taragewichtKg != null ? v.bruttogewichtKg - v.taragewichtKg : null;
                 const chargen = Array.from(new Set(v.container.map(c => c.chargenNummer).filter(Boolean)));
                 return (
                   <div className="mt-2 pt-2 border-t text-xs space-y-0.5">
                     <p className="font-medium text-foreground">Für das Lieferschein-Formular (Ladestelle: Stift Gurk, Domplatz 11, 9342 Gurk):</p>
                     <p>Charge: {chargen.length > 0 ? chargen.join(', ') : '–'} · Gebinde: {v.container.length}× {v.container[0]?.tankNr ?? ''}</p>
-                    <p>Nettogewicht: {nettoKg != null ? `${fmtL(nettoKg)} kg` : 'nicht berechenbar (Dichte fehlt bei mind. einem Posten)'}{v.bruttogewichtKg != null ? ` · Bruttogewicht: ${fmtL(v.bruttogewichtKg)} kg` : ''}</p>
+                    <p>Nettogewicht (Schätzung aus Menge × Dichte): {nettoKgSchaetzung != null ? `${fmtL(nettoKgSchaetzung)} kg` : 'nicht berechenbar (Dichte fehlt bei mind. einem Posten)'}</p>
+                    {(v.bruttogewichtKg != null || v.taragewichtKg != null) && (
+                      <p>
+                        {v.bruttogewichtKg != null && `Bruttogewicht (Waage): ${fmtL(v.bruttogewichtKg)} kg`}
+                        {v.bruttogewichtKg != null && v.taragewichtKg != null && ' · '}
+                        {v.taragewichtKg != null && `Taragewicht (Waage): ${fmtL(v.taragewichtKg)} kg`}
+                        {nettoKgGewogen != null && ` · Nettogewicht (gewogen): ${fmtL(nettoKgGewogen)} kg`}
+                      </p>
+                    )}
                     {(v.plombenNummern || v.externeLieferscheinNr) && (
                       <p>{v.plombenNummern && `Plomben: ${v.plombenNummern}`}{v.plombenNummern && v.externeLieferscheinNr && ' · '}{v.externeLieferscheinNr && `Schlumberger-Lieferschein-Nr.: ${v.externeLieferscheinNr}`}</p>
                     )}
@@ -256,9 +269,15 @@ export default function VersandPage() {
                   <Input value={externeLieferscheinNr} onChange={e => setExterneLieferscheinNr(e.target.value)} placeholder="z.B. 1/2026" />
                 </div>
               </div>
-              <div>
-                <Label>Bruttogewicht (kg, inkl. Gebinde)</Label>
-                <Input type="text" inputMode="decimal" className="w-40" value={bruttogewichtKg} onChange={e => setBruttogewichtKg(e.target.value)} placeholder="z.B. 3047" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Bruttogewicht (kg, per Waage)</Label>
+                  <Input type="text" inputMode="decimal" value={bruttogewichtKg} onChange={e => setBruttogewichtKg(e.target.value)} placeholder="z.B. 3047" />
+                </div>
+                <div>
+                  <Label>Taragewicht (kg, leere Gebinde, per Waage)</Label>
+                  <Input type="text" inputMode="decimal" value={taragewichtKg} onChange={e => setTaragewichtKg(e.target.value)} placeholder="z.B. 215" />
+                </div>
               </div>
             </div>
 

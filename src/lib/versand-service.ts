@@ -52,6 +52,7 @@ export function createVersand(
     container: VersandContainer[];
     bemerkungen?: string;
     bruttogewichtKg?: number;
+    taragewichtKg?: number;
     plombenNummern?: string;
     externeLieferscheinNr?: string;
   },
@@ -64,6 +65,7 @@ export function createVersand(
     container: params.container,
     versandLA: parseFloat(calcContainerLA(params.container).toFixed(3)),
     bruttogewichtKg: params.bruttogewichtKg,
+    taragewichtKg: params.taragewichtKg,
     plombenNummern: params.plombenNummern,
     externeLieferscheinNr: params.externeLieferscheinNr,
     bemerkungen: params.bemerkungen,
@@ -110,6 +112,7 @@ export function persistCreateVersand(params: {
   container: VersandContainer[];
   bemerkungen?: string;
   bruttogewichtKg?: number;
+  taragewichtKg?: number;
   plombenNummern?: string;
   externeLieferscheinNr?: string;
 }): LohnabfuellerVersand {

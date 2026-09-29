@@ -25,12 +25,17 @@ export type LohnabfuellerVersand = {
   container: VersandContainer[];
   versandLA: number;           // Summe LA über alle Gebinde beim Versand - rein informativ für die
                                 // Alkohol-Bilanz, KEIN Steuerbetrag (Buchungen laufen steuerfrei)
-  // Die folgenden drei Felder dienen nur dazu, alle Werte für das externe (auf
+  // Die folgenden Felder dienen nur dazu, alle Werte für das externe (auf
   // Schlumberger-Briefkopf ausgestellte) Lieferschein-Papierformular an einer
   // Stelle griffbereit zu haben - die App erzeugt kein eigenes Lieferschein-PDF,
   // dafür fehlt die Berechtigung (Schlumberger hält die Zolllager-Bewilligung).
-  bruttogewichtKg?: number;      // inkl. Gebinde-Eigengewicht, App kennt die Tara nicht - manuell
-  plombenNummern?: string;       // z.B. "2762725-2762730", frei erfasst
+  // Brutto-, Tara- und (daraus) das tatsächliche Nettogewicht werden laut Nutzer
+  // ohnehin händisch mit der Waage ermittelt - beide hier eingetragen ergeben
+  // das reale, gewogene Netto (Brutto - Tara), zusätzlich zur rein rechnerischen
+  // Schätzung über Menge x Dichte (siehe calcContainerNettogewichtKg).
+  bruttogewichtKg?: number;      // inkl. Gebinde, per Waage ermittelt - manuell
+  taragewichtKg?: number;        // Eigengewicht der leeren Gebinde, per Waage ermittelt - manuell
+  plombenNummern?: string;       // z.B. "2762725-2762730" (je IBC 2 Plomben aus einem Vorratsbehälter), frei erfasst
   externeLieferscheinNr?: string; // Schlumbergers eigene Nummerierung, z.B. "1/2026" - unabhängig von versandNummer
   bemerkungen?: string;
   createdAt: string;
