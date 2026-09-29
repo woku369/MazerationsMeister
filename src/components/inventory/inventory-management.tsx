@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, PlusCircle, Download } from 'lucide-react';
@@ -102,6 +103,19 @@ export default function InventoryManagement() {
   const [itemForTransaction, setItemForTransaction] = useState<StoredInventoryItem | null>(null);
   // Flag, ob gerade ein Import läuft
   const [isImporting, setIsImporting] = useState(false);
+  // Lagerbestand-Import ohne Datumsspalte: window.prompt() wird von Electron nicht
+  // unterstützt (wirft "prompt() is and will not be supported", reißt sonst den
+  // ganzen Import ab) - deshalb pausiert der Import hier auf einen echten Dialog,
+  // statt synchron nach dem Inventurdatum zu fragen.
+  const [pendingLagerbestandImport, setPendingLagerbestandImport] = useState<{
+    rows: any[][];
+    appFieldIndex: Record<string, number>;
+    normalizedHeader: string[];
+  } | null>(null);
+  const [inventurdatumEingabe, setInventurdatumEingabe] = useState('');
+  // Nach einem erfolgreichen Export "Datei/Ordner öffnen?" anbieten - ebenfalls über
+  // einen echten Dialog statt window.prompt() (siehe Begründung oben).
+  const [pendingExportPfad, setPendingExportPfad] = useState<{ filePath: string; dir: string } | null>(null);
   // Synchronisiere Kennzeichen in allen Lagerartikeln, wenn sich der Artikelstamm ändert und kein Import läuft
   useEffect(() => {
     if (isImporting) return;
@@ -138,6 +152,102 @@ export default function InventoryManagement() {
   }, [inventoryTransactions]);
 
   // XLSX Import für Artikelstamm und Lagerbestand
+  const parseImportNumber = (v: any) => {
+    if (v === undefined || v === null || v === '') return undefined;
+    const s = String(v).replace(/\s+/g, '').replace(',', '.');
+    const n = Number(s);
+    return Number.isFinite(n) ? n : undefined;
+  };
+
+  /**
+   * Zweiter Teil des Lagerbestand-Imports (Aufgabe 28) - ausgelagert, damit er
+   * sowohl direkt (Datumsspalte vorhanden) als auch verzögert nach Bestätigung
+   * des Inventurdatum-Dialogs (keine Datumsspalte) aufgerufen werden kann.
+   */
+  const finishLagerbestandImport = (
+    rows: any[][],
+    appFieldIndex: Record<string, number>,
+    normalizedHeader: string[],
+    globalesInventurdatum: Date | null,
+  ) => {
+    const geparsteZeilen = rows.map((row: any[]) => {
+      const getByField = (f: string) => (typeof appFieldIndex[f] === 'number' ? row[appFieldIndex[f]] : undefined);
+      // Versuch: falls Menge in kg statt lt geliefert wird, wir übernehmen Wert trotzdem (Anpassung kann später erfolgen)
+      const mengeLtRaw = getByField('currentQuantityLiters');
+      const mengeKgRaw = normalizedHeader.includes('menge/kg') ? row[normalizedHeader.indexOf('menge/kg')] : undefined;
+      const menge = parseImportNumber(mengeLtRaw ?? mengeKgRaw) ?? 0;
+      const alcoholRaw = parseImportNumber(getByField('alcoholVolProzent')) ?? 0;
+      const d20 = parseImportNumber(getByField('dichte20C'));
+      const la = parseImportNumber(getByField('literAbsolutalkohol'));
+      const lastInvRaw = getByField('lastInventoryDate');
+      const lastInv = lastInvRaw ? new Date(lastInvRaw) : (globalesInventurdatum ?? new Date());
+      return {
+        id: uuidv4(),
+        artikelNummer: (getByField('artikelNummer') || '') + '',
+        kennzeichen: (getByField('kennzeichen') || '') + '',
+        chargenNummer: (getByField('chargenNummer') || '') + '',
+        produktName: ((getByField('produktName') || '') + '').trim(),
+        category: (getByField('category') || '') + '',
+        tankNr: (getByField('tankNr') || '') + '',
+        currentQuantityLiters: menge,
+        alcoholVolProzent: alcoholRaw,
+        dichte20C: d20,
+        literAbsolutalkohol: la,
+        lastInventoryDate: lastInv,
+        bemerkungen: (getByField('bemerkungen') || '') + '',
+      } as StoredInventoryItem;
+    }).filter(i => i.produktName && String(i.produktName).trim() !== '');
+
+    // Zeilen ohne Menge (z.B. Platzhalter-Zeilen für ein Gebinde, dessen
+    // Inhalt bereits in einer anderen Zeile summiert erfasst ist) sind als
+    // eigener Lagerposten sinnlos - nicht mit importieren, aber sichtbar melden.
+    const neueInventoryItems = geparsteZeilen.filter(i => i.currentQuantityLiters > 0);
+    const uebersprungen = geparsteZeilen.length - neueInventoryItems.length;
+
+    setInventoryItems(neueInventoryItems);
+    toast({
+      title: 'Lagerbestand importiert',
+      description: `${neueInventoryItems.length} Lagerartikel wurden hinzugefügt.` + (uebersprungen > 0 ? ` ${uebersprungen} Zeile(n) ohne Menge übersprungen.` : ''),
+    });
+
+    // syncTankDefinitionsWithInventory() liest inventoryItems direkt aus dem
+    // localStorage, das schreibt aber erst ein useEffect ein Render später -
+    // ohne diesen expliziten, synchronen Write sieht der Sync bei einem
+    // Import in einen leeren Bestand (z.B. Ersteinspielung der Jahresinventur)
+    // noch gar keine Daten und legt lautlos keine Tanks an.
+    localStorage.setItem('inventoryItems', JSON.stringify(neueInventoryItems));
+    // Tank-Definitionen automatisch synchronisieren nach dem Import
+    const neuAngelegteTanks = syncTankDefinitionsWithInventory();
+    if (neuAngelegteTanks.length > 0) {
+      toast({
+        title: `${neuAngelegteTanks.length} neue(r) Tank(s) automatisch angelegt`,
+        description: `Tanknummer(n) im Import nicht bekannt, mit 5000L Standardgröße angelegt: ${neuAngelegteTanks.map(t => t.tankNr).join(', ')}. Bei Tippfehlern bitte in der Tankverwaltung korrigieren.`,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  function handleInventurdatumBestaetigt(mitDatum: boolean) {
+    if (!pendingLagerbestandImport) return;
+    let globalesInventurdatum: Date | null = null;
+    if (mitDatum) {
+      const teile = inventurdatumEingabe.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (teile) {
+        globalesInventurdatum = new Date(Number(teile[1]), Number(teile[2]) - 1, Number(teile[3]));
+      }
+    }
+    if (!globalesInventurdatum) {
+      toast({
+        title: 'Kein Inventurdatum angegeben',
+        description: 'Es wird ersatzweise das heutige Datum verwendet - bitte bei Bedarf pro Posten nachträglich korrigieren.',
+        variant: 'destructive',
+      });
+    }
+    const { rows, appFieldIndex, normalizedHeader } = pendingLagerbestandImport;
+    finishLagerbestandImport(rows, appFieldIndex, normalizedHeader, globalesInventurdatum);
+    setPendingLagerbestandImport(null);
+  }
+
   const handleImportXLSX = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -200,13 +310,6 @@ export default function InventoryManagement() {
           .map(r => (r as any[]).map(cell => (typeof cell === 'string' ? cell.trim() : cell)))
           .filter(r => r.some(cell => cell !== undefined && cell !== null && String(cell).trim() !== ''));
 
-        const parseNumber = (v: any) => {
-          if (v === undefined || v === null || v === '') return undefined;
-          const s = String(v).replace(/\s+/g, '').replace(',', '.');
-          const n = Number(s);
-          return Number.isFinite(n) ? n : undefined;
-        };
-
         if (isArtikelStammImport) {
           const neueArtikelDefinitionen: ArtikelDefinition[] = rows.map((row: any[]) => {
             const get = (f: string) => (typeof appFieldIndex[f] === 'number' ? row[appFieldIndex[f]] : undefined);
@@ -216,8 +319,8 @@ export default function InventoryManagement() {
               produktName: ((get('produktName') || '') + '').trim(),
               category: (get('category') || '') + '',
               beschreibung: (get('bemerkungen') || '') + '',
-              alcoholVolProzent: parseNumber(get('alcoholVolProzent')),
-              dichte20C: parseNumber(get('dichte20C')),
+              alcoholVolProzent: parseImportNumber(get('alcoholVolProzent')),
+              dichte20C: parseImportNumber(get('dichte20C')),
               kennzeichen: (get('kennzeichen') || '') + '',
             };
           }).filter(a => a.produktName && String(a.produktName).trim() !== '');
@@ -249,78 +352,16 @@ export default function InventoryManagement() {
           // Kein Datum je Zeile in der Datei (nur ein Stichtag im Titel/Dateinamen)?
           // Einmalig fürs gesamte Inventurdatum fragen statt unbemerkt das heutige
           // Importdatum zu verwenden - bei einer rückwirkend eingespielten Inventur
-          // (z.B. Jahresabschluss 31.12.) wäre das sonst schlicht falsch.
-          let globalesInventurdatum: Date | null = null;
+          // (z.B. Jahresabschluss 31.12.) wäre das sonst schlicht falsch. Läuft über
+          // einen echten Dialog statt window.prompt() (siehe pendingLagerbestandImport).
           if (typeof appFieldIndex['lastInventoryDate'] !== 'number') {
-            const eingabe = window.prompt('In der Datei ist kein Datum je Zeile enthalten. Für welches Inventurdatum gilt dieser Bestand? (TT.MM.JJJJ)', '');
-            const teile = eingabe?.trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
-            if (teile) {
-              globalesInventurdatum = new Date(Number(teile[3]), Number(teile[2]) - 1, Number(teile[1]));
-            } else {
-              toast({
-                title: 'Kein gültiges Inventurdatum angegeben',
-                description: 'Es wird ersatzweise das heutige Datum verwendet - bitte bei Bedarf pro Posten nachträglich korrigieren.',
-                variant: 'destructive',
-              });
-            }
+            setPendingLagerbestandImport({ rows, appFieldIndex, normalizedHeader });
+            setInventurdatumEingabe('');
+            setIsImporting(false);
+            return;
           }
 
-          const geparsteZeilen = rows.map((row: any[]) => {
-            const getByField = (f: string) => (typeof appFieldIndex[f] === 'number' ? row[appFieldIndex[f]] : undefined);
-            // Versuch: falls Menge in kg statt lt geliefert wird, wir übernehmen Wert trotzdem (Anpassung kann später erfolgen)
-            const mengeLtRaw = getByField('currentQuantityLiters');
-            const mengeKgRaw = normalizedHeader.includes('menge/kg') ? row[normalizedHeader.indexOf('menge/kg')] : undefined;
-            const menge = parseNumber(mengeLtRaw ?? mengeKgRaw) ?? 0;
-            const alcoholRaw = parseNumber(getByField('alcoholVolProzent')) ?? 0;
-            const d20 = parseNumber(getByField('dichte20C'));
-            const la = parseNumber(getByField('literAbsolutalkohol'));
-            const lastInvRaw = getByField('lastInventoryDate');
-            const lastInv = lastInvRaw ? new Date(lastInvRaw) : (globalesInventurdatum ?? new Date());
-            return {
-              id: uuidv4(),
-              artikelNummer: (getByField('artikelNummer') || '') + '',
-              kennzeichen: (getByField('kennzeichen') || '') + '',
-              chargenNummer: (getByField('chargenNummer') || '') + '',
-              produktName: ((getByField('produktName') || '') + '').trim(),
-              category: (getByField('category') || '') + '',
-              tankNr: (getByField('tankNr') || '') + '',
-              currentQuantityLiters: menge,
-              alcoholVolProzent: alcoholRaw,
-              dichte20C: d20,
-              literAbsolutalkohol: la,
-              lastInventoryDate: lastInv,
-              bemerkungen: (getByField('bemerkungen') || '') + '',
-            } as StoredInventoryItem;
-          }).filter(i => i.produktName && String(i.produktName).trim() !== '');
-
-          // Zeilen ohne Menge (z.B. Platzhalter-Zeilen für ein Gebinde, dessen
-          // Inhalt bereits in einer anderen Zeile summiert erfasst ist) sind als
-          // eigener Lagerposten sinnlos - nicht mit importieren, aber sichtbar melden.
-          const neueInventoryItems = geparsteZeilen.filter(i => i.currentQuantityLiters > 0);
-          const uebersprungen = geparsteZeilen.length - neueInventoryItems.length;
-
-          setInventoryItems(neueInventoryItems);
-          toast({
-            title: 'Lagerbestand importiert',
-            description: `${neueInventoryItems.length} Lagerartikel wurden hinzugefügt.` + (uebersprungen > 0 ? ` ${uebersprungen} Zeile(n) ohne Menge übersprungen.` : ''),
-          });
-
-          // syncTankDefinitionsWithInventory() liest inventoryItems direkt aus dem
-          // localStorage, das schreibt aber erst ein useEffect ein Render später -
-          // ohne diesen expliziten, synchronen Write sieht der Sync bei einem
-          // Import in einen leeren Bestand (z.B. Ersteinspielung der Jahresinventur)
-          // noch gar keine Daten und legt lautlos keine Tanks an.
-          localStorage.setItem('inventoryItems', JSON.stringify(neueInventoryItems));
-          // Tank-Definitionen automatisch synchronisieren nach dem Import
-          const neuAngelegteTanks = syncTankDefinitionsWithInventory();
-          if (neuAngelegteTanks.length > 0) {
-            toast({
-              title: `${neuAngelegteTanks.length} neue(r) Tank(s) automatisch angelegt`,
-              description: `Tanknummer(n) im Import nicht bekannt, mit 5000L Standardgröße angelegt: ${neuAngelegteTanks.map(t => t.tankNr).join(', ')}. Bei Tippfehlern bitte in der Tankverwaltung korrigieren.`,
-              variant: 'destructive',
-            });
-          }
-
+          finishLagerbestandImport(rows, appFieldIndex, normalizedHeader, null);
           setIsImporting(false);
           return;
         }
@@ -444,14 +485,7 @@ export default function InventoryManagement() {
         const { shell } = window.require('electron');
         const exportPath = path.join(exportDir, fileName);
         XLSX.writeFile(wb, exportPath);
-
-        // Dialog mit Auswahl
-        const auswahl = window.prompt('Export erfolgreich! Was möchten Sie tun?\n1 = Datei öffnen\n2 = Exportordner öffnen\nAbbrechen = nichts tun', '');
-        if (auswahl === '1') {
-          shell.openPath(exportPath);
-        } else if (auswahl === '2') {
-          shell.openPath(exportDir);
-        }
+        setPendingExportPfad({ filePath: exportPath, dir: exportDir });
       } catch (err) {
         // Fehler beim Öffnen ignorieren
       }
@@ -955,12 +989,7 @@ export default function InventoryManagement() {
                           const { shell } = window.require('electron');
                           const exportPath = path.join(exportDir, fileName);
                           XLSX.writeFile(wb, exportPath);
-                          const auswahl = window.prompt('Export erfolgreich! Was möchten Sie tun?\n1 = Datei öffnen\n2 = Exportordner öffnen\nAbbrechen = nichts tun', '');
-                          if (auswahl === '1') {
-                            shell.openPath(exportPath);
-                          } else if (auswahl === '2') {
-                            shell.openPath(exportDir);
-                          }
+                          setPendingExportPfad({ filePath: exportPath, dir: exportDir });
                         } catch (err) {
                           // Fehler ignorieren
                         }
@@ -1022,6 +1051,52 @@ export default function InventoryManagement() {
               <div className="flex gap-2 justify-end">
                 <Button onClick={handleCopyWarnings} variant="outline">Warnungen kopieren</Button>
                 <Button onClick={() => setIsWarningDialogOpen(false)} variant="default">Schließen</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Inventurdatum-Abfrage beim Lagerbestand-Import ohne Datumsspalte (Aufgabe 28) -
+              echter Dialog statt window.prompt(), das Electron nicht unterstützt. */}
+          <Dialog open={!!pendingLagerbestandImport} onOpenChange={(open) => { if (!open) setPendingLagerbestandImport(null); }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Inventurdatum für diesen Import</DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">
+                In der Datei ist kein Datum je Zeile enthalten. Für welches Inventurdatum gilt dieser Bestand?
+              </p>
+              <Input
+                type="date"
+                value={inventurdatumEingabe}
+                onChange={e => setInventurdatumEingabe(e.target.value)}
+              />
+              <div className="flex gap-2 justify-end pt-2">
+                <Button variant="outline" onClick={() => handleInventurdatumBestaetigt(false)}>Ohne Datum fortfahren (heutiges Datum)</Button>
+                <Button onClick={() => handleInventurdatumBestaetigt(true)} disabled={!inventurdatumEingabe}>Übernehmen</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Nach Export: Datei/Ordner öffnen? - ebenfalls echter Dialog statt window.prompt(). */}
+          <Dialog open={!!pendingExportPfad} onOpenChange={(open) => { if (!open) setPendingExportPfad(null); }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Export erfolgreich</DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">Was möchten Sie tun?</p>
+              <div className="flex gap-2 justify-end pt-2">
+                <Button variant="outline" onClick={() => setPendingExportPfad(null)}>Nichts tun</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => { if (pendingExportPfad && typeof window !== 'undefined' && window.require) window.require('electron').shell.openPath(pendingExportPfad.dir); setPendingExportPfad(null); }}
+                >
+                  Exportordner öffnen
+                </Button>
+                <Button
+                  onClick={() => { if (pendingExportPfad && typeof window !== 'undefined' && window.require) window.require('electron').shell.openPath(pendingExportPfad.filePath); setPendingExportPfad(null); }}
+                >
+                  Datei öffnen
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
