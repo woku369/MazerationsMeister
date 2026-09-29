@@ -224,83 +224,56 @@ export default function TankManagement() {
 
   const generateQRCode = async (tank: Tank) => {
     try {
-      let url = "";
-      
-      // GitHub zuerst versuchen, wenn aktiviert
+      // Zweck des QR-Codes (Nutzer, 29.09.2026): im Tankraum gibt es kein WLAN und keinen PC,
+      // der Code muss vom Mobilgerät rein über Mobilfunk lesbar sein - auch unterwegs, z.B.
+      // beim Lohnabfüller oder während einer Führung. `window.location.origin` (die Adresse,
+      // unter der die Desktop-App gerade läuft) ist dafür nutzlos, da nur im selben lokalen
+      // Netz wie das Gerät erreichbar, auf dem der Code erzeugt wurde. GitHub Pages dagegen
+      // ist von überall per Mobilfunk erreichbar - daher immer dorthin verlinken, mit den
+      // aktuellen Tank-Daten direkt im QR-Code eingebettet (funktioniert auch dann korrekt,
+      // wenn der zentrale tank-data.json-Datensatz gerade nicht ganz aktuell ist).
+      const fallbackData = {
+        tankNr: tank.tankNr,
+        bezeichnung: tank.bezeichnung,
+        volumen: tank.volumenLiter,
+        aktuellerFuellstand: getTankFillLevel(tank.tankNr).totalVolume,
+        sorte: getTankFillLevel(tank.tankNr).contents || "Leer",
+        batch: githubEnabled ? "GitHub-Integration aktiv" : "Offline verfügbar",
+        temperatur: "Siehe Desktop-App",
+        alkoholgehalt: "Siehe Desktop-App",
+        ph_wert: "Nicht gemessen",
+        status: githubEnabled ? "GitHub-verbunden" : "Offline verfügbar",
+        verantwortlicher: githubEnabled ? "GitHub System" : "Lokales System",
+        naechsteKontrolle: "Bei nächster Aktualisierung",
+        letzteAktualisierung: new Date().toLocaleDateString('de-DE'),
+      };
+      const encodedFallback = encodeURIComponent(JSON.stringify(fallbackData));
+      // Garantiert erreichbare Variante mit eingebetteten Daten - Ausgangspunkt und
+      // letzter Rückfall zugleich.
+      let url = `https://woku369.github.io/MazerationsMeister/tank-offline/?tank=${tank.tankNr}&fallback=${encodedFallback}`;
+
       if (githubEnabled && githubToken) {
-        // Teste ob GitHub Pages verfügbar ist
-        const githubPagesUrl = `https://woku369.github.io/MazerationsMeister/tank-viewer.html?tank=${tank.tankNr}&fallback=${encodeURIComponent(JSON.stringify({
-          tankNr: tank.tankNr,
-          bezeichnung: tank.bezeichnung,
-          volumen: tank.volumenLiter,
-          aktuellerFuellstand: getTankFillLevel(tank.tankNr).totalVolume,
-          sorte: getTankFillLevel(tank.tankNr).contents,
-          batch: "GitHub-Integration aktiv"
-        }))}&mode=github`;
-        
+        // Falls der zentrale Datensatz gerade aktuell synchronisiert ist, zeigt
+        // tank-viewer.html den echten Live-Stand statt nur des Schnappschusses von
+        // jetzt - deshalb bevorzugt versuchen, mit Rückfall auf die oben garantiert
+        // funktionierende Variante.
+        const githubPagesUrl = `https://woku369.github.io/MazerationsMeister/tank-viewer.html?tank=${tank.tankNr}&fallback=${encodedFallback}&mode=github`;
         try {
-          // Teste GitHub Pages Verfügbarkeit (einfacher Fetch-Test)
-          const testResponse = await fetch(githubPagesUrl, { method: 'HEAD', mode: 'no-cors' });
-          
-          // Wenn verfügbar, verwende GitHub Pages
+          await fetch(githubPagesUrl, { method: 'HEAD', mode: 'no-cors' });
           url = githubPagesUrl;
           console.log('✅ GitHub Pages verfügbar:', url);
-          
         } catch (error) {
-          // GitHub Pages nicht verfügbar - verwende lokalen Fallback mit GitHub-Modus
-          console.log('⚠️ GitHub Pages noch nicht verfügbar, verwende lokalen GitHub-Modus');
-          
-          const fallbackData = {
-            tankNr: tank.tankNr,
-            bezeichnung: tank.bezeichnung,
-            volumen: tank.volumenLiter,
-            aktuellerFuellstand: getTankFillLevel(tank.tankNr).totalVolume,
-            sorte: getTankFillLevel(tank.tankNr).contents,
-            batch: "GitHub-Integration aktiv",
-            temperatur: "Siehe Desktop-App",
-            alkoholgehalt: "Siehe Desktop-App", 
-            ph_wert: "Nicht gemessen",
-            status: "GitHub-verbunden (lokaler Fallback)",
-            verantwortlicher: "GitHub System",
-            naechsteKontrolle: "Nach GitHub Pages Setup",
-            letzteAktualisierung: new Date().toLocaleDateString('de-DE'),
-            githubConnected: true,
-            githubSetupNeeded: true
-          };
-          
-          const encodedFallback = encodeURIComponent(JSON.stringify(fallbackData));
-          url = `${window.location.origin}/tank-offline?fallback=${encodedFallback}&mode=github`;
+          console.log('⚠️ tank-viewer.html nicht erreichbar, verwende tank-offline mit eingebetteten Daten');
         }
-      } else {
-        // Kein GitHub Pages konfiguriert - lokaler WLAN-Fallback mit eingebetteten Tank-Daten
-        // (konsolidiert auf GitHub Pages + lokalen Fallback, siehe Aufgabe 29 - der frühere
-        // dritte Weg über OneDrive wurde entfernt, da er nur Verwirrung stiftete)
-        const fallbackData = {
-          tankNr: tank.tankNr,
-          bezeichnung: tank.bezeichnung,
-          volumen: tank.volumenLiter,
-          aktuellerFuellstand: getTankFillLevel(tank.tankNr).totalVolume,
-          sorte: getTankFillLevel(tank.tankNr).contents || "Leer",
-          batch: "Offline verfügbar",
-          temperatur: "Siehe Desktop-App",
-          alkoholgehalt: "Siehe Desktop-App",
-          ph_wert: "Nicht gemessen",
-          status: "Offline verfügbar",
-          verantwortlicher: "Lokales System",
-          naechsteKontrolle: "Bei App-Neustart",
-          letzteAktualisierung: new Date().toLocaleDateString('de-DE')
-        };
-        const encodedFallback = encodeURIComponent(JSON.stringify(fallbackData));
-        url = `${window.location.origin}/tank-offline?tank=${tank.tankNr}&fallback=${encodedFallback}`;
       }
-      
+
       const qrCodeUrl = await QRCode.toDataURL(url);
       setQrCodeDataUrl(qrCodeUrl);
       setQrCodeTank(tank);
     } catch (error) {
       console.error("Fehler beim Generieren des QR-Codes:", error);
-      
-      // Emergency fallback - basic offline viewer
+
+      // Notfall-Rückfall - ebenfalls GitHub Pages, nie eine lokale Adresse (siehe oben)
       const basicFallback = {
         tankNr: tank.tankNr,
         bezeichnung: tank.bezeichnung,
@@ -308,8 +281,8 @@ export default function TankManagement() {
         status: "Notfall-Modus"
       };
       const encodedFallback = encodeURIComponent(JSON.stringify(basicFallback));
-      const fallbackUrl = `${window.location.origin}/tank-offline?tank=${tank.tankNr}&fallback=${encodedFallback}`;
-      
+      const fallbackUrl = `https://woku369.github.io/MazerationsMeister/tank-offline/?tank=${tank.tankNr}&fallback=${encodedFallback}`;
+
       const qrCodeUrl = await QRCode.toDataURL(fallbackUrl);
       setQrCodeDataUrl(qrCodeUrl);
       setQrCodeTank(tank);
