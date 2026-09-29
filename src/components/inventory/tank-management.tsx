@@ -16,7 +16,6 @@ import {
 import QRCode from "qrcode";
 import { getTankAutoSync } from "@/lib/tank-auto-sync";
 import { getGithubToken, getGithubEnabled, setGithubConfig, onGithubConfigChanged } from "@/lib/github-token";
-import * as cloudQRGenerator from "@/lib/cloud-qr-generator";
 import OneDriveAutoUploader from "@/lib/onedrive-auto-uploader";
 import * as oneDriveExport from "@/lib/onedrive-export";
 import {
@@ -273,7 +272,9 @@ export default function TankManagement() {
           url = `${window.location.origin}/tank-offline?fallback=${encodedFallback}&mode=github`;
         }
       } else {
-        // Offline-Fallback mit eingebetteten Tank-Daten
+        // Kein GitHub Pages konfiguriert - lokaler WLAN-Fallback mit eingebetteten Tank-Daten
+        // (konsolidiert auf GitHub Pages + lokalen Fallback, siehe Aufgabe 29 - der frühere
+        // dritte Weg über OneDrive wurde entfernt, da er nur Verwirrung stiftete)
         const fallbackData = {
           tankNr: tank.tankNr,
           bezeichnung: tank.bezeichnung,
@@ -282,28 +283,15 @@ export default function TankManagement() {
           sorte: getTankFillLevel(tank.tankNr).contents || "Leer",
           batch: "Offline verfügbar",
           temperatur: "Siehe Desktop-App",
-          alkoholgehalt: "Siehe Desktop-App", 
+          alkoholgehalt: "Siehe Desktop-App",
           ph_wert: "Nicht gemessen",
           status: "Offline verfügbar",
           verantwortlicher: "Lokales System",
           naechsteKontrolle: "Bei App-Neustart",
           letzteAktualisierung: new Date().toLocaleDateString('de-DE')
         };
-        
-        // Try OneDrive first, fall back to offline viewer with embedded data
-        try {
-          const tankInfo = { 
-            tankNr: tank.tankNr, 
-            bezeichnung: tank.bezeichnung, 
-            volumen: tank.volumenLiter 
-          };
-          url = await cloudQRGenerator.generateCloudQRUrl(tank.tankNr, tankInfo);
-        } catch (oneDriveError) {
-          // Fallback zu Offline-Viewer mit eingebetteten Daten
-          console.log("OneDrive nicht verfügbar, verwende Offline-Viewer");
-          const encodedFallback = encodeURIComponent(JSON.stringify(fallbackData));
-          url = `${window.location.origin}/tank-offline?tank=${tank.tankNr}&fallback=${encodedFallback}`;
-        }
+        const encodedFallback = encodeURIComponent(JSON.stringify(fallbackData));
+        url = `${window.location.origin}/tank-offline?tank=${tank.tankNr}&fallback=${encodedFallback}`;
       }
       
       const qrCodeUrl = await QRCode.toDataURL(url);

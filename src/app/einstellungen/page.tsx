@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import TankManagement from '@/components/inventory/tank-management';
-import TankContentManager from '@/components/inventory/tank-content-manager';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -47,21 +46,6 @@ export default function EinstellungenPage() {
     localStorage.setItem('oneDrivePath', oneDrivePath);
   };
 
-  // OneDrive-Konfiguration
-  const [oneDriveShareUrl, setOneDriveShareUrl] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const config = localStorage.getItem('oneDriveConfig');
-      if (config) {
-        try {
-          return JSON.parse(config).shareUrl || '';
-        } catch (e) {
-          return '';
-        }
-      }
-    }
-    return '';
-  });
-  
   // Auto-Sync Status und Konfiguration
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
   const [autoSyncInterval, setAutoSyncInterval] = useState(15);
@@ -120,25 +104,6 @@ export default function EinstellungenPage() {
     }
   };
   
-  const handleSaveOneDriveConfig = () => {
-    const config = {
-      shareUrl: oneDriveShareUrl.trim(),
-      appPath: ''
-    };
-    localStorage.setItem('oneDriveConfig', JSON.stringify(config));
-    alert('OneDrive-Konfiguration gespeichert!');
-  };
-
-  const handleTestOneDriveConfig = () => {
-    if (!oneDriveShareUrl.trim()) {
-      alert('Bitte geben Sie zuerst eine OneDrive Share-URL ein.');
-      return;
-    }
-    
-    // Test ob die URL erreichbar ist
-    const testUrl = oneDriveShareUrl.trim();
-    window.open(testUrl, '_blank');
-  };
   // Kategorien als Array von Objekten mit Name und Farbe
   const [categories, setCategories] = useState<{name: string, color: string}[]>(() => {
     if (typeof window !== 'undefined') {
@@ -194,11 +159,9 @@ export default function EinstellungenPage() {
       <Tabs defaultValue="speicher" className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="speicher">Speicherpfade</TabsTrigger>
-          <TabsTrigger value="onedrive">OneDrive QR-Codes</TabsTrigger>
           <TabsTrigger value="github">GitHub Integration</TabsTrigger>
           <TabsTrigger value="kategorien">Kategorien</TabsTrigger>
           <TabsTrigger value="tank">QR-Codes</TabsTrigger>
-          <TabsTrigger value="tankinhalt">Tank-Inhalte</TabsTrigger>
         </TabsList>
         <TabsContent value="speicher">
           <div className="max-w-md">
@@ -215,41 +178,6 @@ export default function EinstellungenPage() {
             <div className="text-xs text-muted-foreground mt-2">Tank-Daten werden automatisch in diesen OneDrive-Ordner synchronisiert.</div>
           </div>
         </TabsContent>
-          <TabsContent value="onedrive">
-            <div className="max-w-2xl">
-              <h2 className="text-xl font-semibold text-primary mb-4">OneDrive-QR-Code Konfiguration</h2>
-              
-              <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
-                <h3 className="font-semibold text-blue-900 mb-2">🌐 Cloud-QR-Codes für Offline-Zugriff</h3>
-                <p className="text-sm text-blue-700 mb-2">
-                  Konfigurieren Sie eine OneDrive Share-URL, damit die QR-Codes auch ohne laufende App funktionieren.
-                </p>
-              </div>
-
-              <label className="block text-sm font-medium text-primary mb-2">OneDrive Share-URL</label>
-              <Input 
-                type="url" 
-                value={oneDriveShareUrl} 
-                onChange={e => setOneDriveShareUrl(e.target.value)} 
-                placeholder="https://1drv.ms/f/s/[IHR-SHARE-LINK]" 
-                className="mb-2"
-              />
-              <div className="flex gap-2 mb-4">
-                <Button onClick={handleSaveOneDriveConfig}>
-                  Konfiguration speichern
-                </Button>
-                <Button variant="outline" onClick={handleTestOneDriveConfig}>
-                  URL testen
-                </Button>
-              </div>
-              
-              <div className="text-xs text-muted-foreground mb-4">
-                <strong>Aktuelle Konfiguration:</strong><br />
-                Share-URL: <span className="font-mono">{hydrated ? (oneDriveShareUrl || '(nicht konfiguriert)') : '(nicht konfiguriert)'}</span>
-              </div>
-            </div>
-          </TabsContent>
-          
         <TabsContent value="github">
           <div className="max-w-2xl">
             <h2 className="text-xl font-semibold text-primary mb-4">GitHub Integration</h2>
@@ -401,9 +329,6 @@ export default function EinstellungenPage() {
         </TabsContent>
         <TabsContent value="tank">
           <TankManagement />
-        </TabsContent>
-        <TabsContent value="tankinhalt">
-          <TankContentManager />
         </TabsContent>
       </Tabs>
     </main>
