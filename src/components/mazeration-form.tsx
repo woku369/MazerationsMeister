@@ -284,7 +284,25 @@ export default function MazerationForm() {
   function handleConfirmInventoryEntry() {
     if (!pendingInventoryItem) return;
     try {
-      StockService.persistAddEntry(pendingInventoryItem);
+      // Über StockService.persistPoolIntoTank() statt des früheren persistAddEntry():
+      // verschmilzt mit bereits vorhandenem Inhalt im selben Tank zu einem gewichteten
+      // Misch-ABV (Aufgabe 24) UND schreibt einen Buchungsjournal-Eintrag (Aufgabe 23) -
+      // beides fehlte hier bisher, obwohl es für jeden anderen Buchungsweg schon gilt.
+      const result = StockService.persistPoolIntoTank(
+        pendingInventoryItem.tankNr,
+        {
+          produktName: pendingInventoryItem.produktName,
+          chargenNummer: pendingInventoryItem.chargenNummer,
+          category: pendingInventoryItem.category,
+          alkoholVolProzent: pendingInventoryItem.alcoholVolProzent,
+          mengeLiter: pendingInventoryItem.currentQuantityLiters,
+        },
+        { notes: `Mazeration ${pendingInventoryItem.produktName} (${pendingInventoryItem.chargenNummer}) Einlagerung` },
+      );
+      if (!result.ok) {
+        toast({ title: 'Einbuchen nicht möglich', description: result.error, variant: 'destructive' });
+        return;
+      }
       toast({
         title: 'Lager-Zugang gebucht',
         description: `${pendingInventoryItem.currentQuantityLiters.toFixed(2)} L ${pendingInventoryItem.produktName} in ${pendingInventoryItem.tankNr} eingebucht.`,
