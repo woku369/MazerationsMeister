@@ -228,7 +228,44 @@ export default function InventoryManagement() {
         }
 
         if (isLagerbestandImport) {
-          const neueInventoryItems: StoredInventoryItem[] = rows.map((row: any[]) => {
+          // Sorte/Produktname steht in vielen Lagerlisten nur in der ersten Zeile
+          // einer Gruppe (nachfolgende Zeilen = "wie oben, bis zum nächsten
+          // Sortenblock") - ohne dieses Forward-Fill würden diese Zeilen mangels
+          // eigenem Produktname weiter unten stillschweigend herausgefiltert
+          // (geprüft an Bestand_2025-12-31.xlsx: 38 von 56 Zeilen betroffen).
+          const produktNameIdx = appFieldIndex['produktName'];
+          if (typeof produktNameIdx === 'number') {
+            let letzterProduktName = '';
+            rows.forEach(row => {
+              const val = row[produktNameIdx];
+              if (val !== undefined && val !== null && String(val).trim() !== '') {
+                letzterProduktName = String(val).trim();
+              } else {
+                row[produktNameIdx] = letzterProduktName;
+              }
+            });
+          }
+
+          // Kein Datum je Zeile in der Datei (nur ein Stichtag im Titel/Dateinamen)?
+          // Einmalig fürs gesamte Inventurdatum fragen statt unbemerkt das heutige
+          // Importdatum zu verwenden - bei einer rückwirkend eingespielten Inventur
+          // (z.B. Jahresabschluss 31.12.) wäre das sonst schlicht falsch.
+          let globalesInventurdatum: Date | null = null;
+          if (typeof appFieldIndex['lastInventoryDate'] !== 'number') {
+            const eingabe = window.prompt('In der Datei ist kein Datum je Zeile enthalten. Für welches Inventurdatum gilt dieser Bestand? (TT.MM.JJJJ)', '');
+            const teile = eingabe?.trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+            if (teile) {
+              globalesInventurdatum = new Date(Number(teile[3]), Number(teile[2]) - 1, Number(teile[1]));
+            } else {
+              toast({
+                title: 'Kein gültiges Inventurdatum angegeben',
+                description: 'Es wird ersatzweise das heutige Datum verwendet - bitte bei Bedarf pro Posten nachträglich korrigieren.',
+                variant: 'destructive',
+              });
+            }
+          }
+
+          const geparsteZeilen = rows.map((row: any[]) => {
             const getByField = (f: string) => (typeof appFieldIndex[f] === 'number' ? row[appFieldIndex[f]] : undefined);
             // Versuch: falls Menge in kg statt lt geliefert wird, wir übernehmen Wert trotzdem (Anpassung kann später erfolgen)
             const mengeLtRaw = getByField('currentQuantityLiters');
@@ -238,7 +275,7 @@ export default function InventoryManagement() {
             const d20 = parseNumber(getByField('dichte20C'));
             const la = parseNumber(getByField('literAbsolutalkohol'));
             const lastInvRaw = getByField('lastInventoryDate');
-            const lastInv = lastInvRaw ? new Date(lastInvRaw) : new Date();
+            const lastInv = lastInvRaw ? new Date(lastInvRaw) : (globalesInventurdatum ?? new Date());
             return {
               id: uuidv4(),
               artikelNummer: (getByField('artikelNummer') || '') + '',
@@ -255,9 +292,25 @@ export default function InventoryManagement() {
               bemerkungen: (getByField('bemerkungen') || '') + '',
             } as StoredInventoryItem;
           }).filter(i => i.produktName && String(i.produktName).trim() !== '');
-          setInventoryItems(neueInventoryItems);
-          toast({ title: 'Lagerbestand importiert', description: `${neueInventoryItems.length} Lagerartikel wurden hinzugefügt.` });
 
+          // Zeilen ohne Menge (z.B. Platzhalter-Zeilen für ein Gebinde, dessen
+          // Inhalt bereits in einer anderen Zeile summiert erfasst ist) sind als
+          // eigener Lagerposten sinnlos - nicht mit importieren, aber sichtbar melden.
+          const neueInventoryItems = geparsteZeilen.filter(i => i.currentQuantityLiters > 0);
+          const uebersprungen = geparsteZeilen.length - neueInventoryItems.length;
+
+          setInventoryItems(neueInventoryItems);
+          toast({
+            title: 'Lagerbestand importiert',
+            description: `${neueInventoryItems.length} Lagerartikel wurden hinzugefügt.` + (uebersprungen > 0 ? ` ${uebersprungen} Zeile(n) ohne Menge übersprungen.` : ''),
+          });
+
+          // syncTankDefinitionsWithInventory() liest inventoryItems direkt aus dem
+          // localStorage, das schreibt aber erst ein useEffect ein Render später -
+          // ohne diesen expliziten, synchronen Write sieht der Sync bei einem
+          // Import in einen leeren Bestand (z.B. Ersteinspielung der Jahresinventur)
+          // noch gar keine Daten und legt lautlos keine Tanks an.
+          localStorage.setItem('inventoryItems', JSON.stringify(neueInventoryItems));
           // Tank-Definitionen automatisch synchronisieren nach dem Import
           const neuAngelegteTanks = syncTankDefinitionsWithInventory();
           if (neuAngelegteTanks.length > 0) {
