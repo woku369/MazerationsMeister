@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateVersandNummer, createVersand, calcContainerLA } from '../versand-service';
+import { generateVersandNummer, createVersand, calcContainerLA, calcContainerNettogewichtKg } from '../versand-service';
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 import type { LohnabfuellerVersand } from '@/schemas/versandSchema';
 
@@ -99,5 +99,27 @@ describe('calcContainerLA', () => {
       { inventoryItemId: 'a', tankNr: 'IBC-1', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
       { inventoryItemId: 'b', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
     ])).toBeCloseTo(1070, 3);
+  });
+});
+
+describe('calcContainerNettogewichtKg (Aufgabe 30 - Werte fürs externe Lieferschein-Formular)', () => {
+  it('summiert Nettogewicht über mehrere Gebinde via Menge x Dichte', () => {
+    const kg = calcContainerNettogewichtKg([
+      { inventoryItemId: 'a', tankNr: 'IBC-1', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5, dichte20C: 0.92 },
+      { inventoryItemId: 'b', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 500, alkoholVolProzent: 53.5, dichte20C: 0.90 },
+    ]);
+    expect(kg).toBeCloseTo(1000 * 0.92 + 500 * 0.90, 3);
+  });
+
+  it('gibt null zurück, wenn bei mindestens einem Gebinde die Dichte fehlt - eine Teilsumme wäre irreführend', () => {
+    const kg = calcContainerNettogewichtKg([
+      { inventoryItemId: 'a', tankNr: 'IBC-1', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5, dichte20C: 0.92 },
+      { inventoryItemId: 'b', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 500, alkoholVolProzent: 53.5 },
+    ]);
+    expect(kg).toBeNull();
+  });
+
+  it('gibt null zurück für eine leere Gebinde-Liste', () => {
+    expect(calcContainerNettogewichtKg([])).toBeNull();
   });
 });

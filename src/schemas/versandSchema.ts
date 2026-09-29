@@ -6,6 +6,7 @@ export type VersandContainer = {
   chargenNummer?: string;
   mengeLiter: number;        // Ausgangsmenge (kann eine Teilmenge des Lagerpostens sein)
   alkoholVolProzent: number; // Ausgangskonzentration
+  dichte20C?: number;        // denormalisiert, für die Nettogewicht-Berechnung fürs Lieferschein-Formular
 };
 
 /**
@@ -24,6 +25,13 @@ export type LohnabfuellerVersand = {
   container: VersandContainer[];
   versandLA: number;           // Summe LA über alle Gebinde beim Versand - rein informativ für die
                                 // Alkohol-Bilanz, KEIN Steuerbetrag (Buchungen laufen steuerfrei)
+  // Die folgenden drei Felder dienen nur dazu, alle Werte für das externe (auf
+  // Schlumberger-Briefkopf ausgestellte) Lieferschein-Papierformular an einer
+  // Stelle griffbereit zu haben - die App erzeugt kein eigenes Lieferschein-PDF,
+  // dafür fehlt die Berechtigung (Schlumberger hält die Zolllager-Bewilligung).
+  bruttogewichtKg?: number;      // inkl. Gebinde-Eigengewicht, App kennt die Tara nicht - manuell
+  plombenNummern?: string;       // z.B. "2762725-2762730", frei erfasst
+  externeLieferscheinNr?: string; // Schlumbergers eigene Nummerierung, z.B. "1/2026" - unabhängig von versandNummer
   bemerkungen?: string;
   createdAt: string;
 };

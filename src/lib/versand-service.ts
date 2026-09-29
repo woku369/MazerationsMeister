@@ -9,6 +9,16 @@ export function calcContainerLA(container: VersandContainer[]): number {
   return container.reduce((sum, c) => sum + calcLA(c.mengeLiter, c.alkoholVolProzent), 0);
 }
 
+/**
+ * Summe Nettogewicht (kg) über alle Gebinde, für das externe Lieferschein-
+ * Formular (siehe versandSchema.ts). `null`, wenn für mindestens ein Gebinde
+ * keine Dichte vorliegt - dann wäre eine Teilsumme irreführend statt hilfreich.
+ */
+export function calcContainerNettogewichtKg(container: VersandContainer[]): number | null {
+  if (container.length === 0 || container.some(c => c.dichte20C == null)) return null;
+  return container.reduce((sum, c) => sum + c.mengeLiter * (c.dichte20C as number), 0);
+}
+
 const STORAGE_KEY = 'lohnabfuellerVersaende';
 
 // ---------------------------------------------------------------------------
@@ -41,6 +51,9 @@ export function createVersand(
     versanddatum: string;
     container: VersandContainer[];
     bemerkungen?: string;
+    bruttogewichtKg?: number;
+    plombenNummern?: string;
+    externeLieferscheinNr?: string;
   },
 ): { versaende: LohnabfuellerVersand[]; inventoryItems: StoredInventoryItem[]; transactions: InventoryTransaction[]; versand: LohnabfuellerVersand } {
   const versand: LohnabfuellerVersand = {
@@ -50,6 +63,9 @@ export function createVersand(
     versanddatum: params.versanddatum,
     container: params.container,
     versandLA: parseFloat(calcContainerLA(params.container).toFixed(3)),
+    bruttogewichtKg: params.bruttogewichtKg,
+    plombenNummern: params.plombenNummern,
+    externeLieferscheinNr: params.externeLieferscheinNr,
     bemerkungen: params.bemerkungen,
     createdAt: new Date().toISOString(),
   };
@@ -93,6 +109,9 @@ export function persistCreateVersand(params: {
   versanddatum: string;
   container: VersandContainer[];
   bemerkungen?: string;
+  bruttogewichtKg?: number;
+  plombenNummern?: string;
+  externeLieferscheinNr?: string;
 }): LohnabfuellerVersand {
   const result = createVersand(readAll(), StockService.readAll(), StockService.readTransactions(), params);
   writeAll(result.versaende);

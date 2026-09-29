@@ -42,6 +42,11 @@ export default function VersandPage() {
   const [versanddatum, setVersanddatum] = useState(() => new Date().toISOString().slice(0, 10));
   const [bemerkungen, setBemerkungen] = useState('');
   const [draftContainers, setDraftContainers] = useState<DraftContainer[]>([{ inventoryItemId: '', mengeLiter: '' }]);
+  // Nur zur Dokumentation für das externe (Schlumberger-)Lieferschein-Papierformular -
+  // die App erzeugt daraus kein eigenes Dokument, siehe versandSchema.ts.
+  const [plombenNummern, setPlombenNummern] = useState('');
+  const [externeLieferscheinNr, setExterneLieferscheinNr] = useState('');
+  const [bruttogewichtKg, setBruttogewichtKg] = useState('');
 
   const loadAll = () => {
     setVersaende(VersandService.readAll());
@@ -57,6 +62,9 @@ export default function VersandPage() {
     setVersanddatum(new Date().toISOString().slice(0, 10));
     setBemerkungen('');
     setDraftContainers([{ inventoryItemId: '', mengeLiter: '' }]);
+    setPlombenNummern('');
+    setExterneLieferscheinNr('');
+    setBruttogewichtKg('');
   }
 
   function addDraftRow() {
@@ -85,6 +93,7 @@ export default function VersandPage() {
         chargenNummer: item.chargenNummer,
         mengeLiter: menge,
         alkoholVolProzent: item.alcoholVolProzent,
+        dichte20C: item.dichte20C,
       });
     }
     return result.length === rows.length ? result : null;
@@ -100,11 +109,15 @@ export default function VersandPage() {
       toast({ title: 'Ungültige Gebinde-Auswahl', description: 'Bitte für jede Zeile ein Gebinde und eine gültige Menge (≤ verfügbarer Bestand) angeben.', variant: 'destructive' });
       return;
     }
+    const bruttogewicht = parseFloat(bruttogewichtKg.replace(',', '.'));
     const versand = VersandService.persistCreateVersand({
       lohnabfuellerName: lohnabfuellerName.trim(),
       versanddatum,
       container,
       bemerkungen: bemerkungen.trim() || undefined,
+      bruttogewichtKg: Number.isFinite(bruttogewicht) && bruttogewicht > 0 ? bruttogewicht : undefined,
+      plombenNummern: plombenNummern.trim() || undefined,
+      externeLieferscheinNr: externeLieferscheinNr.trim() || undefined,
     });
     toast({
       title: `Versand ${versand.versandNummer} gebucht`,
@@ -146,6 +159,20 @@ export default function VersandPage() {
                 <div className="font-medium text-foreground mt-0.5">Σ Versand: {fmtL(v.container.reduce((s, c) => s + c.mengeLiter, 0))} L, {fmtLA(v.versandLA)}</div>
               </div>
               {v.bemerkungen && <p className="text-xs text-muted-foreground mt-1 italic">{v.bemerkungen}</p>}
+              {(() => {
+                const nettoKg = VersandService.calcContainerNettogewichtKg(v.container);
+                const chargen = Array.from(new Set(v.container.map(c => c.chargenNummer).filter(Boolean)));
+                return (
+                  <div className="mt-2 pt-2 border-t text-xs space-y-0.5">
+                    <p className="font-medium text-foreground">Für das Lieferschein-Formular (Ladestelle: Stift Gurk, Domplatz 11, 9342 Gurk):</p>
+                    <p>Charge: {chargen.length > 0 ? chargen.join(', ') : '–'} · Gebinde: {v.container.length}× {v.container[0]?.tankNr ?? ''}</p>
+                    <p>Nettogewicht: {nettoKg != null ? `${fmtL(nettoKg)} kg` : 'nicht berechenbar (Dichte fehlt bei mind. einem Posten)'}{v.bruttogewichtKg != null ? ` · Bruttogewicht: ${fmtL(v.bruttogewichtKg)} kg` : ''}</p>
+                    {(v.plombenNummern || v.externeLieferscheinNr) && (
+                      <p>{v.plombenNummern && `Plomben: ${v.plombenNummern}`}{v.plombenNummern && v.externeLieferscheinNr && ' · '}{v.externeLieferscheinNr && `Schlumberger-Lieferschein-Nr.: ${v.externeLieferscheinNr}`}</p>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </CardContent>
@@ -214,6 +241,25 @@ export default function VersandPage() {
                   </p>
                 );
               })()}
+            </div>
+
+            <div className="border rounded-lg p-3 space-y-3">
+              <p className="text-sm font-medium">Für das externe Lieferschein-Formular (optional)</p>
+              <p className="text-xs text-muted-foreground -mt-2">Nur zur Dokumentation — die App erzeugt kein eigenes Lieferschein-PDF, das offizielle Formular läuft auf Schlumberger-Briefkopf.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Plomben-Nummern</Label>
+                  <Input value={plombenNummern} onChange={e => setPlombenNummern(e.target.value)} placeholder="z.B. 2762725-2762730" />
+                </div>
+                <div>
+                  <Label>Externe Lieferschein-Nr. (Schlumberger)</Label>
+                  <Input value={externeLieferscheinNr} onChange={e => setExterneLieferscheinNr(e.target.value)} placeholder="z.B. 1/2026" />
+                </div>
+              </div>
+              <div>
+                <Label>Bruttogewicht (kg, inkl. Gebinde)</Label>
+                <Input type="text" inputMode="decimal" className="w-40" value={bruttogewichtKg} onChange={e => setBruttogewichtKg(e.target.value)} placeholder="z.B. 3047" />
+              </div>
             </div>
 
             <div>
