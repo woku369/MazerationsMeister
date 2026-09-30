@@ -7,8 +7,8 @@ import * as XLSX from 'xlsx';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BookOpen, PlusCircle, Download } from 'lucide-react';
 import InventoryTable from './inventory-table';
 import AddInventoryItemDialog from './add-inventory-item-dialog';
@@ -902,46 +902,41 @@ export default function InventoryManagement() {
             </div>
           </div>
           {/* Hauptinhalt der Komponente */}
-          {/* Section for Artikelstamm */}
-          <section className="space-y-4">
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-primary mb-2">Import XLSX</label>
-              <input type="file" accept=".xlsx,.xls" onChange={handleImportXLSX} className="block" />
-              <p className="text-muted-foreground text-xs mt-1">Importiere Artikelstammdaten oder Lagerbestände als XLSX. Die Kategorie muss nachträglich ergänzt werden.</p>
-            </div>
-            <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-semibold text-primary">Artikelstamm verwalten</h2>
-                <Button onClick={handleOpenArtikelDefinitionDialogForNew} variant="outline" className="border-primary text-primary hover:bg-primary/10">
-                    <BookOpen className="mr-2 h-4 w-4" /> Neuen Artikel definieren
-                </Button>
-            </div>
-            <ArtikelDefinitionTable
-              definitions={artikelDefinitionen}
-              onEditDefinition={handleOpenArtikelDefinitionDialogForEdit}
-              onDeleteDefinition={handleDeleteArtikelDefinition}
-            />
-          </section>
+          {/* Import XLSX bleibt oberhalb der Tabs, da eine Datei je nach erkanntem
+              Header entweder den Artikelstamm oder den Lagerbestand befüllt - ihn
+              in einen der beiden Tabs zu legen, würde für den jeweils anderen
+              Fall einen Tab-Wechsel vor dem Import erzwingen. */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-primary mb-2">Import XLSX</label>
+            <input type="file" accept=".xlsx,.xls" onChange={handleImportXLSX} className="block" />
+            <p className="text-muted-foreground text-xs mt-1">Importiere Artikelstammdaten oder Lagerbestände als XLSX. Die Kategorie muss nachträglich ergänzt werden.</p>
+          </div>
 
-          <Separator className="my-8" />
+          {/* Tabs statt durchgehender Scroll-Seite (Nutzer-Feedback 30.09.2026,
+              Aufgabe 35): Artikelstamm wird selten gebraucht (Produkte werden
+              einmalig angelegt), Lagerbestand dagegen ständig - deshalb ist
+              "Lagerbestand" der Default-Tab, nicht mehr der erste Scroll-Stop. */}
+          <Tabs defaultValue="lagerbestand">
+            <TabsList>
+              <TabsTrigger value="lagerbestand">Lagerbestand</TabsTrigger>
+              <TabsTrigger value="journal">Buchungsjournal</TabsTrigger>
+              <TabsTrigger value="artikelstamm">Artikelstamm</TabsTrigger>
+            </TabsList>
 
-          {/* Section for Lagerbestand & Chargen & Protokoll */}
-          <section className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold text-primary">Lagerbestand, Chargen &amp; Protokoll</h2>
-               <div className="flex gap-2">
-                 <Button onClick={handleOpenAddEditDialogForNew} className="bg-primary hover:bg-primary/90">
+            <TabsContent value="lagerbestand" className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-semibold text-primary">Lagerbestand &amp; Chargen</h2>
+                <Button onClick={handleOpenAddEditDialogForNew} className="bg-primary hover:bg-primary/90">
                     <PlusCircle className="mr-2 h-4 w-4" /> Neue Charge/Bestand anlegen
                 </Button>
-               </div>
-            </div>
-            <InventorySummary items={inventoryItems} />
-            <InventoryTable 
-              items={inventoryItems} 
-              onDeleteItem={handleDeleteItem}
-              onEditItem={handleOpenAddEditDialogForEdit}
-              onRecordTransaction={handleOpenTransactionDialog}
-            />
-            <div className="mt-8">
+              </div>
+              <InventorySummary items={inventoryItems} />
+              <InventoryTable
+                items={inventoryItems}
+                onDeleteItem={handleDeleteItem}
+                onEditItem={handleOpenAddEditDialogForEdit}
+                onRecordTransaction={handleOpenTransactionDialog}
+              />
               <Card>
                 <CardHeader>
                     <CardTitle className="text-xl text-primary">Datenexport</CardTitle>
@@ -949,9 +944,6 @@ export default function InventoryManagement() {
                 <CardContent className="flex flex-col sm:flex-row gap-4">
                     <Button onClick={handleExportSummary} variant="outline" className="text-accent border-accent hover:bg-accent/10 flex-1">
                         <Download className="mr-2 h-4 w-4" /> Lagerübersicht exportieren (XLSX)
-                    </Button>
-                    <Button onClick={handleExportTransactions} variant="outline" className="text-accent border-accent hover:bg-accent/10 flex-1">
-                        <Download className="mr-2 h-4 w-4" /> Transaktionsprotokoll exportieren (XLSX)
                     </Button>
                     <Button onClick={() => {
                       // Exportiere alle inventoryItems als XLSX
@@ -1014,9 +1006,32 @@ export default function InventoryManagement() {
                     </Button>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="journal" className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-semibold text-primary">Buchungsjournal</h2>
+                <Button onClick={handleExportTransactions} variant="outline" className="text-accent border-accent hover:bg-accent/10">
+                    <Download className="mr-2 h-4 w-4" /> Transaktionsprotokoll exportieren (XLSX)
+                </Button>
+              </div>
               <InventoryTransactionTable transactions={inventoryTransactions} />
-            </div>
-          </section>
+            </TabsContent>
+
+            <TabsContent value="artikelstamm" className="space-y-4">
+              <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-semibold text-primary">Artikelstamm verwalten</h2>
+                  <Button onClick={handleOpenArtikelDefinitionDialogForNew} variant="outline" className="border-primary text-primary hover:bg-primary/10">
+                      <BookOpen className="mr-2 h-4 w-4" /> Neuen Artikel definieren
+                  </Button>
+              </div>
+              <ArtikelDefinitionTable
+                definitions={artikelDefinitionen}
+                onEditDefinition={handleOpenArtikelDefinitionDialogForEdit}
+                onDeleteDefinition={handleDeleteArtikelDefinition}
+              />
+            </TabsContent>
+          </Tabs>
 
 
           <AddInventoryItemDialog
