@@ -17,6 +17,7 @@ import { getGithubToken, getGithubEnabled, setGithubConfig } from "@/lib/github-
 import { useToast } from "@/hooks/use-toast";
 import * as BackupService from "@/lib/backup-service";
 import type { FullBackup } from "@/lib/backup-service";
+import { getFullDataSync, getPendingConflict, clearPendingConflict, markResolved } from "@/lib/full-data-sync";
 
 
 export default function EinstellungenPage() {
@@ -230,6 +231,69 @@ export default function EinstellungenPage() {
       title: 'Wiederhergestellt',
       description: 'Die App wird neu geladen, damit alle Seiten den neuen Datenstand übernehmen.',
     });
+    setTimeout(() => window.location.reload(), 1200);
+  };
+
+  // Automatischer Abgleich mit GitHub (Fortsetzung von Aufgabe 39/40): Push
+  // periodisch + vor dem Beenden ist unkritisch, Pull nur dann automatisch,
+  // wenn lokal nachweislich nichts verloren gehen kann (siehe full-data-sync.ts).
+  const [fullSyncEnabled, setFullSyncEnabled] = useState(false);
+  const [fullSyncInterval, setFullSyncInterval] = useState(15);
+  const [fullSyncStatus, setFullSyncStatus] = useState<{ enabled: boolean; interval: number; hasPendingConflict: boolean } | null>(null);
+  const [conflictBackup, setConflictBackup] = useState<FullBackup | null>(null);
+
+  React.useEffect(() => {
+    if (!hydrated) return;
+    const sync = getFullDataSync();
+    const status = sync.getStatus();
+    setFullSyncEnabled(status.enabled);
+    setFullSyncInterval(status.interval);
+    setFullSyncStatus(status);
+    setConflictBackup(getPendingConflict());
+  }, [hydrated]);
+
+  const handleSaveFullSyncConfig = () => {
+    const sync = getFullDataSync();
+    sync.initialize({ enabled: fullSyncEnabled, interval: fullSyncInterval });
+    setFullSyncStatus(sync.getStatus());
+    toast({
+      title: 'Auto-Sync gespeichert',
+      description: fullSyncEnabled
+        ? `Datenstand wird alle ${fullSyncInterval} Minuten automatisch mit GitHub abgeglichen.`
+        : 'Automatischer Abgleich deaktiviert.',
+    });
+  };
+
+  const handleManualFullSync = async () => {
+    setGithubBackupBusy(true);
+    await getFullDataSync().reconcileNow();
+    setGithubBackupBusy(false);
+    setFullSyncStatus(getFullDataSync().getStatus());
+    setConflictBackup(getPendingConflict());
+  };
+
+  // Konflikt-Auflösung: an beiden Rechnern wurde seit dem letzten Abgleich
+  // gearbeitet - kann nicht automatisch entschieden werden, ohne
+  // möglicherweise echte Arbeit zu verlieren (siehe full-data-sync.ts).
+  const handleKeepLocalOverConflict = async () => {
+    const result = await BackupService.uploadBackupToGithub();
+    if (result.ok) {
+      markResolved(BackupService.collectFullBackup());
+      setConflictBackup(null);
+      toast({ title: 'Dieser Rechner behalten', description: 'Der lokale Stand wurde zu GitHub hochgeladen und gilt jetzt als aktuell.' });
+    } else {
+      toast({ title: 'Fehlgeschlagen', description: result.error, variant: 'destructive' });
+    }
+  };
+
+  const handleTakeRemoteOverConflict = async () => {
+    if (!conflictBackup) return;
+    // Sicherheitsnetz wie beim manuellen Wiederherstellen: den jetzigen
+    // Stand vorher noch lokal sichern, bevor er überschrieben wird.
+    await BackupService.saveBackupToFile();
+    BackupService.applyFullBackup(conflictBackup);
+    markResolved(conflictBackup);
+    toast({ title: 'Anderen Rechner übernommen', description: 'Die App wird neu geladen.' });
     setTimeout(() => window.location.reload(), 1200);
   };
 
@@ -457,17 +521,86 @@ export default function EinstellungenPage() {
                     </AlertDescription>
                   </Alert>
                 ) : (
-                  <div className="flex flex-wrap gap-2">
-                    <Button onClick={handleGithubBackup} disabled={githubBackupBusy} className="flex items-center gap-2">
-                      <Cloud className="h-4 w-4" /> Jetzt zu GitHub sichern
-                    </Button>
-                    <Button variant="outline" onClick={handleGithubRestore} disabled={githubBackupBusy} className="flex items-center gap-2">
-                      <Cloud className="h-4 w-4" /> Von GitHub laden
-                    </Button>
-                  </div>
+                  <>
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={handleGithubBackup} disabled={githubBackupBusy} className="flex items-center gap-2">
+                        <Cloud className="h-4 w-4" /> Jetzt zu GitHub sichern
+                      </Button>
+                      <Button variant="outline" onClick={handleGithubRestore} disabled={githubBackupBusy} className="flex items-center gap-2">
+                        <Cloud className="h-4 w-4" /> Von GitHub laden
+                      </Button>
+                    </div>
+
+                    <Separator />
+
+                    {/* Automatischer Abgleich (Fortsetzung von Aufgabe 39/40):
+                        Push ist unkritisch, Pull nur dann automatisch, wenn
+                        lokal nachweislich nichts verloren gehen kann. */}
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="full-sync-enabled"
+                          checked={fullSyncEnabled}
+                          onChange={e => setFullSyncEnabled(e.target.checked)}
+                          className="w-4 h-4"
+                        />
+                        <Label htmlFor="full-sync-enabled" className="text-sm font-medium">
+                          Automatisch synchronisieren
+                        </Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Lädt regelmäßig und beim Beenden der App automatisch hoch. Lädt einen neueren Stand vom
+                        anderen Rechner automatisch herunter, aber nur solange hier seit dem letzten Abgleich
+                        nichts verändert wurde - sonst erscheint unten eine Auflösungs-Abfrage statt eines
+                        stillen Überschreibens.
+                      </p>
+                      {fullSyncEnabled && (
+                        <div>
+                          <Label htmlFor="full-sync-interval" className="text-sm">Intervall (Minuten)</Label>
+                          <Input
+                            id="full-sync-interval"
+                            type="number"
+                            min="5"
+                            max="1440"
+                            value={fullSyncInterval}
+                            onChange={e => setFullSyncInterval(parseInt(e.target.value) || 15)}
+                            className="mt-1 w-32"
+                          />
+                        </div>
+                      )}
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <Button size="sm" onClick={handleSaveFullSyncConfig}>Speichern</Button>
+                        <Button size="sm" variant="outline" onClick={handleManualFullSync} disabled={githubBackupBusy}>
+                          Jetzt abgleichen
+                        </Button>
+                      </div>
+                      {fullSyncStatus?.enabled && (
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3 text-green-600" /> Aktiv, alle {fullSyncStatus.interval} Minuten
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
+
+            {conflictBackup && (
+              <Card className="border-destructive">
+                <CardHeader>
+                  <CardTitle className="text-lg text-destructive">Sync-Konflikt</CardTitle>
+                  <CardDescription>
+                    An diesem UND am anderen Rechner wurde seit dem letzten Abgleich gearbeitet. Bitte wählen, welcher
+                    Stand gelten soll - die jeweils andere Seite wird dabei überschrieben.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={handleKeepLocalOverConflict}>Diesen Rechner behalten</Button>
+                  <Button variant="destructive" onClick={handleTakeRemoteOverConflict}>Anderen Rechner übernehmen</Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Wiederherstellen-Bestätigung - überschreibt den lokalen Datenstand,

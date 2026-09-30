@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { initializeApp, getAppDataStatus } from '@/lib/app-data-manager';
+import { getFullDataSync } from '@/lib/full-data-sync';
 
 /**
  * 🚀 APP-DATEN-INITIALIZER
@@ -40,6 +41,14 @@ export default function AppDataInitializer({ children }: { children: React.React
     }
 
     loadAppData();
+
+    // Instanziiert den Sync-Singleton auf jeder Seite, nicht erst beim
+    // Besuch der Einstellungen - sonst würde ein zuvor aktivierter
+    // automatischer Abgleich (und der "vor dem Beenden synchronisieren"-
+    // Hook) erst reaktiviert, wenn der Nutzer zufällig die Einstellungen
+    // öffnet (dieselbe Lücke, die für den Tank-Auto-Sync in Aufgabe 36
+    // behoben wurde, hier von Anfang an vermieden).
+    getFullDataSync();
   }, []);
 
   // Loading Screen
