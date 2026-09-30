@@ -280,7 +280,7 @@ export default function InventoryManagement() {
           tankNr: ['tank-nr.', 'tanknr', 'behälter', 'behaelter'],
           currentQuantityLiters: ['menge(l)', 'menge/lt', 'menge lt', 'menge/ l', 'menge/ l', 'menge/lt.', 'menge/kg', 'menge/kg.'],
           alcoholVolProzent: ['alkoholvol%', 'alk.%vol', 'alkoholvol', 'vol%', 'vol'],
-          dichte20C: ['dichte20c', 'dichte20Â°c', 'dichte 20Â°c', 'spez.', 'spez', 'dichte'],
+          dichte20C: ['dichte20c', 'dichte20°c', 'dichte 20°c', 'spez.', 'spez', 'dichte'],
           literAbsolutalkohol: ['literabsolutalkohol', 'l absolutalk.', 'la'],
           lastInventoryDate: ['inventurdatum', 'letztebuchung', 'datum', 'stichtag'],
           bemerkungen: ['bemerkungen', 'notiz', 'info', 'bemerkung'],
@@ -437,7 +437,12 @@ export default function InventoryManagement() {
       "Artikel-Nr.", "Produktname", "Gesamtmenge (L)", "Gesamt LA (L)"
     ]);
     const productSummaries = itemsToSummarize.reduce<Record<string, any>>((acc, item) => {
-      const key = item.artikelNummer;
+      // Fällt auf Produktname zurück, solange Artikelnummern noch nicht vergeben
+      // sind (z.B. direkt nach dem Import der Inventurdatei, siehe Aufgabe 28) -
+      // sonst würden alle Posten ohne Artikelnummer stillschweigend in einer
+      // einzigen, mit dem erstbesten Produktnamen falsch beschrifteten Zeile
+      // zusammenlaufen, statt eine Zeile je tatsächlichem Produkt zu zeigen.
+      const key = item.artikelNummer || item.produktName;
       if (!acc[key]) {
         acc[key] = {
           artikelNummer: item.artikelNummer,
@@ -949,7 +954,7 @@ export default function InventoryManagement() {
                       const wb = XLSX.utils.book_new();
                       const sheetData: (string | number | undefined | null)[][] = [];
                       sheetData.push([
-                        "Artikel-Nr.", "Produktname", "Charge", "Kategorie", "TankNr", "Menge (L)", "Alkohol %", "Dichte 20Â°C", "Liter Absolutalkohol", "Inventurdatum", "Bemerkungen"
+                        "Artikel-Nr.", "Produktname", "Charge", "Kategorie", "TankNr", "Menge (L)", "Alkohol %", "Dichte 20°C", "Liter Absolutalkohol", "Inventurdatum", "Bemerkungen"
                       ]);
                       inventoryItems.forEach(item => {
                         sheetData.push([
