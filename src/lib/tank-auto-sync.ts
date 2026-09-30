@@ -6,6 +6,7 @@
 import { GitHubService, TankDataGitHubSync } from './github-service';
 import { universalStorage } from './universal-storage-simple';
 import { getGithubToken } from './github-token';
+import { toast } from '@/hooks/use-toast';
 
 export interface AutoSyncConfig {
   enabled: boolean;
@@ -21,9 +22,32 @@ export class TankAutoSync {
   private intervalId: NodeJS.Timeout | null = null;
   private lastSync: Date | null = null;
   private isUploading: boolean = false; // MUTEX für parallele Uploads
+  // Ergebnis des letzten Sync-Versuchs - null (noch keiner), true oder false.
+  // Verhindert, dass bei einem andauernden Fehler (z.B. abgelaufener Token)
+  // JEDER einzelne Intervall-Versuch erneut einen Toast auslöst; nur der
+  // Wechsel des Zustands (funktioniert -> kaputt, kaputt -> funktioniert
+  // wieder) wird gemeldet.
+  private lastSyncOk: boolean | null = null;
 
   constructor() {
     this.loadConfig();
+  }
+
+  /**
+   * Baut den GitHubService mit der Branch, die den Deploy-Workflow
+   * (.github/workflows/deploy.yml) tatsächlich auslöst. War lange fest auf
+   * "main-pages" codiert - eine Branch, die im Repo nie existiert hat.
+   * Dadurch schlug jeder Sync-Versuch seit Oktober 2025 fehl, nur leise in
+   * der Konsole geloggt (Nutzer-Meldung 30.09.2026: die GitHub-Pages-
+   * Tankübersicht zeigte noch den Stand von damals).
+   */
+  private buildGithubService(config: AutoSyncConfig): GitHubService {
+    return new GitHubService({
+      username: config.githubUsername,
+      repository: config.githubRepository,
+      token: config.githubToken,
+      branch: 'fresh-main',
+    });
   }
 
   /**
@@ -41,12 +65,7 @@ export class TankAutoSync {
       }
 
       if (config.enabled && config.githubToken) {
-        const githubService = new GitHubService({
-          username: config.githubUsername,
-          repository: config.githubRepository,
-          token: config.githubToken,
-          branch: 'main-pages'
-        });
+        const githubService = this.buildGithubService(config);
 
         // Test GitHub Verbindung
         const connectionOk = await githubService.testConnection();
@@ -57,7 +76,7 @@ export class TankAutoSync {
 
         this.githubSync = new TankDataGitHubSync(githubService);
         this.startAutoSync();
-        
+
         console.log(`✅ Tank Auto-Sync aktiviert (alle ${config.interval} Minuten)`);
         return true;
       }
@@ -138,12 +157,43 @@ export class TankAutoSync {
           localStorage.setItem('lastGitHubSync', this.lastSync.toISOString());
         }
         console.log(`✅ Tank-Daten erfolgreich synchronisiert: ${this.lastSync.toLocaleString()}`);
+        // Nur melden, wenn zuvor ein Fehler bestand - sonst bei jedem
+        // normalen Erfolg ein überflüssiger Toast alle paar Minuten.
+        if (this.lastSyncOk === false) {
+          toast({
+            title: 'GitHub-Synchronisierung wiederhergestellt',
+            description: 'Tank-Daten werden wieder erfolgreich zu GitHub Pages hochgeladen.',
+          });
+        }
+        this.lastSyncOk = true;
+      } else {
+        console.error('❌ Tank-Synchronisation fehlgeschlagen (GitHub-Upload nicht erfolgreich).');
+        // War bisher unsichtbar (nur Konsole) - der Vorjahresstand auf
+        // GitHub Pages blieb dadurch monatelang unbemerkt (Nutzer-Meldung
+        // 30.09.2026). Nur beim Wechsel in den Fehlerzustand melden, nicht
+        // bei jedem einzelnen Intervall-Versuch erneut.
+        if (this.lastSyncOk !== false) {
+          toast({
+            title: 'GitHub-Synchronisierung fehlgeschlagen',
+            description: 'Tank-Daten konnten nicht zu GitHub Pages hochgeladen werden. Bitte GitHub-Token und Internetverbindung in den Einstellungen prüfen.',
+            variant: 'destructive',
+          });
+        }
+        this.lastSyncOk = false;
       }
 
       return success.success;
 
     } catch (error) {
       console.error('❌ Tank-Synchronisation fehlgeschlagen:', error);
+      if (this.lastSyncOk !== false) {
+        toast({
+          title: 'GitHub-Synchronisierung fehlgeschlagen',
+          description: 'Unerwarteter Fehler beim Hochladen der Tank-Daten. Details in der Konsole (F12).',
+          variant: 'destructive',
+        });
+      }
+      this.lastSyncOk = false;
       return false;
     } finally {
       this.isUploading = false; // UNLOCK
@@ -170,8 +220,16 @@ export class TankAutoSync {
           this.lastSync = new Date(lastSyncStr);
         }
 
-        if (this.config?.enabled) {
-          console.log(`📡 Auto-Sync Konfiguration geladen (alle ${this.config.interval} Minuten)`);
+        // War in einer früheren Session aktiviert - den Timer hier aktiv neu
+        // starten, sonst bleibt Auto-Sync nach jedem App-Neustart inaktiv,
+        // obwohl die Einstellungen-Seite "Aktiv" anzeigt (das Flag ist nur
+        // die gespeicherte Absicht, kein Beleg für einen laufenden Timer -
+        // Mitursache für die monatelange Sync-Stille, Nutzer-Meldung
+        // 30.09.2026).
+        if (this.config?.enabled && this.config.githubToken) {
+          console.log(`📡 Auto-Sync Konfiguration geladen, reaktiviere Timer (alle ${this.config.interval} Minuten)`);
+          this.githubSync = new TankDataGitHubSync(this.buildGithubService(this.config));
+          this.startAutoSync();
         }
       }
     } catch (error) {
