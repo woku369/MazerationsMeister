@@ -1,11 +1,15 @@
-import { app, BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, shell, ipcMain } from 'electron';
 import * as path from 'path';
 import { createServer } from 'http';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { parse } from 'url';
 
 let mainWindow: BrowserWindow | null = null;
 let server: any = null;
+// Verhindert, dass der "vor dem Beenden synchronisieren"-Handler (siehe
+// registerIpcHandlers()) sich selbst erneut blockiert, wenn er app.quit()
+// ein zweites Mal aufruft, um das Beenden tatsächlich zuzulassen.
+let allowQuit = false;
 
 // Force production mode for packaged apps
 const isDev = process.env.NODE_ENV === 'development' && !app.isPackaged;
@@ -148,7 +152,13 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       webSecurity: true,
-      allowRunningInsecureContent: false
+      allowRunningInsecureContent: false,
+      // War hier bis Aufgabe 40 nicht gesetzt - preload.js existierte zwar,
+      // wurde aber nie geladen. Ohne aktives Preload UND ohne nodeIntegration
+      // ist window.require im Renderer schlicht undefined; jede darauf
+      // aufbauende Stelle im Code lief lautlos in den Browser-Fallback statt
+      // wirklich in den konfigurierten Exportordner zu schreiben.
+      preload: path.join(__dirname, 'preload.js'),
     },
     icon: path.join(__dirname, '../public/icon.ico'),
     title: 'MazerationsMeister',
@@ -199,7 +209,63 @@ function createWindow() {
   });
 }
 
+/**
+ * IPC-Gegenstücke zur in preload.js über contextBridge freigegebenen API
+ * (Aufgabe 40). Ersetzt die zuvor im Renderer verwendeten, dort aber nie
+ * tatsächlich funktionierenden window.require('fs'/'path'/'electron')-Aufrufe.
+ */
+function registerIpcHandlers() {
+  ipcMain.handle('get-app-version', () => app.getVersion());
+  ipcMain.handle('get-cwd', () => process.cwd());
+
+  ipcMain.handle(
+    'fs-write-file',
+    async (_event, dir: string, fileName: string, content: string, encoding: 'utf-8' | 'base64') => {
+      try {
+        const targetDir = dir && dir.trim() ? dir : process.cwd();
+        if (!existsSync(targetDir)) {
+          mkdirSync(targetDir, { recursive: true });
+        }
+        const filePath = path.join(targetDir, fileName);
+        if (encoding === 'base64') {
+          writeFileSync(filePath, Buffer.from(content, 'base64'));
+        } else {
+          writeFileSync(filePath, content, 'utf-8');
+        }
+        return { ok: true, path: filePath };
+      } catch (error) {
+        return { ok: false, error: error instanceof Error ? error.message : String(error) };
+      }
+    },
+  );
+
+  ipcMain.handle('shell-open-path', async (_event, targetPath: string) => {
+    const result = await shell.openPath(targetPath);
+    return { ok: result === '', error: result || undefined };
+  });
+
+  // "Vor dem Beenden synchronisieren" (Nutzer-Anfrage 30.09.2026): app.quit()
+  // wird einmal verzögert, bis der Renderer über 'renderer-quit-ready'
+  // meldet, dass ein letzter GitHub-Sync-Versuch abgeschlossen ist - mit
+  // Sicherheitsnetz, falls der Renderer nie antwortet (z.B. keine
+  // Internetverbindung), damit die App dadurch nicht unschließbar wird.
+  app.on('before-quit', (event) => {
+    if (allowQuit || !mainWindow) return;
+    event.preventDefault();
+
+    const finishQuit = () => {
+      clearTimeout(safetyTimeout);
+      allowQuit = true;
+      app.quit();
+    };
+    const safetyTimeout = setTimeout(finishQuit, 5000);
+    ipcMain.once('renderer-quit-ready', finishQuit);
+    mainWindow.webContents.send('app-before-quit');
+  });
+}
+
 app.whenReady().then(() => {
+  registerIpcHandlers();
   createWindow();
 });
 
@@ -208,7 +274,7 @@ app.on('window-all-closed', () => {
     console.log('Stopping server...');
     server.close();
   }
-  
+
   if (process.platform !== 'darwin') {
     app.quit();
   }

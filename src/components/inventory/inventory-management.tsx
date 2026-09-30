@@ -25,6 +25,7 @@ import { format } from 'date-fns';
 import { syncTankDefinitionsWithInventory } from '@/lib/tank-sync';
 import * as StockService from '@/lib/stock-service';
 import * as BackupService from '@/lib/backup-service';
+import * as ElectronBridge from '@/lib/electron-bridge';
 import { calcLA } from '@/lib/mazeration-calc';
 
 export default function InventoryManagement() {
@@ -431,7 +432,7 @@ export default function InventoryManagement() {
     }
   };
   // XLSX Export für Artikelübersicht
-  const generateSummaryXlsx = (itemsToSummarize: StoredInventoryItem[]) => {
+  const generateSummaryXlsx = async (itemsToSummarize: StoredInventoryItem[]) => {
     const wb = XLSX.utils.book_new();
     const sheetData: (string | number | undefined | null)[][] = [];
     sheetData.push([
@@ -477,41 +478,26 @@ export default function InventoryManagement() {
     XLSX.utils.book_append_sheet(wb, ws, "Lageruebersicht_Artikel");
     const fileName = `Lageruebersicht_Artikel_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.xlsx`;
 
-    // Exportpfad aus Einstellungen holen
-    let exportDir = '';
-    if (typeof window !== 'undefined') {
-      exportDir = localStorage.getItem('exportPath') || '';
-    }
-    // Fallback: Arbeitsverzeichnis
-    if (!exportDir) {
-      if (typeof window !== 'undefined' && window.require) {
-        const path = window.require('path');
-        exportDir = path.join(process.cwd());
-      } else {
-        exportDir = '';
+    // Datei im Exportverzeichnis speichern (Aufgabe 40: über die Electron-
+    // Bridge statt window.require, das im echten Programm nie funktionierte).
+    if (ElectronBridge.isElectron()) {
+      const base64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+      const result = await ElectronBridge.writeToExportDir(fileName, base64, 'base64');
+      if (result.ok) {
+        setPendingExportPfad({ filePath: result.path, dir: result.dir });
+        toast({
+          title: "Lagerübersicht Exportiert",
+          description: `Die Lagerübersicht wurde als XLSX-Datei im Exportordner (${result.dir}) gespeichert.`,
+        });
+        return;
       }
     }
 
-    // Datei im Exportverzeichnis speichern
-    if (typeof window !== 'undefined' && window.require) {
-      try {
-        const fs = window.require('fs');
-        const path = window.require('path');
-        const { shell } = window.require('electron');
-        const exportPath = path.join(exportDir, fileName);
-        XLSX.writeFile(wb, exportPath);
-        setPendingExportPfad({ filePath: exportPath, dir: exportDir });
-      } catch (err) {
-        // Fehler beim Öffnen ignorieren
-      }
-    } else {
-      // Fallback: Standardverhalten
-      XLSX.writeFile(wb, fileName);
-    }
-
+    // Fallback: Browser-Download (auch wenn Electron-Schreiben fehlschlug).
+    XLSX.writeFile(wb, fileName);
     toast({
       title: "Lagerübersicht Exportiert",
-      description: `Die Lagerübersicht wurde als XLSX-Datei im Exportordner (${exportDir || 'Arbeitsverzeichnis'}) gespeichert.`,
+      description: "Die Lagerübersicht wurde als XLSX-Datei heruntergeladen.",
     });
   };
 
@@ -586,6 +572,54 @@ export default function InventoryManagement() {
       return;
     }
     generateTransactionXlsx(inventoryTransactions);
+  };
+
+  // Handler für Export "Aktueller Lagerbestand" (Rohliste aller Einzelposten,
+  // im Unterschied zur aggregierten Lagerübersicht/generateSummaryXlsx).
+  // War bis Aufgabe 40 ein inline onClick-Handler mit window.require, das im
+  // echten Programm nie funktionierte - jetzt über die Electron-Bridge.
+  const handleExportAktuellenLagerbestand = async () => {
+    const wb = XLSX.utils.book_new();
+    const sheetData: (string | number | undefined | null)[][] = [];
+    sheetData.push([
+      "Artikel-Nr.", "Produktname", "Charge", "Kategorie", "TankNr", "Menge (L)", "Alkohol %", "Dichte 20°C", "Liter Absolutalkohol", "Inventurdatum", "Bemerkungen"
+    ]);
+    inventoryItems.forEach(item => {
+      sheetData.push([
+        item.artikelNummer,
+        item.produktName,
+        item.chargenNummer,
+        item.category,
+        item.tankNr,
+        item.currentQuantityLiters,
+        item.alcoholVolProzent,
+        item.dichte20C,
+        calcLA(item.currentQuantityLiters, item.alcoholVolProzent),
+        item.lastInventoryDate ? (typeof item.lastInventoryDate === 'string' ? item.lastInventoryDate : (item.lastInventoryDate instanceof Date ? format(item.lastInventoryDate, 'yyyy-MM-dd') : '')) : '',
+        item.bemerkungen
+      ]);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheetData), "Aktueller_Lagerbestand");
+    const fileName = `Lagerbestand_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.xlsx`;
+
+    if (ElectronBridge.isElectron()) {
+      const base64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+      const result = await ElectronBridge.writeToExportDir(fileName, base64, 'base64');
+      if (result.ok) {
+        setPendingExportPfad({ filePath: result.path, dir: result.dir });
+        toast({
+          title: "Lagerbestand exportiert",
+          description: `Der aktuelle Lagerbestand wurde als XLSX-Datei im Exportordner (${result.dir}) gespeichert.`,
+        });
+        return;
+      }
+    }
+
+    XLSX.writeFile(wb, fileName);
+    toast({
+      title: "Lagerbestand exportiert",
+      description: "Der aktuelle Lagerbestand wurde als XLSX-Datei heruntergeladen.",
+    });
   };
 
   // Handler für Save Item
@@ -801,9 +835,9 @@ export default function InventoryManagement() {
    * (Tab "Datensicherung"), damit beide Wege dasselbe, vollständige Format
    * erzeugen und ein hier erstelltes Backup auch dort wieder einspielbar ist.
    */
-  const createBackup = () => {
+  const createBackup = async () => {
     try {
-      const filePath = BackupService.saveBackupToFile();
+      const filePath = await BackupService.saveBackupToFile();
       toast({
         title: 'Backup gespeichert',
         description: filePath ? `Backup als ${filePath} gespeichert.` : 'Backup wurde heruntergeladen.',
@@ -932,63 +966,7 @@ export default function InventoryManagement() {
                     <Button onClick={handleExportSummary} variant="outline" className="text-accent border-accent hover:bg-accent/10 flex-1">
                         <Download className="mr-2 h-4 w-4" /> Lagerübersicht exportieren (XLSX)
                     </Button>
-                    <Button onClick={() => {
-                      // Exportiere alle inventoryItems als XLSX
-                      const wb = XLSX.utils.book_new();
-                      const sheetData: (string | number | undefined | null)[][] = [];
-                      sheetData.push([
-                        "Artikel-Nr.", "Produktname", "Charge", "Kategorie", "TankNr", "Menge (L)", "Alkohol %", "Dichte 20°C", "Liter Absolutalkohol", "Inventurdatum", "Bemerkungen"
-                      ]);
-                      inventoryItems.forEach(item => {
-                        sheetData.push([
-                          item.artikelNummer,
-                          item.produktName,
-                          item.chargenNummer,
-                          item.category,
-                          item.tankNr,
-                          item.currentQuantityLiters,
-                          item.alcoholVolProzent,
-                          item.dichte20C,
-                          calcLA(item.currentQuantityLiters, item.alcoholVolProzent),
-                          item.lastInventoryDate ? (typeof item.lastInventoryDate === 'string' ? item.lastInventoryDate : (item.lastInventoryDate instanceof Date ? format(item.lastInventoryDate, 'yyyy-MM-dd') : '')) : '',
-                          item.bemerkungen
-                        ]);
-                      });
-                      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheetData), "Aktueller_Lagerbestand");
-                      // Exportpfad aus Einstellungen holen
-                      let exportDir = '';
-                      if (typeof window !== 'undefined') {
-                        exportDir = localStorage.getItem('exportPath') || '';
-                      }
-                      // Fallback: Arbeitsverzeichnis
-                      if (!exportDir) {
-                        if (typeof window !== 'undefined' && window.require) {
-                          const path = window.require('path');
-                          exportDir = path.join(process.cwd());
-                        } else {
-                          exportDir = '';
-                        }
-                      }
-                      const fileName = `Lagerbestand_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.xlsx`;
-                      if (typeof window !== 'undefined' && window.require) {
-                        try {
-                          const fs = window.require('fs');
-                          const path = window.require('path');
-                          const { shell } = window.require('electron');
-                          const exportPath = path.join(exportDir, fileName);
-                          XLSX.writeFile(wb, exportPath);
-                          setPendingExportPfad({ filePath: exportPath, dir: exportDir });
-                        } catch (err) {
-                          // Fehler ignorieren
-                        }
-                      } else {
-                        XLSX.writeFile(wb, fileName);
-                      }
-                      toast({
-                        title: "Lagerbestand exportiert",
-                        description: `Der aktuelle Lagerbestand wurde als XLSX-Datei im Exportordner (${exportDir || 'Arbeitsverzeichnis'}) gespeichert.`,
-                      });
-                    }} variant="outline" className="text-accent border-accent hover:bg-accent/10 flex-1">
+                    <Button onClick={handleExportAktuellenLagerbestand} variant="outline" className="text-accent border-accent hover:bg-accent/10 flex-1">
                       <Download className="mr-2 h-4 w-4" /> Aktuellen Lagerbestand exportieren (XLSX)
                     </Button>
                 </CardContent>
@@ -1099,12 +1077,12 @@ export default function InventoryManagement() {
                 <Button variant="outline" onClick={() => setPendingExportPfad(null)}>Nichts tun</Button>
                 <Button
                   variant="outline"
-                  onClick={() => { if (pendingExportPfad && typeof window !== 'undefined' && window.require) window.require('electron').shell.openPath(pendingExportPfad.dir); setPendingExportPfad(null); }}
+                  onClick={() => { if (pendingExportPfad) ElectronBridge.openPath(pendingExportPfad.dir); setPendingExportPfad(null); }}
                 >
                   Exportordner öffnen
                 </Button>
                 <Button
-                  onClick={() => { if (pendingExportPfad && typeof window !== 'undefined' && window.require) window.require('electron').shell.openPath(pendingExportPfad.filePath); setPendingExportPfad(null); }}
+                  onClick={() => { if (pendingExportPfad) ElectronBridge.openPath(pendingExportPfad.filePath); setPendingExportPfad(null); }}
                 >
                   Datei öffnen
                 </Button>

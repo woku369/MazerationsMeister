@@ -57,12 +57,16 @@ class UniversalStorageManager {
   
   /**
    * 🔍 UMGEBUNGS-ERKENNUNG: Browser vs Electron
+   *
+   * War bis Aufgabe 40 über window.process.type === 'renderer' geprüft - im
+   * echten Programm wegen contextIsolation (kein Node-Zugriff im Renderer)
+   * nie erfüllt, die App hielt sich selbst fälschlich immer für "Browser".
+   * Jetzt über die in preload.js via contextBridge freigegebene
+   * window.electronAPI.isElectron geprüft, die tatsächlich vorhanden ist.
    */
   private detectEnvironment(): void {
-    this.isElectron = typeof window !== 'undefined' && 
-                     typeof window.process === 'object' && 
-                     window.process.type === 'renderer';
-    
+    this.isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
+
     console.log(`🔍 Umgebung erkannt: ${this.isElectron ? 'Electron' : 'Browser'} - localStorage-Speicher`);
   }
   

@@ -29,8 +29,11 @@ export default function EinstellungenPage() {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('dataPath');
       if (stored) return stored;
-      // Standardpfad: %APPDATA%/MazerationsMeister
-      const appData = window.process?.env?.APPDATA || '';
+      // Standardpfad: %APPDATA%/MazerationsMeister. War bis Aufgabe 40 über
+      // window.process?.env?.APPDATA gelesen - im echten Programm wegen
+      // contextIsolation ohne Node-Zugriff im Renderer nie vorhanden, daher
+      // über die Electron-Bridge (electronAPI.appDataDir aus preload.js).
+      const appData = (window as any).electronAPI?.appDataDir || '';
       if (appData) return appData + '/MazerationsMeister';
     }
     return '';
@@ -163,8 +166,8 @@ export default function EinstellungenPage() {
   const [pendingRestore, setPendingRestore] = useState<{ backup: FullBackup; quelle: string } | null>(null);
   const [githubBackupBusy, setGithubBackupBusy] = useState(false);
 
-  const handleLocalBackup = () => {
-    const filePath = BackupService.saveBackupToFile();
+  const handleLocalBackup = async () => {
+    const filePath = await BackupService.saveBackupToFile();
     toast({
       title: 'Backup gespeichert',
       description: filePath ? `Gespeichert unter: ${filePath}` : 'Die Datei wurde als Download angeboten.',
@@ -214,11 +217,13 @@ export default function EinstellungenPage() {
     }
   };
 
-  const confirmRestore = () => {
+  const confirmRestore = async () => {
     if (!pendingRestore) return;
     // Sicherheitsnetz: den jetzigen (gleich überschriebenen) Stand vorher
-    // noch lokal sichern, bevor irgendetwas angewendet wird.
-    BackupService.saveBackupToFile();
+    // noch lokal sichern - muss abgewartet werden, bevor irgendetwas
+    // angewendet wird, sonst könnte applyFullBackup() die Daten schon
+    // überschrieben haben, bevor die Sicherung sie ausliest.
+    await BackupService.saveBackupToFile();
     BackupService.applyFullBackup(pendingRestore.backup);
     setPendingRestore(null);
     toast({

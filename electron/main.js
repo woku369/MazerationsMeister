@@ -40,6 +40,10 @@ const fs_1 = require("fs");
 const url_1 = require("url");
 let mainWindow = null;
 let server = null;
+// Verhindert, dass der "vor dem Beenden synchronisieren"-Handler (siehe
+// registerIpcHandlers()) sich selbst erneut blockiert, wenn er app.quit()
+// ein zweites Mal aufruft, um das Beenden tatsächlich zuzulassen.
+let allowQuit = false;
 // Force production mode for packaged apps
 const isDev = process.env.NODE_ENV === 'development' && !electron_1.app.isPackaged;
 function getMimeType(filepath) {
@@ -170,7 +174,13 @@ function createWindow() {
             nodeIntegration: false,
             contextIsolation: true,
             webSecurity: true,
-            allowRunningInsecureContent: false
+            allowRunningInsecureContent: false,
+            // War hier bis Aufgabe 40 nicht gesetzt - preload.js existierte zwar,
+            // wurde aber nie geladen. Ohne aktives Preload UND ohne nodeIntegration
+            // ist window.require im Renderer schlicht undefined; jede darauf
+            // aufbauende Stelle im Code lief lautlos in den Browser-Fallback statt
+            // wirklich in den konfigurierten Exportordner zu schreiben.
+            preload: path.join(__dirname, 'preload.js'),
         },
         icon: path.join(__dirname, '../public/icon.ico'),
         title: 'MazerationsMeister',
@@ -216,7 +226,58 @@ function createWindow() {
         mainWindow = null;
     });
 }
+/**
+ * IPC-Gegenstücke zur in preload.js über contextBridge freigegebenen API
+ * (Aufgabe 40). Ersetzt die zuvor im Renderer verwendeten, dort aber nie
+ * tatsächlich funktionierenden window.require('fs'/'path'/'electron')-Aufrufe.
+ */
+function registerIpcHandlers() {
+    electron_1.ipcMain.handle('get-app-version', () => electron_1.app.getVersion());
+    electron_1.ipcMain.handle('get-cwd', () => process.cwd());
+    electron_1.ipcMain.handle('fs-write-file', async (_event, dir, fileName, content, encoding) => {
+        try {
+            const targetDir = dir && dir.trim() ? dir : process.cwd();
+            if (!(0, fs_1.existsSync)(targetDir)) {
+                (0, fs_1.mkdirSync)(targetDir, { recursive: true });
+            }
+            const filePath = path.join(targetDir, fileName);
+            if (encoding === 'base64') {
+                (0, fs_1.writeFileSync)(filePath, Buffer.from(content, 'base64'));
+            }
+            else {
+                (0, fs_1.writeFileSync)(filePath, content, 'utf-8');
+            }
+            return { ok: true, path: filePath };
+        }
+        catch (error) {
+            return { ok: false, error: error instanceof Error ? error.message : String(error) };
+        }
+    });
+    electron_1.ipcMain.handle('shell-open-path', async (_event, targetPath) => {
+        const result = await electron_1.shell.openPath(targetPath);
+        return { ok: result === '', error: result || undefined };
+    });
+    // "Vor dem Beenden synchronisieren" (Nutzer-Anfrage 30.09.2026): app.quit()
+    // wird einmal verzögert, bis der Renderer über 'renderer-quit-ready'
+    // meldet, dass ein letzter GitHub-Sync-Versuch abgeschlossen ist - mit
+    // Sicherheitsnetz, falls der Renderer nie antwortet (z.B. keine
+    // Internetverbindung), damit die App dadurch nicht unschließbar wird.
+    electron_1.app.on('before-quit', (event) => {
+        if (allowQuit || !mainWindow)
+            return;
+        event.preventDefault();
+        const finishQuit = () => {
+            clearTimeout(safetyTimeout);
+            allowQuit = true;
+            electron_1.app.quit();
+        };
+        const safetyTimeout = setTimeout(finishQuit, 5000);
+        electron_1.ipcMain.once('renderer-quit-ready', finishQuit);
+        mainWindow.webContents.send('app-before-quit');
+    });
+}
 electron_1.app.whenReady().then(() => {
+    registerIpcHandlers();
     createWindow();
 });
 electron_1.app.on('window-all-closed', () => {

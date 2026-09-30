@@ -29,6 +29,7 @@
 
 import { GitHubService } from './github-service';
 import { getGithubToken } from './github-token';
+import { isElectron, writeToExportDir } from './electron-bridge';
 
 // Alle tatsächlich zu sichernden Datentöpfe an einer zentralen Stelle, statt
 // einzelne Schlüssel über mehrere Backup-Funktionen verteilt aufzuzählen -
@@ -151,26 +152,19 @@ function backupFileName(): string {
 }
 
 /**
- * Speichert ein Backup als Datei - im Exportverzeichnis via Electron `fs`,
- * sonst als Browser-Download. Gibt den Zielpfad zurück, wenn bekannt (nur
- * Electron), sonst null.
+ * Speichert ein Backup als Datei - im konfigurierten Exportverzeichnis über
+ * die Electron-Bridge (Aufgabe 40), sonst als Browser-Download. Gibt den
+ * Zielpfad zurück, wenn bekannt (nur Electron), sonst null.
  */
-export function saveBackupToFile(): string | null {
+export async function saveBackupToFile(): Promise<string | null> {
   const backup = collectFullBackup();
   const json = JSON.stringify(backup, null, 2);
   const fileName = backupFileName();
 
-  if (typeof window !== 'undefined' && (window as any).require) {
-    try {
-      const fs = (window as any).require('fs');
-      const path = (window as any).require('path');
-      const exportDir = localStorage.getItem('exportPath') || process.cwd();
-      const filePath = path.join(exportDir, fileName);
-      fs.writeFileSync(filePath, json, 'utf-8');
-      return filePath;
-    } catch {
-      // Fällt durch zum Browser-Download.
-    }
+  if (isElectron()) {
+    const result = await writeToExportDir(fileName, json, 'utf-8');
+    if (result.ok) return result.path;
+    // Fällt durch zum Browser-Download.
   }
 
   const blob = new Blob([json], { type: 'application/json' });
