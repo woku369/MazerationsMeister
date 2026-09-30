@@ -113,7 +113,7 @@ export default function VersandPage() {
     }
     const bruttogewicht = parseFloat(bruttogewichtKg.replace(',', '.'));
     const taragewicht = parseFloat(taragewichtKg.replace(',', '.'));
-    const versand = VersandService.persistCreateVersand({
+    const result = VersandService.persistCreateVersand({
       lohnabfuellerName: lohnabfuellerName.trim(),
       versanddatum,
       container,
@@ -123,6 +123,11 @@ export default function VersandPage() {
       plombenNummern: plombenNummern.trim() || undefined,
       externeLieferscheinNr: externeLieferscheinNr.trim() || undefined,
     });
+    if (!result.ok) {
+      toast({ title: 'Versand nicht möglich', description: result.error, variant: 'destructive' });
+      return;
+    }
+    const versand = result.versand;
     toast({
       title: `Versand ${versand.versandNummer} gebucht`,
       description: `Abgang für ${container.length} Gebinde gebucht: ${container.reduce((s, c) => s + c.mengeLiter, 0).toFixed(1)} L, ${fmtLA(versand.versandLA)} an ${lohnabfuellerName.trim()}.`,

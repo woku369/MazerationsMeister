@@ -164,6 +164,18 @@
     </div>
 
     <script>
+        // Aufgabe 34: Zusammensetzung eines gepoolten Postens (aus poolIntoTank(),
+        // dauerhaft auf komponenten gespeichert) - nur anzeigen, wenn tatsächlich
+        // mehr als eine Charge im Posten steckt, sonst ist die Chargennummer
+        // selbst schon die vollständige Auskunft.
+        function formatKomponentenHtml(item) {
+            if (!item.komponenten || item.komponenten.length <= 1) return '';
+            const teile = item.komponenten
+                .map(k => `${escapeHtml(k.chargenNummer || '–')}: ${(k.mengeLiter || 0).toFixed(0)} L`)
+                .join(', ');
+            return `<div class="text-xs text-gray-400">↳ Zusammensetzung: ${teile}</div>`;
+        }
+
         function escapeHtml(s) {
             return String(s ?? '')
                 .replace(/&/g, '&amp;')
@@ -321,7 +333,13 @@
             let totalVolume = 0;
             let content = 'Nicht spezifiziert';
             let batch = '';
-            
+            // War bis Aufgabe 34 ein "const" innerhalb des else-Zweigs und damit
+            // außerhalb seines eigenen Blocks (siehe "Content description" unten)
+            // nicht mehr erreichbar - jeder Aufruf mit echten Tank-Daten (Fallback
+            // UND Full-Dataset) endete deshalb in einem ReferenceError, der die
+            // gesamte Einzeltank-Ansicht lautlos auf "Fehler beim Laden" umlenkte.
+            let tankInventory = [];
+
             if (tank.aktuellerFuellstand !== undefined) {
                 // Fallback data - direkte Werte
                 totalVolume = tank.aktuellerFuellstand || 0;
@@ -330,7 +348,7 @@
                 console.log('📦 Fallback-Daten verwendet:', { totalVolume, content, batch });
             } else {
                 // Full dataset - berechne aus Inventar
-                const tankInventory = inventory.filter(item => 
+                tankInventory = inventory.filter(item =>
                     item.tankNr === tank.tankNr
                 );
                 totalVolume = tankInventory.reduce((sum, item) => sum + (item.currentQuantityLiters || 0), 0);
@@ -354,10 +372,10 @@
             
             // Content description - verwende produktName und currentQuantityLiters
             if (tankInventory.length > 0) {
-                const contents = tankInventory.map(item => 
-                    `${item.produktName} (${item.currentQuantityLiters}L, ${item.alcoholVolProzent}%)`
-                ).join(', ');
-                document.getElementById('tank-content').textContent = contents;
+                const contents = tankInventory.map(item =>
+                    `${escapeHtml(item.produktName)} (${item.currentQuantityLiters}L, ${item.alcoholVolProzent}%)${formatKomponentenHtml(item)}`
+                ).join('<br>');
+                document.getElementById('tank-content').innerHTML = contents;
             } else {
                 document.getElementById('tank-content').textContent = 'Leer';
             }
@@ -499,7 +517,7 @@
                     pct   = vol > 0 ? Math.min(Math.round(fill / vol * 100), 100) : 0;
                     color = pct >= 80 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#6b7280';
                     inhalt = items.length
-                        ? items.map(i => `${escapeHtml(i.produktName || '–')} (${(i.currentQuantityLiters||0).toFixed(0)} L, ${escapeHtml(String(i.alcoholVolProzent||'–'))}%)`).join('<br>')
+                        ? items.map(i => `${escapeHtml(i.produktName || '–')} (${(i.currentQuantityLiters||0).toFixed(0)} L, ${escapeHtml(String(i.alcoholVolProzent||'–'))}%)${formatKomponentenHtml(i)}`).join('<br>')
                         : '<span class="text-gray-400">Leer</span>';
                     barHtml = `
                     <div class="w-full bg-gray-200 rounded-full h-2 mb-2">

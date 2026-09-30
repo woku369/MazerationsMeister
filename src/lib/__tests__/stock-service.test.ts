@@ -3,6 +3,14 @@ import { addEntry, updateEntry, applyTransaction, recordTransaction, recordNewEn
 import { calcLA } from '../mazeration-calc';
 import type { StoredInventoryItem, InventoryTransaction } from '@/schemas/inventorySchema';
 
+// Entpackt ein {ok:true,...}|{ok:false,error} Ergebnis - wirft, falls das
+// Erwartete (ok:true) nicht eintritt, damit Tests für den Erfolgsfall knapp
+// bleiben und der Misserfolgsfall trotzdem nicht stillschweigend durchrutscht.
+function expectOk<T extends { ok: boolean }>(result: T): Exclude<T, { ok: false }> {
+  if (!result.ok) throw new Error(`Erwartetes ok:true, aber: ${JSON.stringify(result)}`);
+  return result as Exclude<T, { ok: false }>;
+}
+
 function makeItem(overrides: Partial<StoredInventoryItem> = {}): StoredInventoryItem {
   return {
     id: 'item-1',
@@ -27,21 +35,23 @@ describe('stock-service: literAbsolutalkohol bleibt konsistent', () => {
   });
 
   it('applyTransaction (Zugang) erhöht Menge UND aktualisiert LA', () => {
-    const items = applyTransaction([makeItem()], 'item-1', 'Zugang', 500);
+    const { items } = expectOk(applyTransaction([makeItem()], 'item-1', 'Zugang', 500));
     expect(items[0].currentQuantityLiters).toBe(1500);
     expect(items[0].literAbsolutalkohol).toBeCloseTo(calcLA(1500, 60), 2);
   });
 
   it('applyTransaction (Abgang) verringert Menge UND aktualisiert LA', () => {
-    const items = applyTransaction([makeItem()], 'item-1', 'Abgang', 300);
+    const { items } = expectOk(applyTransaction([makeItem()], 'item-1', 'Abgang', 300));
     expect(items[0].currentQuantityLiters).toBe(700);
     expect(items[0].literAbsolutalkohol).toBeCloseTo(calcLA(700, 60), 2);
   });
 
-  it('applyTransaction verhindert negativen Bestand und LA folgt korrekt (0)', () => {
-    const items = applyTransaction([makeItem({ currentQuantityLiters: 100 })], 'item-1', 'Abgang', 500);
-    expect(items[0].currentQuantityLiters).toBe(0);
-    expect(items[0].literAbsolutalkohol).toBe(0);
+  it('applyTransaction lehnt einen Abgang über dem verfügbaren Bestand ab, statt still auf 0 zu klemmen (externes Audit, 30.09.2026)', () => {
+    const result = applyTransaction([makeItem({ currentQuantityLiters: 100 })], 'item-1', 'Abgang', 500);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toContain('100');
+    expect(result.error).toContain('500');
   });
 
   it('updateEntry (manuelle Bearbeitung) aktualisiert LA nach geändertem Alkoholgehalt', () => {
@@ -52,9 +62,9 @@ describe('stock-service: literAbsolutalkohol bleibt konsistent', () => {
 
   it('mehrere Buchungen hintereinander halten LA konsistent mit currentQuantityLiters (keine Veralterung)', () => {
     let items = [makeItem()];
-    items = applyTransaction(items, 'item-1', 'Zugang', 200); // 1200
-    items = applyTransaction(items, 'item-1', 'Abgang', 700); // 500
-    items = applyTransaction(items, 'item-1', 'Zugang', 100); // 600
+    items = expectOk(applyTransaction(items, 'item-1', 'Zugang', 200)).items; // 1200
+    items = expectOk(applyTransaction(items, 'item-1', 'Abgang', 700)).items; // 500
+    items = expectOk(applyTransaction(items, 'item-1', 'Zugang', 100)).items; // 600
     expect(items[0].currentQuantityLiters).toBe(600);
     expect(items[0].literAbsolutalkohol).toBeCloseTo(calcLA(600, 60), 2);
   });
@@ -62,7 +72,7 @@ describe('stock-service: literAbsolutalkohol bleibt konsistent', () => {
 
 describe('stock-service: Buchungsjournal (recordTransaction/recordNewEntry)', () => {
   it('recordTransaction bucht die Menge UND schreibt einen Journal-Eintrag mit Referenz', () => {
-    const { items, transactions } = recordTransaction([makeItem()], [], 'item-1', 'Abgang', 300, { notes: 'Versand LF-2026-001' });
+    const { items, transactions } = expectOk(recordTransaction([makeItem()], [], 'item-1', 'Abgang', 300, { notes: 'Versand LF-2026-001' }));
     expect(items[0].currentQuantityLiters).toBe(700);
     expect(transactions).toHaveLength(1);
     expect(transactions[0]).toMatchObject({
@@ -72,16 +82,24 @@ describe('stock-service: Buchungsjournal (recordTransaction/recordNewEntry)', ()
   });
 
   it('recordTransaction reiht sich chronologisch an bereits vorhandene Journal-Einträge an', () => {
-    const first = recordTransaction([makeItem()], [], 'item-1', 'Zugang', 100, { notes: 'Erste Buchung' });
-    const second = recordTransaction(first.items, first.transactions, 'item-1', 'Abgang', 50, { notes: 'Zweite Buchung' });
+    const first = expectOk(recordTransaction([makeItem()], [], 'item-1', 'Zugang', 100, { notes: 'Erste Buchung' }));
+    const second = expectOk(recordTransaction(first.items, first.transactions, 'item-1', 'Abgang', 50, { notes: 'Zweite Buchung' }));
     expect(second.transactions).toHaveLength(2);
     expect(second.transactions.map(t => t.notes)).toEqual(['Erste Buchung', 'Zweite Buchung']);
   });
 
   it('recordTransaction ist ein No-Op für einen unbekannten Posten, aendert aber nichts am Journal', () => {
-    const { items, transactions } = recordTransaction([makeItem()], [], 'unbekannt', 'Abgang', 50);
+    const { items, transactions } = expectOk(recordTransaction([makeItem()], [], 'unbekannt', 'Abgang', 50));
     expect(items).toEqual([makeItem()]);
     expect(transactions).toEqual([]);
+  });
+
+  it('recordTransaction lehnt einen Abgang über dem verfügbaren Bestand zentral ab (externes Audit, 30.09.2026 - Härtung der Kernfunktion statt Verlass auf jeden einzelnen Aufrufer)', () => {
+    const result = recordTransaction([makeItem({ currentQuantityLiters: 500 })], [], 'item-1', 'Abgang', 600);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toContain('500');
+    expect(result.error).toContain('600');
   });
 
   it('recordNewEntry legt den Posten an UND schreibt einen Zugang-Journal-Eintrag', () => {
@@ -96,7 +114,7 @@ describe('stock-service: Buchungsjournal (recordTransaction/recordNewEntry)', ()
 
   it('Journal-Eintrag speichert Tank und ABV als Snapshot zum Buchungszeitpunkt (Aufgabe 26, Punkt 6 - Export braucht LA-genaue Historie)', () => {
     const posten = makeItem({ id: 'item-3', tankNr: 'T341', alcoholVolProzent: 53.5 });
-    const { transactions } = recordTransaction([posten], [], 'item-3', 'Abgang', 200, { notes: 'Versand LF-2026-002' });
+    const { transactions } = expectOk(recordTransaction([posten], [], 'item-3', 'Abgang', 200, { notes: 'Versand LF-2026-002' }));
     expect(transactions[0]).toMatchObject({ tankNr: 'T341', alcoholVolProzent: 53.5 });
   });
 });
@@ -202,6 +220,50 @@ describe('poolIntoTank: Einlagern mit Misch-ABV-Berechnung (Grundsatzfrage Tank-
     expect(note).toContain('200.00 L (Charge 2500)');
     expect(note).toContain('1800.00 L (Charge 2600)');
     expect(note).toContain('2000.00 L (Charge 2500 + 2600)');
+  });
+
+  it('Aufgabe 34: die Zusammensetzung wird dauerhaft auf konsolidiertesItem.komponenten gespeichert, nicht nur im Journal', () => {
+    const inventory = [makeItem({ id: 'rest-vorjahr', tankNr: 'T345', produktName: 'Zitronenmelisse-Mazerat', chargenNummer: '2500', currentQuantityLiters: 200, alcoholVolProzent: 50 })];
+    const result = expectOk(poolIntoTank(inventory, 'T345', {
+      produktName: 'Zitronenmelisse-Mazerat', category: 'M', chargenNummer: '2600', alkoholVolProzent: 53, mengeLiter: 1800,
+    }));
+    expect(result.konsolidiertesItem.komponenten).toEqual([
+      { chargenNummer: '2500', mengeLiter: 200 },
+      { chargenNummer: '2600', mengeLiter: 1800 },
+    ]);
+  });
+
+  it('Aufgabe 34: eine zweite Poolung löst die bereits gespeicherte Komponenten-Historie des Postens auf, statt sie durch dessen Chargennummer zu ersetzen', () => {
+    // Erste Poolung: Charge 2500 (200L) + Charge 2600 (1800L) -> ein Posten mit komponenten-Historie.
+    const nachErsterPoolung = expectOk(poolIntoTank(
+      [makeItem({ id: 'rest-vorjahr', tankNr: 'T345', produktName: 'Zitronenmelisse-Mazerat', chargenNummer: '2500', currentQuantityLiters: 200, alcoholVolProzent: 50 })],
+      'T345',
+      { produktName: 'Zitronenmelisse-Mazerat', category: 'M', chargenNummer: '2600', alkoholVolProzent: 53, mengeLiter: 1800 },
+    ));
+
+    // Zweite Poolung: Charge 2700 kommt dazu. Ohne Historien-Auflösung würde hier
+    // nur "2500 + 2600" (die Chargennummer des bestehenden Postens) als EIN
+    // Bestandteil gezählt - die eigentliche 200L/1800L-Aufteilung wäre verloren.
+    const nachZweiterPoolung = expectOk(poolIntoTank(nachErsterPoolung.items, 'T345', {
+      produktName: 'Zitronenmelisse-Mazerat', category: 'M', chargenNummer: '2700', alkoholVolProzent: 60, mengeLiter: 1000,
+    }));
+
+    expect(nachZweiterPoolung.konsolidiertesItem.chargenNummer).toBe('2500 + 2600 + 2700');
+    expect(nachZweiterPoolung.konsolidiertesItem.komponenten).toEqual([
+      { chargenNummer: '2500', mengeLiter: 200 },
+      { chargenNummer: '2600', mengeLiter: 1800 },
+      { chargenNummer: '2700', mengeLiter: 1000 },
+    ]);
+  });
+
+  it('Aufgabe 34: gleiche Chargennummern werden zu einer Zeile mit Summenmenge zusammengeführt, statt doppelt aufzuscheinen', () => {
+    const inventory = [makeItem({ id: 'bestand-1', tankNr: 'T345', produktName: 'Zitronenmelisse-Mazerat', chargenNummer: '2600', currentQuantityLiters: 3000, alcoholVolProzent: 52 })];
+    const result = expectOk(poolIntoTank(inventory, 'T345', {
+      produktName: 'Zitronenmelisse-Mazerat', category: 'M', chargenNummer: '2600', alkoholVolProzent: 56, mengeLiter: 1500,
+    }));
+    expect(result.konsolidiertesItem.komponenten).toEqual([
+      { chargenNummer: '2600', mengeLiter: 4500 },
+    ]);
   });
 });
 

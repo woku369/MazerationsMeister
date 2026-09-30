@@ -41,7 +41,7 @@ export function createAuftrag(
     container: LohnbrandContainer[];
     bemerkungen?: string;
   },
-): { auftraege: LohnbrandAuftrag[]; inventoryItems: StoredInventoryItem[]; transactions: InventoryTransaction[]; auftrag: LohnbrandAuftrag } {
+): { ok: true; auftraege: LohnbrandAuftrag[]; inventoryItems: StoredInventoryItem[]; transactions: InventoryTransaction[]; auftrag: LohnbrandAuftrag } | { ok: false; error: string } {
   const now = new Date().toISOString();
   const auftrag: LohnbrandAuftrag = {
     id: uuidv4(),
@@ -63,11 +63,12 @@ export function createAuftrag(
       notes: `Lohnbrand ${auftrag.auftragsNummer} (${params.lohnbrennerName}) - Ausgang`,
       date: new Date(params.ausgangsdatum),
     });
+    if (!result.ok) return { ok: false, error: result.error };
     items = result.items;
     txs = result.transactions;
   }
 
-  return { auftraege: [...auftraege, auftrag], inventoryItems: items, transactions: txs, auftrag };
+  return { ok: true, auftraege: [...auftraege, auftrag], inventoryItems: items, transactions: txs, auftrag };
 }
 
 /**
@@ -158,12 +159,14 @@ export function persistCreateAuftrag(params: {
   ausgangsdatum: string;
   container: LohnbrandContainer[];
   bemerkungen?: string;
-}): LohnbrandAuftrag {
+}): ReturnType<typeof createAuftrag> {
   const result = createAuftrag(readAll(), StockService.readAll(), StockService.readTransactions(), params);
-  writeAll(result.auftraege);
-  StockService.writeAll(result.inventoryItems);
-  StockService.writeTransactions(result.transactions);
-  return result.auftrag;
+  if (result.ok) {
+    writeAll(result.auftraege);
+    StockService.writeAll(result.inventoryItems);
+    StockService.writeTransactions(result.transactions);
+  }
+  return result;
 }
 
 /** Read → completeAuftrag → write (alle 3 Stores). */

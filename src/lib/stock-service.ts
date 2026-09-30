@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import type { StoredInventoryItem, InventoryTransaction } from '@/schemas/inventorySchema';
+import type { StoredInventoryItem, InventoryTransaction, PoolKomponente } from '@/schemas/inventorySchema';
 import { calcLA } from '@/lib/mazeration-calc';
 
 const STORAGE_KEY = 'inventoryItems';
@@ -58,22 +58,35 @@ export function updateEntry(
   return items.map(i => (i.id === recalculated.id ? recalculated : i));
 }
 
+/**
+ * Zentrale Absicherung gegen Abgang > Bestand: bislang prüfte jeder Aufrufer
+ * (manuelle Buchung, Versand, Lohnbrand, Rezepturen) das selbst und einzeln,
+ * bevor er hierher kam - vergisst künftig ein neuer Aufrufer diese Prüfung,
+ * wäre der stillschweigende Klemm-auf-0-Fehler sofort wieder da. Jetzt lehnt
+ * die Funktion selbst ab, damit das nicht mehr von jedem Aufrufer einzeln
+ * korrekt gemacht werden muss (externes Audit, 30.09.2026).
+ */
 export function applyTransaction(
   items: StoredInventoryItem[],
   id: string,
   type: 'Zugang' | 'Abgang',
   qty: number,
-): StoredInventoryItem[] {
-  return items.map(item => {
-    if (item.id !== id) return item;
-    const current = item.currentQuantityLiters ?? 0;
+): { ok: true; items: StoredInventoryItem[] } | { ok: false; error: string } {
+  const item = items.find(i => i.id === id);
+  if (item && type === 'Abgang' && qty > (item.currentQuantityLiters ?? 0)) {
+    return { ok: false, error: `Abgang (${qty} L) übersteigt den verfügbaren Bestand (${item.currentQuantityLiters} L) von "${item.produktName}".` };
+  }
+  const updated = items.map(i => {
+    if (i.id !== id) return i;
+    const current = i.currentQuantityLiters ?? 0;
     const next = type === 'Zugang' ? current + qty : current - qty;
     return withRecalculatedLA({
-      ...item,
+      ...i,
       currentQuantityLiters: Math.max(0, next),
       lastInventoryDate: new Date(),
     });
   });
+  return { ok: true, items: updated };
 }
 
 function makeTransactionEntry(
@@ -111,11 +124,12 @@ export function recordTransaction(
   type: 'Zugang' | 'Abgang',
   qty: number,
   opts: { notes?: string; date?: Date } = {},
-): { items: StoredInventoryItem[]; transactions: InventoryTransaction[] } {
+): { ok: true; items: StoredInventoryItem[]; transactions: InventoryTransaction[] } | { ok: false; error: string } {
   const item = items.find(i => i.id === id);
-  const updatedItems = applyTransaction(items, id, type, qty);
-  if (!item) return { items: updatedItems, transactions };
-  return { items: updatedItems, transactions: [...transactions, makeTransactionEntry(item, type, qty, opts)] };
+  const result = applyTransaction(items, id, type, qty);
+  if (!result.ok) return result;
+  if (!item) return { ok: true, items: result.items, transactions };
+  return { ok: true, items: result.items, transactions: [...transactions, makeTransactionEntry(item, type, qty, opts)] };
 }
 
 /**
@@ -173,11 +187,6 @@ export type NeueMenge = {
   mengeLiter: number;
 };
 
-// Ein Bestandteil, der beim Poolen in den konsolidierten Posten eingeflossen ist -
-// hält die Chargenherkunft fest, die sonst beim Verschmelzen verloren ginge
-// (siehe Aufgabe 27, Punkt 2 - externes Audit).
-export type PoolKomponente = { chargenNummer: string; mengeLiter: number };
-
 export type PoolIntoTankResult =
   | { ok: true; items: StoredInventoryItem[]; konsolidiertesItem: StoredInventoryItem; vorherMenge: number; vorherAbv: number; komponenten: PoolKomponente[] }
   | { ok: false; error: string };
@@ -228,15 +237,31 @@ export function poolIntoTank(
   // Chargenherkunft sammeln, statt beim Verschmelzen stillschweigend nur eine
   // Chargennummer zu übernehmen: alle tatsächlich beteiligten Chargen (aus den
   // bestehenden Zeilen und der neuen Menge) fließen in die Komponenten-Liste
-  // ein, die recordPoolIntoTank() für den Journal-Eintrag nutzt. Sind sie alle
-  // gleich (Normalfall bei der realen Chargenvergabe, siehe Aufgabe 22), bleibt
-  // die Chargennummer wie bisher ein einzelner, sauberer Wert - nur wenn sich
-  // tatsächlich unterschiedliche Chargen mischen, wird das im Feld selbst sichtbar.
-  const komponenten: PoolKomponente[] = [
-    ...bestehende.map(i => ({ chargenNummer: i.chargenNummer || '', mengeLiter: i.currentQuantityLiters })),
+  // ein, die recordPoolIntoTank() für den Journal-Eintrag nutzt UND dauerhaft
+  // auf konsolidiertesItem.komponenten gespeichert wird (Aufgabe 34). Eine
+  // bestehende Zeile kann selbst schon aus einer früheren Poolung stammen und
+  // bereits eine eigene komponenten-Historie tragen - die wird hier aufgelöst
+  // ("geflattened"), statt sie durch ihre eigene chargenNummer/Menge zu
+  // ersetzen, sonst ginge bei der zweiten Poolung genau das verloren, was die
+  // erste Poolung gerade erst festgehalten hat. Gleiche Chargennummern werden
+  // zu einer Zeile mit Summenmenge zusammengeführt (z.B. wenn derselbe Tank
+  // mehrfach mit derselben Charge nachgefüllt wird).
+  const rohKomponenten: PoolKomponente[] = [
+    ...bestehende.flatMap(i =>
+      i.komponenten && i.komponenten.length > 0
+        ? i.komponenten
+        : [{ chargenNummer: i.chargenNummer || '', mengeLiter: i.currentQuantityLiters }]
+    ),
     { chargenNummer: neu.chargenNummer || '', mengeLiter: neu.mengeLiter },
   ];
-  const distinkteChargen = Array.from(new Set(komponenten.map(k => k.chargenNummer).filter(Boolean)));
+  const mengeProCharge = new Map<string, number>();
+  for (const k of rohKomponenten) {
+    mengeProCharge.set(k.chargenNummer, (mengeProCharge.get(k.chargenNummer) ?? 0) + k.mengeLiter);
+  }
+  const komponenten: PoolKomponente[] = Array.from(mengeProCharge.entries()).map(
+    ([chargenNummer, mengeLiter]) => ({ chargenNummer, mengeLiter: parseFloat(mengeLiter.toFixed(3)) })
+  );
+  const distinkteChargen = komponenten.map(k => k.chargenNummer).filter(Boolean);
   const kombinierteChargenNummer = distinkteChargen.length > 1 ? distinkteChargen.join(' + ') : (distinkteChargen[0] ?? '');
 
   const basis = bestehende[0];
@@ -252,6 +277,7 @@ export function poolIntoTank(
     lastInventoryDate: new Date(),
     bemerkungen: basis?.bemerkungen ?? '',
     kennzeichen: basis?.kennzeichen ?? 'S',
+    komponenten,
   });
 
   const ersetzteIds = new Set(bestehende.map(i => i.id));
@@ -334,10 +360,12 @@ export function persistRecordTransaction(
   type: 'Zugang' | 'Abgang',
   qty: number,
   opts: { notes?: string; date?: Date } = {},
-): { items: StoredInventoryItem[]; transactions: InventoryTransaction[] } {
+): ReturnType<typeof recordTransaction> {
   const result = recordTransaction(readAll(), readTransactions(), id, type, qty, opts);
-  writeAll(result.items);
-  writeTransactions(result.transactions);
+  if (result.ok) {
+    writeAll(result.items);
+    writeTransactions(result.transactions);
+  }
   return result;
 }
 

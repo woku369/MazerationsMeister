@@ -3,6 +3,13 @@ import { generateAuftragsNummer, createAuftrag, completeAuftrag, calcContainerLA
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 import type { LohnbrandAuftrag } from '@/schemas/lohnbrandSchema';
 
+// Entpackt ein {ok:true,...}|{ok:false,error} Ergebnis - wirft, falls das
+// Erwartete (ok:true) nicht eintritt.
+function expectOk<T extends { ok: boolean }>(result: T): Exclude<T, { ok: false }> {
+  if (!result.ok) throw new Error(`Erwartetes ok:true, aber: ${JSON.stringify(result)}`);
+  return result as Exclude<T, { ok: false }>;
+}
+
 function makeInventoryItem(overrides: Partial<StoredInventoryItem> = {}): StoredInventoryItem {
   return {
     id: 'item-1',
@@ -38,14 +45,14 @@ describe('generateAuftragsNummer', () => {
 describe('createAuftrag', () => {
   it('bucht Abgang für jedes Gebinde und legt den Auftrag mit Status "unterwegs" an', () => {
     const inventory = [makeInventoryItem()];
-    const { auftraege, inventoryItems, auftrag } = createAuftrag([], inventory, [], {
+    const { auftraege, inventoryItems, auftrag } = expectOk(createAuftrag([], inventory, [], {
       lohnbrennerName: 'Destillerie Beispiel',
       ausgangsdatum: '2026-09-01',
       container: [{
         inventoryItemId: 'item-1', tankNr: 'Fass-2', produktName: 'Mazerat Zitronenmelisse',
         chargenNummer: 'C1', mengeLiter: 300, alkoholVolProzent: 60,
       }],
-    });
+    }));
 
     expect(auftraege).toHaveLength(1);
     expect(auftrag.status).toBe('unterwegs');
@@ -58,14 +65,14 @@ describe('createAuftrag', () => {
       makeInventoryItem({ id: 'item-1', currentQuantityLiters: 500 }),
       makeInventoryItem({ id: 'item-2', currentQuantityLiters: 300, tankNr: 'Fass-3' }),
     ];
-    const { inventoryItems } = createAuftrag([], inventory, [], {
+    const { inventoryItems } = expectOk(createAuftrag([], inventory, [], {
       lohnbrennerName: 'X',
       ausgangsdatum: '2026-09-01',
       container: [
         { inventoryItemId: 'item-1', tankNr: 'Fass-2', produktName: 'A', mengeLiter: 500, alkoholVolProzent: 60 },
         { inventoryItemId: 'item-2', tankNr: 'Fass-3', produktName: 'B', mengeLiter: 300, alkoholVolProzent: 55 },
       ],
-    });
+    }));
     expect(inventoryItems.find(i => i.id === 'item-1')!.currentQuantityLiters).toBe(0);
     expect(inventoryItems.find(i => i.id === 'item-2')!.currentQuantityLiters).toBe(0);
   });
@@ -74,11 +81,11 @@ describe('createAuftrag', () => {
 describe('completeAuftrag', () => {
   it('bucht das Destillat als neuen Lagerposten ein und markiert den Auftrag als abgeschlossen', () => {
     const inventory = [makeInventoryItem()];
-    const { auftrag } = createAuftrag([], inventory, [], {
+    const { auftrag } = expectOk(createAuftrag([], inventory, [], {
       lohnbrennerName: 'Destillerie Beispiel',
       ausgangsdatum: '2026-09-01',
       container: [{ inventoryItemId: 'item-1', tankNr: 'Fass-2', produktName: 'Mazerat Zitronenmelisse', chargenNummer: 'C1', mengeLiter: 300, alkoholVolProzent: 60 }],
-    });
+    }));
 
     const { auftraege, inventoryItems } = completeAuftrag([auftrag], inventory, [], auftrag.id, {
       ruecklaufdatum: '2026-09-15',
@@ -116,14 +123,14 @@ describe('completeAuftrag', () => {
       makeInventoryItem({ id: 'item-x', currentQuantityLiters: 600, alcoholVolProzent: 50 }),
       makeInventoryItem({ id: 'item-y', currentQuantityLiters: 300, alcoholVolProzent: 40 }),
     ];
-    const { auftrag } = createAuftrag([], inventory, [], {
+    const { auftrag } = expectOk(createAuftrag([], inventory, [], {
       lohnbrennerName: 'Destillerie Beispiel',
       ausgangsdatum: '2026-09-01',
       container: [
         { inventoryItemId: 'item-x', tankNr: 'T X', produktName: 'Mazerat Z (Charge 1)', mengeLiter: 600, alkoholVolProzent: 50 },
         { inventoryItemId: 'item-y', tankNr: 'T Y', produktName: 'Mazerat Z (Charge 2)', mengeLiter: 300, alkoholVolProzent: 40 },
       ],
-    });
+    }));
     expect(auftrag.ausgangsLA).toBeCloseTo(420, 3);
   });
 
@@ -133,14 +140,14 @@ describe('completeAuftrag', () => {
       makeInventoryItem({ id: 'item-x', currentQuantityLiters: 600, alcoholVolProzent: 50 }),
       makeInventoryItem({ id: 'item-y', currentQuantityLiters: 300, alcoholVolProzent: 40 }),
     ];
-    const { auftrag } = createAuftrag([], inventory, [], {
+    const { auftrag } = expectOk(createAuftrag([], inventory, [], {
       lohnbrennerName: 'Destillerie Beispiel',
       ausgangsdatum: '2026-09-01',
       container: [
         { inventoryItemId: 'item-x', tankNr: 'T X', produktName: 'Mazerat Z (Charge 1)', mengeLiter: 600, alkoholVolProzent: 50 },
         { inventoryItemId: 'item-y', tankNr: 'T Y', produktName: 'Mazerat Z (Charge 2)', mengeLiter: 300, alkoholVolProzent: 40 },
       ],
-    });
+    }));
     const { auftraege } = completeAuftrag([auftrag], inventory, [], auftrag.id, {
       ruecklaufdatum: '2026-09-15',
       ergebnisProduktName: 'Destillat Z',
@@ -156,11 +163,11 @@ describe('completeAuftrag', () => {
 describe('Buchungsjournal', () => {
   it('createAuftrag schreibt einen Journal-Eintrag mit Referenz auf die Auftragsnummer', () => {
     const inventory = [makeInventoryItem()];
-    const { auftrag, transactions } = createAuftrag([], inventory, [], {
+    const { auftrag, transactions } = expectOk(createAuftrag([], inventory, [], {
       lohnbrennerName: 'Destillerie Beispiel',
       ausgangsdatum: '2026-09-01',
       container: [{ inventoryItemId: 'item-1', tankNr: 'Fass-2', produktName: 'Mazerat Zitronenmelisse', chargenNummer: 'C1', mengeLiter: 300, alkoholVolProzent: 60 }],
-    });
+    }));
     expect(transactions).toHaveLength(1);
     expect(transactions[0]).toMatchObject({ itemId: 'item-1', type: 'Abgang', quantityLiters: 300 });
     expect(transactions[0].notes).toContain(auftrag.auftragsNummer);
@@ -168,11 +175,11 @@ describe('Buchungsjournal', () => {
 
   it('completeAuftrag schreibt einen weiteren Journal-Eintrag für den Rücklauf, ohne den Ausgangs-Eintrag zu verlieren', () => {
     const inventory = [makeInventoryItem()];
-    const created = createAuftrag([], inventory, [], {
+    const created = expectOk(createAuftrag([], inventory, [], {
       lohnbrennerName: 'Destillerie Beispiel',
       ausgangsdatum: '2026-09-01',
       container: [{ inventoryItemId: 'item-1', tankNr: 'Fass-2', produktName: 'Mazerat Zitronenmelisse', chargenNummer: 'C1', mengeLiter: 300, alkoholVolProzent: 60 }],
-    });
+    }));
     const { transactions } = completeAuftrag([created.auftrag], created.inventoryItems, created.transactions, created.auftrag.id, {
       ruecklaufdatum: '2026-09-15', ergebnisProduktName: 'Destillat Zitronenmelisse',
       ergebnisMengeLiter: 250, ergebnisAlkoholVolProzent: 75, zielTankNr: 'T 341',

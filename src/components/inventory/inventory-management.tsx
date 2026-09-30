@@ -727,6 +727,10 @@ export default function InventoryManagement() {
       inventoryItems, inventoryTransactions, itemForTransaction.id, currentTransactionType, transaction.quantityLiters,
       { notes: transaction.notes || '', date: transaction.transactionDate },
     );
+    if (!result.ok) {
+      toast({ title: 'Buchung nicht möglich', description: result.error, variant: 'destructive' });
+      return;
+    }
     setInventoryItems(result.items);
     setInventoryTransactions(result.transactions);
 

@@ -49,6 +49,14 @@ export const inventoryItemFormSchema = z.object({
 
 export type InventoryItemFormInput = z.infer<typeof inventoryItemFormSchema>;
 
+// Ein Bestandteil, der beim Poolen in einen Tank-Posten eingeflossen ist - hält
+// die Chargenherkunft fest, die sonst beim Verschmelzen verloren ginge (siehe
+// Aufgabe 27, Punkt 2, und Aufgabe 34 - externes Audit). Liegt in diesem
+// Schema-Modul statt in stock-service.ts, damit StoredInventoryItem das Feld
+// typisieren kann, ohne einen Import von der Schema- in die Service-Ebene zu
+// erzeugen.
+export type PoolKomponente = { chargenNummer: string; mengeLiter: number };
+
 // Schema for the stored/displayed inventory item data (representing a batch)
 export type StoredInventoryItem = {
   dichte20C?: number; // Dichte bei 20°C
@@ -64,6 +72,10 @@ export type StoredInventoryItem = {
   lastInventoryDate: Date; // Date this batch/stock was recorded or last transaction occurred
   bemerkungen: string;
   kennzeichen: string;
+  // Zusammensetzung aus dem Poolen mehrerer Chargen im selben Tank (Aufgabe 34) -
+  // dauerhaft am Posten selbst, nicht nur rückwirkend im Buchungsjournal
+  // nachschlagbar. Undefined/leer für Posten, die nie gepoolt wurden.
+  komponenten?: PoolKomponente[];
 };
 
 // Schema for the transaction form in RecordTransactionDialog

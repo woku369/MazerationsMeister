@@ -81,6 +81,7 @@ export function produziereRezeptur(
     const result = StockService.recordTransaction(items, txs, komp.produktId, 'Abgang', menge, {
       notes: journalNotiz, date: produktionsdatumDate,
     });
+    if (!result.ok) return { ok: false, error: result.error };
     items = result.items;
     txs = result.transactions;
   }
@@ -109,6 +110,7 @@ export function produziereRezeptur(
       const result = StockService.recordTransaction(items, txs, spritId, 'Abgang', spritZugabe, {
         notes: `${journalNotiz} (Alkoholkorrektur)`, date: produktionsdatumDate,
       });
+      if (!result.ok) return { ok: false, error: result.error };
       items = result.items;
       txs = result.transactions;
     }

@@ -56,7 +56,7 @@ export function createVersand(
     plombenNummern?: string;
     externeLieferscheinNr?: string;
   },
-): { versaende: LohnabfuellerVersand[]; inventoryItems: StoredInventoryItem[]; transactions: InventoryTransaction[]; versand: LohnabfuellerVersand } {
+): { ok: true; versaende: LohnabfuellerVersand[]; inventoryItems: StoredInventoryItem[]; transactions: InventoryTransaction[]; versand: LohnabfuellerVersand } | { ok: false; error: string } {
   const versand: LohnabfuellerVersand = {
     id: uuidv4(),
     versandNummer: generateVersandNummer(versaende),
@@ -79,11 +79,12 @@ export function createVersand(
       notes: `Versand ${versand.versandNummer} (${params.lohnabfuellerName})`,
       date: new Date(params.versanddatum),
     });
+    if (!result.ok) return { ok: false, error: result.error };
     items = result.items;
     txs = result.transactions;
   }
 
-  return { versaende: [...versaende, versand], inventoryItems: items, transactions: txs, versand };
+  return { ok: true, versaende: [...versaende, versand], inventoryItems: items, transactions: txs, versand };
 }
 
 // ---------------------------------------------------------------------------
@@ -115,10 +116,12 @@ export function persistCreateVersand(params: {
   taragewichtKg?: number;
   plombenNummern?: string;
   externeLieferscheinNr?: string;
-}): LohnabfuellerVersand {
+}): ReturnType<typeof createVersand> {
   const result = createVersand(readAll(), StockService.readAll(), StockService.readTransactions(), params);
-  writeAll(result.versaende);
-  StockService.writeAll(result.inventoryItems);
-  StockService.writeTransactions(result.transactions);
-  return result.versand;
+  if (result.ok) {
+    writeAll(result.versaende);
+    StockService.writeAll(result.inventoryItems);
+    StockService.writeTransactions(result.transactions);
+  }
+  return result;
 }

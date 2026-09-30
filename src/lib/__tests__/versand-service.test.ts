@@ -3,6 +3,13 @@ import { generateVersandNummer, createVersand, calcContainerLA, calcContainerNet
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 import type { LohnabfuellerVersand } from '@/schemas/versandSchema';
 
+// Entpackt ein {ok:true,...}|{ok:false,error} Ergebnis - wirft, falls das
+// Erwartete (ok:true) nicht eintritt.
+function expectOk<T extends { ok: boolean }>(result: T): Exclude<T, { ok: false }> {
+  if (!result.ok) throw new Error(`Erwartetes ok:true, aber: ${JSON.stringify(result)}`);
+  return result as Exclude<T, { ok: false }>;
+}
+
 function makeInventoryItem(overrides: Partial<StoredInventoryItem> = {}): StoredInventoryItem {
   return {
     id: 'item-1',
@@ -38,14 +45,14 @@ describe('generateVersandNummer', () => {
 describe('createVersand', () => {
   it('bucht Abgang für jedes Gebinde und legt den Versand-Datensatz an', () => {
     const inventory = [makeInventoryItem()];
-    const { versaende, inventoryItems, versand } = createVersand([], inventory, [], {
+    const { versaende, inventoryItems, versand } = expectOk(createVersand([], inventory, [], {
       lohnabfuellerName: 'Mozart',
       versanddatum: '2026-10-05',
       container: [{
         inventoryItemId: 'item-1', tankNr: 'T 342', produktName: 'GFKC-M',
         chargenNummer: 'GFKC-M', mengeLiter: 3000, alkoholVolProzent: 53.5,
       }],
-    });
+    }));
 
     expect(versaende).toHaveLength(1);
     expect(versand.versandNummer).toMatch(/^LF-\d{4}-001$/);
@@ -59,7 +66,7 @@ describe('createVersand', () => {
       makeInventoryItem({ id: 'ibc-2', currentQuantityLiters: 1000, tankNr: 'IBC-2' }),
       makeInventoryItem({ id: 'ibc-3', currentQuantityLiters: 1000, tankNr: 'IBC-3' }),
     ];
-    const { inventoryItems, versand } = createVersand([], inventory, [], {
+    const { inventoryItems, versand } = expectOk(createVersand([], inventory, [], {
       lohnabfuellerName: 'Mozart',
       versanddatum: '2026-10-05',
       container: [
@@ -67,7 +74,7 @@ describe('createVersand', () => {
         { inventoryItemId: 'ibc-2', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
         { inventoryItemId: 'ibc-3', tankNr: 'IBC-3', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
       ],
-    });
+    }));
     expect(inventoryItems.every(i => i.currentQuantityLiters === 0)).toBe(true);
     expect(versand.versandLA).toBeCloseTo(3000 * 0.535, 3);
   });
@@ -79,14 +86,14 @@ describe('Buchungsjournal', () => {
       makeInventoryItem({ id: 'ibc-1', currentQuantityLiters: 1000, tankNr: 'IBC-1' }),
       makeInventoryItem({ id: 'ibc-2', currentQuantityLiters: 1000, tankNr: 'IBC-2' }),
     ];
-    const { versand, transactions } = createVersand([], inventory, [], {
+    const { versand, transactions } = expectOk(createVersand([], inventory, [], {
       lohnabfuellerName: 'Mozart',
       versanddatum: '2026-10-05',
       container: [
         { inventoryItemId: 'ibc-1', tankNr: 'IBC-1', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
         { inventoryItemId: 'ibc-2', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
       ],
-    });
+    }));
     expect(transactions).toHaveLength(2);
     expect(transactions.every(t => t.type === 'Abgang')).toBe(true);
     expect(transactions.every(t => t.notes.includes(versand.versandNummer))).toBe(true);

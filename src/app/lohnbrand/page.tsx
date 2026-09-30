@@ -113,12 +113,17 @@ export default function LohnbrandPage() {
       toast({ title: 'Ungültige Gebinde-Auswahl', description: 'Bitte für jede Zeile ein Gebinde und eine gültige Menge (≤ verfügbarer Bestand) angeben.', variant: 'destructive' });
       return;
     }
-    const auftrag = LohnbrandService.persistCreateAuftrag({
+    const result = LohnbrandService.persistCreateAuftrag({
       lohnbrennerName: lohnbrennerName.trim(),
       ausgangsdatum,
       container,
       bemerkungen: bemerkungen.trim() || undefined,
     });
+    if (!result.ok) {
+      toast({ title: 'Auftrag nicht möglich', description: result.error, variant: 'destructive' });
+      return;
+    }
+    const auftrag = result.auftrag;
     toast({
       title: `Auftrag ${auftrag.auftragsNummer} angelegt`,
       description: `Abgang für ${container.length} Gebinde gebucht: ${container.reduce((s, c) => s + c.mengeLiter, 0).toFixed(1)} L, ${fmtLA(auftrag.ausgangsLA)} an ${lohnbrennerName.trim()}.`,
