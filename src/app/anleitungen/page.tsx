@@ -343,17 +343,22 @@ export default function AnleitungenPage() {
                 Bestandsänderung läuft über eine gebuchte Zugang- oder Abgang-Transaktion — der Bestand wird nie
                 still überschrieben.
               </p>
+              <p className="text-green-700 text-sm mt-2">
+                Die Seite ist in drei Tabs gegliedert: <strong>Lagerbestand</strong> (öffnet sich standardmäßig, da
+                am häufigsten gebraucht), <strong>Buchungsjournal</strong> und <strong>Artikelstamm</strong> — letzterer
+                steht bewusst hinten, da Produkte meist nur einmalig angelegt werden.
+              </p>
             </div>
 
             <div className="space-y-4">
               <StepCard number={1} color="green" title="Artikelstamm anlegen oder importieren">
-                <Check>Neue Artikel manuell anlegen oder als XLSX importieren (Artikelnummer, Produktname erforderlich)</Check>
+                <Check>Im Tab <strong>Artikelstamm</strong>: neue Artikel manuell anlegen oder als XLSX importieren (Artikelnummer, Produktname erforderlich)</Check>
                 <Check>Kategorie je Artikel nachträglich zuordnen (z.B. Mazerat, Destillat, Sprit, GFKC)</Check>
               </StepCard>
 
               <StepCard number={2} color="blue" title="Lagerbestand erfassen oder importieren">
-                <Check>Einzeln über „Neuer Artikel" mit Chargennummer, Tanknummer, Menge und Alkoholgehalt anlegen</Check>
-                <Check>Oder als XLSX-Bestandsliste importieren (Chargennummer + Menge erforderlich)</Check>
+                <Check>Im Tab <strong>Lagerbestand</strong>: einzeln über „Neue Charge/Bestand anlegen" mit Chargennummer, Tanknummer, Menge und Alkoholgehalt anlegen</Check>
+                <Check>Oder als XLSX-Bestandsliste importieren (Chargennummer + Menge erforderlich) — der Import-Bereich oberhalb der Tabs funktioniert für Artikelstamm- und Lagerbestand-Dateien gleichermaßen</Check>
                 <Warn>
                   Unbekannte Tanknummern werden beim Import automatisch mit einer Standardgröße (5000 L)
                   angelegt — bei Tippfehlern anschließend in der Tankverwaltung korrigieren.
@@ -362,25 +367,36 @@ export default function AnleitungenPage() {
 
               <StepCard number={3} color="orange" title="Zugang / Abgang buchen">
                 <Check>
-                  In der Artikel-Zeile das <strong>grüne Plus-Symbol</strong> für Zugang bzw. das{' '}
-                  <strong>orangene Symbol</strong> für Abgang anklicken
+                  Im Tab <strong>Lagerbestand</strong>, in der Artikel-Zeile das <strong>grüne Plus-Symbol</strong>{' '}
+                  für Zugang bzw. das <strong>orangene Symbol</strong> für Abgang anklicken
                 </Check>
                 <Check>Menge in Litern, Datum und optional eine Bemerkung eintragen</Check>
                 <Check>
                   Bestand und Reinalkohol (LA) werden nach jeder Buchung automatisch neu berechnet — sichtbar in
                   Tabelle, Zusammenfassung und Rohexport
                 </Check>
+                <Check>
+                  Jede Buchung landet zusätzlich im <strong>Buchungsjournal</strong>-Tab — chronologisch und
+                  nachvollziehbar, egal ob manuell, aus Rezeptur, Versand oder Lohnbrand ausgelöst
+                </Check>
+                <Warn>
+                  Ein Abgang über dem verfügbaren Bestand wird jetzt abgelehnt (Fehlermeldung statt stiller,
+                  falscher Buchung).
+                </Warn>
               </StepCard>
 
               <StepCard number={4} color="purple" title="Export & Übersicht">
-                <Check>„Lagerübersicht" als XLSX exportieren (z.B. für Inventur oder Zollmeldung)</Check>
-                <Check>Transaktionsprotokoll (alle Zugänge/Abgänge) ebenfalls als XLSX exportierbar</Check>
+                <Check>Im Tab <strong>Lagerbestand</strong>: „Lagerübersicht" (Summen je Artikel) und „Aktuellen Lagerbestand" (alle Einzelposten) je als XLSX exportieren — z.B. für Inventur oder Zollmeldung</Check>
+                <Check>Im Tab <strong>Buchungsjournal</strong>: das Transaktionsprotokoll (alle Zugänge/Abgänge/Korrekturen) ebenfalls als XLSX exportierbar, dort auch durchsuch- und filterbar</Check>
               </StepCard>
             </div>
 
             <Tip color="green">
               Tank-Definitionen und QR-Codes für die physischen Behälter werden im selben Bereich verwaltet — siehe
-              Abschnitt „QR-Code Tankverwaltung" unten.
+              Abschnitt „QR-Code Tankverwaltung" unten. Wird ein Tank mehrfach mit unterschiedlichen Chargen
+              nachgefüllt (gepoolt), zeigt die Spalte „Charge" in der Bestandstabelle die kombinierte
+              Chargennummer (z.B. „2500 + 2600"); die genaue Aufteilung nach Litern je Charge zeigt zusätzlich
+              der QR-Code-Tankviewer (siehe unten).
             </Tip>
           </CardContent>
         )}
@@ -577,6 +593,28 @@ export default function AnleitungenPage() {
                 <Check>Kamera-App oder QR-Scanner öffnen (iPhone/Android)</Check>
                 <Check>Auf den QR-Code richten (Abstand ca. 10–20 cm) und den Link öffnen</Check>
                 <Check>Zeigt Sorte, Charge, Inhalt (Liter) und Alkoholgehalt in großen, gut lesbaren Karten</Check>
+                <Check>
+                  Enthält ein Tank mehrere gepoolte Chargen, zeigt die Karte zusätzlich die Zusammensetzung nach
+                  Litern je Charge an (z.B. „200 L Charge 2500 + 1800 L Charge 2600")
+                </Check>
+              </StepCard>
+
+              <StepCard number={5} color="pink" title="Alle-Tanks-Übersicht (ohne einzelnen QR-Scan)">
+                <Check>
+                  Im GitHub-Pages-Modus ist unter{' '}
+                  <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                    https://woku369.github.io/MazerationsMeister/tank-viewer.html?view=all
+                  </code>{' '}
+                  eine Übersicht <strong>aller</strong> Tanks auf einmal abrufbar — sortierbar nach Größe oder Artikel
+                </Check>
+                <Check>
+                  Nützlich, wenn schnell der Gesamtstand gebraucht wird (z.B. Frage des Lohnabfüllers nach aktuellem
+                  GFKC-Lagerstand, oder bei einer Führung), ohne erst den passenden Einzeltank suchen zu müssen
+                </Check>
+                <Tip color="pink">
+                  Diesen Link als Lesezeichen/Homescreen-Symbol am Smartphone ablegen — dann jederzeit mit einem Tipp
+                  erreichbar, auch unterwegs.
+                </Tip>
               </StepCard>
             </div>
 
