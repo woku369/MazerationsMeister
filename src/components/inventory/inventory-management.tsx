@@ -24,6 +24,7 @@ import type { ArtikelDefinition, ArtikelDefinitionFormInput } from '@/schemas/ar
 import { format } from 'date-fns';
 import { syncTankDefinitionsWithInventory } from '@/lib/tank-sync';
 import * as StockService from '@/lib/stock-service';
+import * as BackupService from '@/lib/backup-service';
 import { calcLA } from '@/lib/mazeration-calc';
 
 export default function InventoryManagement() {
@@ -791,45 +792,22 @@ export default function InventoryManagement() {
     toast({ title: 'Daten gespeichert', description: 'Speichern erfolgreich.' });
   };
 
-  // Sicheres JSON-Backup erstellen (Electron fs falls vorhanden, sonst Browser-Download)
-  const createBackup = async () => {
+  /**
+   * Vollständiges JSON-Backup erstellen. Sicherte bis Aufgabe 39 nur 3 von
+   * ~13 tatsächlich relevanten Datentöpfen (Artikelstamm, Lagerbestand,
+   * Journal) - Mazerationsprotokolle, Tanks, Rezepturen, Lohnbrand- und
+   * Versand-Historie fehlten komplett. Nutzt jetzt denselben zentralen
+   * BackupService wie der neue Wiederherstellen-Weg in den Einstellungen
+   * (Tab "Datensicherung"), damit beide Wege dasselbe, vollständige Format
+   * erzeugen und ein hier erstelltes Backup auch dort wieder einspielbar ist.
+   */
+  const createBackup = () => {
     try {
-      const payload = {
-        exportedAt: new Date().toISOString(),
-        artikelDefinitionen,
-        inventoryItems,
-        inventoryTransactions,
-      };
-      const data = JSON.stringify(payload, null, 2);
-      const fileName = `MazerationsMeister_backup_${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.json`;
-
-      if (typeof window !== 'undefined' && (window as any).require) {
-        // Electron / Node environment
-        try {
-          const fs = (window as any).require('fs');
-          const path = (window as any).require('path');
-          const exportDir = localStorage.getItem('exportPath') || process.cwd();
-          const exportPath = path.join(exportDir, fileName);
-          fs.writeFileSync(exportPath, data, 'utf-8');
-          toast({ title: 'Backup gespeichert', description: `Backup als ${exportPath} gespeichert.` });
-          return;
-        } catch (err) {
-          // Falls Schreiben mit Electron fehlschlägt, fallthrough zum Browser-Download
-          console.warn('Electron write failed, fallback to browser download', err);
-        }
-      }
-
-      // Browser-Download Fallback
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      toast({ title: 'Backup erstellt', description: 'Backup wurde heruntergeladen.' });
+      const filePath = BackupService.saveBackupToFile();
+      toast({
+        title: 'Backup gespeichert',
+        description: filePath ? `Backup als ${filePath} gespeichert.` : 'Backup wurde heruntergeladen.',
+      });
     } catch (err) {
       console.error('Backup-Fehler', err);
       toast({ title: 'Backup fehlgeschlagen', description: 'Fehler beim Erstellen des Backups.', variant: 'destructive' });

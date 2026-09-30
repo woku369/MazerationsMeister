@@ -10,9 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Download, Upload, Trash2, Settings, Cloud, Smartphone, Github, Clock, CheckCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Download, Upload, Trash2, Settings, Cloud, Smartphone, Github, Clock, CheckCircle, DatabaseBackup } from "lucide-react";
 import { getTankAutoSync } from "@/lib/tank-auto-sync";
 import { getGithubToken, getGithubEnabled, setGithubConfig } from "@/lib/github-token";
+import { useToast } from "@/hooks/use-toast";
+import * as BackupService from "@/lib/backup-service";
+import type { FullBackup } from "@/lib/backup-service";
 
 
 export default function EinstellungenPage() {
@@ -153,6 +157,77 @@ export default function EinstellungenPage() {
     }
   };
 
+  // Datensicherung & mehrere Rechner (Nutzer-Anfrage 30.09.2026)
+  const { toast } = useToast();
+  const restoreFileInputRef = React.useRef<HTMLInputElement>(null);
+  const [pendingRestore, setPendingRestore] = useState<{ backup: FullBackup; quelle: string } | null>(null);
+  const [githubBackupBusy, setGithubBackupBusy] = useState(false);
+
+  const handleLocalBackup = () => {
+    const filePath = BackupService.saveBackupToFile();
+    toast({
+      title: 'Backup gespeichert',
+      description: filePath ? `Gespeichert unter: ${filePath}` : 'Die Datei wurde als Download angeboten.',
+    });
+  };
+
+  const handleRestoreFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const content = await file.text();
+      const backup = BackupService.parseBackupFile(content);
+      setPendingRestore({ backup, quelle: `Datei "${file.name}"` });
+    } catch (err) {
+      toast({
+        title: 'Datei ungültig',
+        description: err instanceof Error ? err.message : 'Unbekannter Fehler beim Lesen der Datei.',
+        variant: 'destructive',
+      });
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const handleGithubBackup = async () => {
+    setGithubBackupBusy(true);
+    const result = await BackupService.uploadBackupToGithub();
+    setGithubBackupBusy(false);
+    if (result.ok) {
+      toast({
+        title: 'Zu GitHub gesichert',
+        description: 'Der aktuelle Datenstand ist jetzt auf GitHub verfügbar und kann am anderen Rechner geladen werden.',
+      });
+    } else {
+      toast({ title: 'Sicherung fehlgeschlagen', description: result.error, variant: 'destructive' });
+    }
+  };
+
+  const handleGithubRestore = async () => {
+    setGithubBackupBusy(true);
+    const result = await BackupService.fetchBackupFromGithub();
+    setGithubBackupBusy(false);
+    if (result.ok) {
+      setPendingRestore({ backup: result.backup, quelle: 'GitHub' });
+    } else {
+      toast({ title: 'Laden fehlgeschlagen', description: result.error, variant: 'destructive' });
+    }
+  };
+
+  const confirmRestore = () => {
+    if (!pendingRestore) return;
+    // Sicherheitsnetz: den jetzigen (gleich überschriebenen) Stand vorher
+    // noch lokal sichern, bevor irgendetwas angewendet wird.
+    BackupService.saveBackupToFile();
+    BackupService.applyFullBackup(pendingRestore.backup);
+    setPendingRestore(null);
+    toast({
+      title: 'Wiederhergestellt',
+      description: 'Die App wird neu geladen, damit alle Seiten den neuen Datenstand übernehmen.',
+    });
+    setTimeout(() => window.location.reload(), 1200);
+  };
+
   return (
     <main className="container mx-auto px-4 py-8">
       <h1 className="font-sans text-3xl md:text-4xl text-primary mb-4">Einstellungen</h1>
@@ -162,6 +237,7 @@ export default function EinstellungenPage() {
           <TabsTrigger value="github">GitHub Integration</TabsTrigger>
           <TabsTrigger value="kategorien">Kategorien</TabsTrigger>
           <TabsTrigger value="tank">QR-Codes</TabsTrigger>
+          <TabsTrigger value="backup">Datensicherung</TabsTrigger>
         </TabsList>
         <TabsContent value="speicher">
           <div className="max-w-md">
@@ -329,6 +405,93 @@ export default function EinstellungenPage() {
         </TabsContent>
         <TabsContent value="tank">
           <TankManagement />
+        </TabsContent>
+        <TabsContent value="backup">
+          <div className="max-w-2xl space-y-6">
+            <h2 className="text-xl font-semibold text-primary mb-2">Datensicherung &amp; mehrere Rechner</h2>
+            <p className="text-sm text-muted-foreground">
+              Sichert Artikelstamm, Lagerbestand, Buchungsjournal, Tank-Definitionen, Mazerationsprotokolle,
+              Rezepturen, Lohnbrand-Aufträge und Versand-Historie in einer Datei. Damit lässt sich der Datenstand
+              nach einer Neuinstallation wiederherstellen oder zwischen zwei Rechnern (z.B. Heimrechner und Büro)
+              übertragen. GitHub-Token, Speicherpfade und sonstige Einstellungen sind bewusst nicht enthalten -
+              die sind je Rechner unterschiedlich und werden nicht mitübertragen.
+            </p>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2"><DatabaseBackup className="h-5 w-5" /> Lokale Datei</CardTitle>
+                <CardDescription>Für die Sicherung nach einer Neuinstallation, unabhängig von GitHub.</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-2">
+                <Button onClick={handleLocalBackup} className="flex items-center gap-2">
+                  <Download className="h-4 w-4" /> Backup jetzt speichern
+                </Button>
+                <input
+                  type="file"
+                  accept=".json"
+                  ref={restoreFileInputRef}
+                  onChange={handleRestoreFileSelected}
+                  className="hidden"
+                />
+                <Button variant="outline" onClick={() => restoreFileInputRef.current?.click()} className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" /> Aus Datei wiederherstellen
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2"><Cloud className="h-5 w-5" /> Über GitHub (für mehrere Rechner)</CardTitle>
+                <CardDescription>Am Heimrechner sichern, am Bürorechner laden - oder umgekehrt.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {!hydrated ? null : !githubEnabled || !githubToken ? (
+                  <Alert>
+                    <AlertDescription>
+                      GitHub-Integration im Tab „GitHub Integration" zuerst aktivieren und Token hinterlegen.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={handleGithubBackup} disabled={githubBackupBusy} className="flex items-center gap-2">
+                      <Cloud className="h-4 w-4" /> Jetzt zu GitHub sichern
+                    </Button>
+                    <Button variant="outline" onClick={handleGithubRestore} disabled={githubBackupBusy} className="flex items-center gap-2">
+                      <Cloud className="h-4 w-4" /> Von GitHub laden
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Wiederherstellen-Bestätigung - überschreibt den lokalen Datenstand,
+              deshalb immer mit Vorschau statt blind auszuführen. */}
+          <Dialog open={!!pendingRestore} onOpenChange={(open) => { if (!open) setPendingRestore(null); }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Backup wiederherstellen ({pendingRestore?.quelle})</DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">
+                Der aktuelle Datenstand auf diesem Rechner wird überschrieben. Zur Sicherheit wird davor
+                automatisch ein lokales Backup des jetzigen Stands gespeichert.
+              </p>
+              {pendingRestore && (
+                <ul className="text-sm space-y-1 max-h-64 overflow-auto border rounded p-2">
+                  {BackupService.summarizeBackup(pendingRestore.backup).map(s => (
+                    <li key={s.key} className="flex justify-between gap-4">
+                      <span>{BackupService.BACKUP_KEY_LABELS[s.key]}</span>
+                      <span className="font-mono text-muted-foreground">{s.count}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="flex gap-2 justify-end pt-2">
+                <Button variant="outline" onClick={() => setPendingRestore(null)}>Abbrechen</Button>
+                <Button variant="destructive" onClick={confirmRestore}>Überschreiben &amp; wiederherstellen</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
     </main>
