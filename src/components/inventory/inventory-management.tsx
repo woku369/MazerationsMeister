@@ -434,7 +434,7 @@ export default function InventoryManagement() {
     const wb = XLSX.utils.book_new();
     const sheetData: (string | number | undefined | null)[][] = [];
     sheetData.push([
-      "Artikel-Nr.", "Produktname", "Gesamtmenge (L)", "Gesamt LA (L)"
+      "Artikel-Nr.", "Produktname", "Kategorie", "Gesamtmenge (L)", "Gesamt LA (L)"
     ]);
     const productSummaries = itemsToSummarize.reduce<Record<string, any>>((acc, item) => {
       // Fällt auf Produktname zurück, solange Artikelnummern noch nicht vergeben
@@ -442,11 +442,19 @@ export default function InventoryManagement() {
       // sonst würden alle Posten ohne Artikelnummer stillschweigend in einer
       // einzigen, mit dem erstbesten Produktnamen falsch beschrifteten Zeile
       // zusammenlaufen, statt eine Zeile je tatsächlichem Produkt zu zeigen.
-      const key = item.artikelNummer || item.produktName;
+      // Kategorie fließt zusätzlich in den Schlüssel ein (Nutzer-Meldung
+      // 30.09.2026): Mazerat und Destillat derselben Pflanze (z.B.
+      // Zitronenmelisse) sind zwei grundverschiedene Artikel, tragen in der
+      // Praxis aber teils denselben Produktnamen/dieselbe Artikelnummer -
+      // ohne die Kategorie im Schlüssel würden sie hier fälschlich zu einer
+      // Zeile verschmelzen, obwohl "Aktueller Lagerbestand" sie (mit eigener
+      // Kategorie-Spalte) korrekt getrennt zeigt.
+      const key = `${item.artikelNummer || item.produktName}::${item.category || ''}`;
       if (!acc[key]) {
         acc[key] = {
           artikelNummer: item.artikelNummer,
           produktName: item.produktName,
+          category: item.category,
           totalQuantityLiters: 0,
           totalAbsoluteAlcoholLiters: 0,
         };
@@ -459,6 +467,7 @@ export default function InventoryManagement() {
       sheetData.push([
         summary.artikelNummer,
         summary.produktName,
+        summary.category,
         summary.totalQuantityLiters,
         summary.totalAbsoluteAlcoholLiters,
       ]);
