@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import * as BackupService from "@/lib/backup-service";
 import type { FullBackup } from "@/lib/backup-service";
 import { getFullDataSync, getPendingConflict, clearPendingConflict, markResolved } from "@/lib/full-data-sync";
+import buildInfo from "@/build-info.json";
 
 
 export default function EinstellungenPage() {
@@ -642,6 +643,13 @@ export default function EinstellungenPage() {
           </Dialog>
         </TabsContent>
       </Tabs>
+      {/* Versionsanzeige (Nutzer-Anfrage 01.10.2026: "ich erhalte immer nur die
+          0.1.0") - gerade bei mehreren Geräten/Rechnern im Einsatz nützlich,
+          um nachzuvollziehen, welcher Stand gerade läuft. */}
+      <p className="text-center text-xs text-muted-foreground mt-10">
+        MazerationsMeister v{buildInfo.version} · Build {buildInfo.buildNumber} ({buildInfo.gitCommit}) ·{' '}
+        {new Date(buildInfo.buildDate).toLocaleString('de-DE')}
+      </p>
     </main>
   );
 }

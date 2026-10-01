@@ -8,6 +8,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import buildInfo from '@/build-info.json';
 
 export default function AppHeader() {
   const pathname = usePathname();
@@ -61,9 +62,16 @@ export default function AppHeader() {
             </SheetContent>
           </Sheet>
 
-          <Link href="/" className="text-lg lg:text-3xl font-bold text-primary hover:text-primary/90 transition-colors">
-            <span className="hidden sm:inline">Mazerations-Meister V 1.0</span>
-            <span className="sm:hidden">MM V1.0</span>
+          <Link
+            href="/"
+            className="text-lg lg:text-3xl font-bold text-primary hover:text-primary/90 transition-colors"
+            title={`Build ${buildInfo.buildNumber} · ${buildInfo.gitCommit} · ${new Date(buildInfo.buildDate).toLocaleString('de-DE')}`}
+          >
+            <span className="hidden sm:inline">Mazerations-Meister v{buildInfo.version}</span>
+            <span className="sm:hidden">MM v{buildInfo.version}</span>
+            <span className="hidden lg:inline text-xs font-normal text-muted-foreground align-super ml-1">
+              Build {buildInfo.buildNumber}
+            </span>
           </Link>
         </div>
 
