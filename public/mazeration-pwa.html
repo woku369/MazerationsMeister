@@ -965,7 +965,14 @@
     }
 
     async function saveDraft(explicit = false) {
-        try { await dbPut('draft', { key: 'current', data: { ...collectForm(), weightUnit, volUnit, yieldUnit } }); } catch (e) {}
+        // editingId wird mitgesichert (Nutzer-Meldung 01.10.2026): sonst merkt
+        // sich der Zwischenstand zwar die Formularwerte, aber nicht, zu
+        // welchem bereits gespeicherten Protokoll sie gehören - ein Neustart
+        // der App mitten in einer mehrtägig offenen Mazeration führte dadurch
+        // dazu, dass jeder weitere Tag ein komplett neues, separates Protokoll
+        // erzeugte statt das bestehende fortzuführen (3 getrennte
+        // Zitronenmelisse-Einträge für dieselbe reale Mazeration).
+        try { await dbPut('draft', { key: 'current', data: { ...collectForm(), weightUnit, volUnit, yieldUnit }, editingId }); } catch (e) {}
         if (!explicit) return;
         // Explizites "Entwurf speichern": als Protokoll-Eintrag sichern (auch unvollständig)
         const data = collectForm();
@@ -984,6 +991,13 @@
             wasUpdate = false;
         }
         await dbPut('protocols', p);
+        // Zwischenstand erneut sichern, jetzt mit der ggf. gerade erst
+        // vergebenen editingId - beim allerersten "Entwurf speichern" einer
+        // neuen Mazeration war editingId beim Aufruf oben noch null, da sie
+        // erst im else-Zweig eben erst vergeben wurde. Ohne diesen zweiten
+        // Schreibvorgang würde ein App-Neustart direkt nach dem allerersten
+        // Speichern die Verknüpfung sofort wieder verlieren.
+        try { await dbPut('draft', { key: 'current', data: { ...collectForm(), weightUnit, volUnit, yieldUnit }, editingId }); } catch (e) {}
         setStatus('Entwurf gespeichert');
 
         // Zusätzlich als Backup zu GitHub sichern (Nutzer-Anfrage 01.10.2026):
@@ -1038,6 +1052,23 @@
             set('f-remarks', d.remarks);
             restoreTargetTanks(d.targetTanks);
             calcNet(); calcDuration(); calcAusbeute();
+
+            // Bearbeitungs-Identität mitwiederherstellen, nicht nur die
+            // Feldwerte - sonst würde das nächste "Entwurf speichern" nach
+            // einem App-Neustart ein zweites, separates Protokoll erzeugen
+            // statt das bestehende fortzuführen (siehe Kommentar in saveDraft()).
+            // Nachprüfen, ob das referenzierte Protokoll noch existiert (könnte
+            // zwischenzeitlich manuell gelöscht oder bereits abgeschlossen
+            // worden sein) statt blind zu vertrauen.
+            if (draft.editingId) {
+                const existing = await dbGet('protocols', draft.editingId);
+                if (existing) {
+                    editingId = draft.editingId;
+                    document.getElementById('editing-banner').style.display = '';
+                    document.getElementById('editing-name').textContent = existing.macerationName || draft.editingId;
+                }
+            }
+
             setStatus('↩ Entwurf wiederhergestellt');
         } catch (e) {}
     }
@@ -1094,14 +1125,30 @@
         editingId = id;
         document.getElementById('editing-banner').style.display = '';
         document.getElementById('editing-name').textContent = p.macerationName || id;
+        // Sofort im Zwischenstand vermerken, nicht erst bei der nächsten
+        // Autosave nach dem ersten Tastendruck - sonst ginge die Verknüpfung
+        // bei einem App-Neustart unmittelbar nach dem Öffnen (noch ohne
+        // weitere Eingabe) wieder verloren.
+        try {
+            const draft = await dbGet('draft', 'current');
+            await dbPut('draft', { key: 'current', data: { ...(draft?.data || {}), ...collectForm(), weightUnit, volUnit, yieldUnit }, editingId });
+        } catch (e) {}
         showTab('form');
         window.scrollTo(0, 0);
         showToast('✏️ Protokoll zur Bearbeitung geöffnet');
     }
 
-    function cancelEdit() {
+    async function cancelEdit() {
         editingId = null;
         document.getElementById('editing-banner').style.display = 'none';
+        // Persistierten Zwischenstand sofort nachziehen, statt auf die nächste
+        // 1,5s-Autosave-Verzögerung zu warten - sonst würde ein App-Neustart
+        // unmittelbar nach "Abbrechen" die eigentlich verlassene Bearbeitung
+        // wiederherstellen.
+        try {
+            const draft = await dbGet('draft', 'current');
+            if (draft) await dbPut('draft', { ...draft, editingId: null });
+        } catch (e) {}
         showToast('Bearbeitung abgebrochen');
     }
 
