@@ -970,20 +970,36 @@
         // Explizites "Entwurf speichern": als Protokoll-Eintrag sichern (auch unvollständig)
         const data = collectForm();
         if (!data.macerationName) { showToast('❌ Mindestens Bezeichnung angeben', 3000); return; }
+        let p;
+        let wasUpdate;
         if (editingId) {
             const existing = await dbGet('protocols', editingId);
-            const p = { ...existing, ...data, savedAt: new Date().toISOString(), synced: false, draft: true };
-            await dbPut('protocols', p);
-            showToast('📂 Entwurf aktualisiert');
+            p = { ...existing, ...data, savedAt: new Date().toISOString(), synced: false, draft: true };
+            wasUpdate = true;
         } else {
-            const p = { ...makeProtocol(data), draft: true };
-            await dbPut('protocols', p);
+            p = { ...makeProtocol(data), draft: true };
             editingId = p.id;
             document.getElementById('editing-banner').style.display = '';
             document.getElementById('editing-name').textContent = data.macerationName;
-            showToast('📂 Entwurf gespeichert – Bearbeitung läuft weiter');
+            wasUpdate = false;
         }
+        await dbPut('protocols', p);
         setStatus('Entwurf gespeichert');
+
+        // Zusätzlich als Backup zu GitHub sichern (Nutzer-Anfrage 01.10.2026):
+        // bis hierhin lag eine offene Mazeration ausschließlich lokal auf dem
+        // einen Gerät, auf dem sie begonnen wurde - ein Geräteverlust/-reset
+        // während der oft mehrtägigen offenen Phase (Ansetzen -> Abziehen ->
+        // Nachtropfen) hätte sie unwiederbringlich gelöscht. Best effort: bleibt
+        // z.B. im Mazerationsraum ohne WLAN offline, bleibt der Entwurf
+        // trotzdem lokal gespeichert - nur eben ohne das Backup bis zum
+        // nächsten Speichern mit Internetverbindung.
+        let backupNote = '';
+        if (navigator.onLine) {
+            const ok = await syncProtocol(p);
+            if (ok) { p.synced = true; await dbPut('protocols', p); backupNote = ' + ☁️ Backup'; }
+        }
+        showToast((wasUpdate ? '📂 Entwurf aktualisiert' : '📂 Entwurf gespeichert – Bearbeitung läuft weiter') + backupNote);
     }
 
     async function restoreDraft() {
@@ -1114,9 +1130,14 @@
         const err = validateForm(data);
         if (err) { showToast('❌ ' + err, 3500); return; }
         let p;
+        let warEntwurf = false;
         if (editingId) {
             const existing = await dbGet('protocols', editingId);
-            p = { ...existing, ...data, savedAt: new Date().toISOString(), synced: false };
+            warEntwurf = !!existing?.draft;
+            // draft:false setzen statt den Flag aus "existing" zu übernehmen -
+            // sonst bliebe ein fertiggestelltes Protokoll im "Entwurf"-Filter
+            // hängen, obwohl es schon vollständig und gesynct ist.
+            p = { ...existing, ...data, savedAt: new Date().toISOString(), synced: false, draft: false };
             editingId = null;
             document.getElementById('editing-banner').style.display = 'none';
         } else {
@@ -1133,6 +1154,10 @@
             p.synced = true;
             await dbPut('protocols', p);
             await dbDelete('draft', 'current');
+            // Das Entwurf-Backup ist jetzt überflüssig - das fertige Protokoll
+            // liegt bereits in mazeration-protocols/ (best effort, blockiert
+            // das Fertigstellen nicht, falls es fehlschlägt).
+            if (warEntwurf) deleteDraftBackup(p.id);
             showToast('✅ Gespeichert & Gesynct!');
             setStatus('✅ Sync erfolgreich');
         } else {
@@ -1158,14 +1183,24 @@
     // ============================================================
     // GITHUB SYNC
     // ============================================================
-    async function syncProtocol(protocol) {
+    // Abgeschlossene Protokolle landen in mazeration-protocols/ (von dort liest
+    // die Desktop-App "Aus GitHub laden"), offene Entwürfe in mazeration-drafts/
+    // (reines Backup gegen Geräteverlust - die Desktop-App kennt diesen Ordner
+    // nicht und importiert ihn auch nicht, siehe saveDraft()).
+    function folderFor(protocol) {
+        return protocol.draft ? 'mazeration-drafts' : 'mazeration-protocols';
+    }
+
+    async function syncProtocol(protocol, folder = folderFor(protocol)) {
         try {
             const s = await getSettings();
             if (!s.token || !s.repo) return false;
             const [owner, repo] = s.repo.split('/');
-            const safe = protocol.macerationName.replace(/[^\w\sÄÖÜäöüß-]/g,'').replace(/\s+/g,'_').slice(0,40);
-            const date = protocol.savedAt.slice(0, 10);
-            const filename = `mazeration-protocols/${date}_${safe}_${protocol.batchNumber}.json`;
+            // Dateiname über die ID des Protokolls statt über savedAt (das sich
+            // bei jedem erneuten Speichern ändert) - sonst entstünde bei jeder
+            // Aktualisierung eine neue Datei statt die bestehende zu
+            // überschreiben, und alte Stände blieben als Leichen im Repo liegen.
+            const filename = `${folder}/${protocol.id}.json`;
             const content = JSON.stringify(protocol, null, 2);
             const b64 = btoa(unescape(encodeURIComponent(content)));
             const headers = { 'Authorization': `token ${s.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' };
@@ -1181,6 +1216,30 @@
             });
             return res.ok;
         } catch (e) { return false; }
+    }
+
+    /**
+     * Räumt das Entwurf-Backup aus mazeration-drafts/ auf, sobald eine
+     * Mazeration abgeschlossen ist (sie liegt dann ohnehin schon in
+     * mazeration-protocols/). Rein kosmetisch/aufräumend - ein Fehlschlag
+     * (z.B. offline, oder der Entwurf wurde nie erfolgreich gesynct) darf
+     * das eigentliche Abschließen nicht blockieren, daher best effort.
+     */
+    async function deleteDraftBackup(id) {
+        try {
+            const s = await getSettings();
+            if (!s.token || !s.repo || !navigator.onLine) return;
+            const [owner, repo] = s.repo.split('/');
+            const filename = `mazeration-drafts/${id}.json`;
+            const headers = { 'Authorization': `token ${s.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' };
+            const head = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filename}?ref=${s.branch}`, { headers });
+            if (!head.ok) return; // kein Backup vorhanden (z.B. durchgehend offline bearbeitet) - nichts zu tun
+            const sha = (await head.json()).sha;
+            await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filename}`, {
+                method: 'DELETE', headers,
+                body: JSON.stringify({ message: `Entwurf abgeschlossen: ${id}`, sha, branch: s.branch }),
+            });
+        } catch (e) { /* best effort */ }
     }
 
     async function syncAll() {
