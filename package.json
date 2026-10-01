@@ -15,8 +15,6 @@
     "test": "vitest",
     "electron-dev": "tsc --project electron/tsconfig.json && electron .",
     "electron-build": "next build && tsc --project electron/tsconfig.json && electron-builder",
-    "build-fast": "node scripts/build-fast.js",
-    "build-portable": "next build && tsc --project electron/tsconfig.json && electron-packager . MazerationsMeister --platform=win32 --arch=x64 --out=dist --overwrite --asar",
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
@@ -130,12 +128,6 @@
     "portable": {
       "artifactName": "MazerationsMeister-Portable-${version}.exe",
       "splashImage": "public/icon.ico"
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": true,
-      "allowToChangeInstallationDirectory": true
-    },
-    "artifactName": "MazerationsMeister-Setup-${version}.exe"
+    }
   }
 }

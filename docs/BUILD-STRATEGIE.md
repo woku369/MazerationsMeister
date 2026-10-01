@@ -53,12 +53,8 @@ Das ist `next build && tsc electron && electron-builder`, gesteuert über den `"
 
 > ⚠️ Die `build`-Konfiguration bündelt zusätzlich `.next/**/*` (Zeile `extraFiles`/`files`). Da die Electron-App laut `electron/main.js` ausschließlich einen eigenen statischen Server über `out/` fährt (kein Next-Server läuft zur Laufzeit), ist unklar, wozu `.next/` im Paket noch gebraucht wird — vermutlich Altlast aus einer früheren Architektur. Nicht risikofrei entfernbar ohne Testbuild, deshalb hier nur vermerkt, nicht geändert.
 
-### Windows Portable EXE — **doppelt vorhandene Alternativwege (Altlast, siehe Abschnitt 4)**
-- `npm run build-portable` (package.json) → nutzt **electron-packager** (anderes Tool als oben!)
-- `node scripts/build-fast.js` (`npm run build-fast`) → nutzt ebenfalls electron-packager, mit eigener Ignore-Liste, nennt sich "OPTIMIZED"
-- `node scripts/build-portable.js` (kein npm-Alias, nur direkt aufrufbar) → dritte electron-packager-Variante, nennt sich "Full-Featured"
-
-Drei verschiedene Pakete, drei verschiedene Tools/Konfigurationen, für denselben Zweck. Das ist der Kern des "Build-Chaos".
+### Windows Portable EXE — Alternativwege entfernt (01.10.2026)
+Nutzer bestätigte: `npm run electron-build` ist der tatsächlich verwendete Weg. Die drei Alternativen (`build-portable`-npm-Skript, `scripts/build-fast.js`, `scripts/build-portable.js`) wurden daraufhin ersatzlos gelöscht - siehe Abschnitt 4/6.
 
 ## 4. Inventar: was ist gültig, was ist Altlast
 
@@ -67,41 +63,30 @@ Drei verschiedene Pakete, drei verschiedene Tools/Konfigurationen, für denselbe
 | `npm run dev`, `dev:turbo` | ✅ gültig | Aktive Entwicklung |
 | `npm run build` | ✅ gültig | Einzige Quelle für den statischen Export, von Actions UND allen Electron-Skripten verwendet |
 | `npm run electron-build` (electron-builder) | ✅ **empfohlener** Packaging-Weg, **funktionierend bestätigt (27.09.2026)** | Einzige config-gesteuerte, deklarative Lösung. Hatte bis 27.09.2026 einen echten Laufzeitfehler (`staticPath` zeigte über `app.getAppPath()` ins Leere statt zu `process.resourcesPath`) — behoben, Nutzer hat lokal einen lauffähigen Windows-Build bestätigt. |
-| `.github/workflows/deploy.yml` | ✅ gültig, aber **stellenweise veraltet** | Trigger-Liste `[main, main-pages, fresh-main]` — die Branches `main` und `main-pages` existieren nicht mehr, nur `fresh-main` ist real. Ungefährlich (Push nach nicht-existenten Branches passiert nie), aber verwirrend beim Lesen. |
-| `npm run build-portable` (electron-packager, in package.json) | ⚠️ Altlast/Duplikat | Redundant zu `electron-build`, anderes Tool |
-| `scripts/build-fast.js` | ⚠️ Altlast/Duplikat | Dritte Packaging-Variante |
-| `scripts/build-portable.js` | ⚠️ Altlast/Duplikat | Vierte Packaging-Variante, nicht mal als npm-Skript verdrahtet |
-| `scripts/build-optimized.js` | ❌ **tot** | 0 Bytes, leer |
-| `scripts/build-optimized-full.js` | ❌ **tot** | 0 Bytes, leer |
-| `scripts/build-static.js` | ❌ **tot** | 0 Bytes, leer |
-| `scripts/fix-export.js` | ❌ **tot** | 0 Bytes, leer |
-| `server.js` + `start.bat` | ❌ **vermutlich tot/inkompatibel** | Startet einen echten Next.js-SSR-Server (`next({dev:false})`) — das funktioniert nicht sinnvoll zusammen mit `output: 'export'` in `next.config.ts` (Export-Modus liefert keinen lauffähigen Server-Build). Referenziert außerdem noch die alte, riskante `/tank/[id]`-Route. Wirkt wie ein Überbleibsel aus der Zeit vor der Umstellung auf statischen Export + Electron-eigenen Server. |
-| `electron/main.js` + `main.ts` | ✅ gültig | Über `package.json`-Feld `"main"` tatsächlich verwendet, korrekte Routing-Logik für den Multi-Page-Export (prüft `pfad/index.html`, dann `pfad.html`, dann SPA-Fallback) |
-| `electron/main-simple.js` + `main-simple.ts` | ⚠️ **verwaist** | Wird von nichts referenziert (`package.json`s `"main"` zeigt auf `main.js`, kein Build-Skript nutzt es). Routing-Logik ist zudem simpler/fehlerhafter (wirft bei jeder Route sofort auf `index.html` zurück, statt erst `pfad/index.html` zu prüfen — würde bei echtem Einsatz clientseitiges Routing brechen). |
-| `nsis`-Konfiguration in `package.json` | ⚠️ **inkonsistent** | Vorhanden inkl. eigenem `artifactName: "...-Setup-....exe"`, aber `win.target` listet nur `"portable"` — NSIS wird also nie tatsächlich gebaut. Entweder gewollt entfernen oder `"nsis"` wieder in `win.target` aufnehmen. |
+| `.github/workflows/deploy.yml` | ✅ **erledigt (01.10.2026)** | Trigger-Liste auf `[fresh-main]` reduziert — `main` und `main-pages` existierten nicht mehr. |
+| `npm run build-portable` (electron-packager, in package.json) | ❌ **gelöscht (01.10.2026)** | War redundant zu `electron-build`, anderes Tool |
+| `scripts/build-fast.js` | ❌ **gelöscht (01.10.2026)** | War dritte Packaging-Variante |
+| `scripts/build-portable.js` | ❌ **gelöscht (01.10.2026)** | War vierte Packaging-Variante, nicht mal als npm-Skript verdrahtet |
+| `scripts/build-optimized.js` | ❌ **gelöscht (01.10.2026)** | War 0 Bytes, leer |
+| `scripts/build-optimized-full.js` | ❌ **gelöscht (01.10.2026)** | War 0 Bytes, leer |
+| `scripts/build-static.js` | ❌ **gelöscht (01.10.2026)** | War 0 Bytes, leer |
+| `scripts/fix-export.js` | ❌ **gelöscht (01.10.2026)** | War 0 Bytes, leer |
+| `server.js` + `start.bat` | ❌ **gelöscht (01.10.2026)** | Alter Next.js-SSR-Server-Ansatz, unvereinbar mit `output: 'export'` + Electron-eigenem Static-Server |
+| `electron/main.js` + `main.ts` | ✅ gültig | Über `package.json`-Feld `"main"` tatsächlich verwendet, korrekte Routing-Logik für den Multi-Page-Export (prüft `pfad/index.html`, dann `pfad.html`, dann SPA-Fallback). Seit Aufgabe 40 (siehe ROADMAP.md) mit korrekt eingehängtem `preload.js` für die sichere `window.electronAPI`-Bridge. |
+| `electron/main-simple.js` + `main-simple.ts` | ❌ **gelöscht (01.10.2026)** | War verwaist, wurde von nichts referenziert |
+| `nsis`-Konfiguration in `package.json` | ❌ **gelöscht (01.10.2026)** | War inkonsistent: `win.target` listet nur `"portable"`, NSIS wurde nie tatsächlich gebaut |
 | committeter `out/`-Ordner im Repo | ✅ **erledigt** | Siehe Abschnitt 2 — aus dem Git-Tracking entfernt (27.09.2026) |
 | `.next`-Bundling in electron-builder (`build.files`/`extraFiles`) | ✅ **erledigt** | War tatsächlich unnötig (siehe Abschnitt 2) — im selben Fix entfernt, der auch den `staticPath`-Laufzeitfehler behoben hat |
 
-## 5. Versionierung — aktueller Zustand: praktisch nicht vorhanden
+## 5. Versionierung — ✅ umgesetzt (Aufgabe 46, 01.10.2026)
 
-Geprüft, nicht angenommen:
-- `package.json` steht auf `"version": "0.1.0"` — trotz 20+ dokumentierter, teils größerer Ausbaustufen (Aufgabe 1–21 in dieser Roadmap) nie erhöht.
-- Diese Versionsnummer wird **nirgends im laufenden Programm angezeigt** — kein Code liest `package.json`s `version`-Feld zur Laufzeit aus.
-- Stattdessen steht in `src/components/layout/header.tsx` (Zeile 65) ein **hart codierter, unabhängiger String**: `"Mazerations-Meister V 1.0"`. Der stimmt weder mit `package.json` (0.1.0) noch mit dem tatsächlichen Funktionsumfang überein und wird bei jeder neuen Funktion nicht mitgepflegt.
-- Die einzige Stelle, an der `package.json`s Version überhaupt eine Rolle spielt, ist das Platzhalter-Makro `${version}` in den `artifactName`-Vorlagen der electron-builder-Konfiguration (z.B. `MazerationsMeister-Portable-${version}.exe`) — nützt aber nichts, solange die Zahl nie erhöht wird.
-- Die drei electron-packager-Alternativskripte (`build-portable`-npm-Skript, `scripts/build-fast.js`, `scripts/build-portable.js`) verwenden **gar keine Versions-Platzhalter** — sie erzeugen immer denselben Dateinamen (`MazerationsMeister.exe` bzw. `MazerationsMeister-Optimized.exe`) und überschreiben sich bei jedem Lauf selbst. Das ist ein weiterer Grund, sich (siehe Abschnitt 4) auf electron-builder als einzigen Weg festzulegen.
-- Es existiert **kein einziger Git-Tag** im Repository.
+Ursprünglicher Befund (bis 01.10.2026 zutreffend): `package.json` stand seit dem Scaffold unverändert auf `0.1.0`, nirgends im laufenden Programm angezeigt — `header.tsx` zeigte stattdessen einen hart codierten, unabhängigen String (`"Mazerations-Meister V 1.0"`). Kein Git-Tag im Repository.
 
-### Empfohlene Versionierungsstrategie
-
-1. **`package.json`s `version`-Feld wird die einzige Quelle der Wahrheit** (Semantic Versioning `MAJOR.MINOR.PATCH`):
-   - `PATCH` (0.1.**1**) — Bugfixes, Datenkorrekturen ohne neue Funktion (z.B. Aufgabe 18)
-   - `MINOR` (0.**2**.0) — neue Funktionen ohne Breaking Change (z.B. Aufgabe 15 Lohnbrand, Aufgabe 17 Rezepturen)
-   - `MAJOR` (**1**.0.0) — grundlegende Änderungen an Datenformaten/Architektur, oder schlicht der Punkt, an dem die App als produktionsreif erklärt wird
-2. **Bei jedem Release-relevanten Commit** `npm version patch|minor|major` verwenden (bumpt `package.json` und erzeugt automatisch einen passenden Git-Commit) statt die Zahl von Hand zu editieren.
-3. **Git-Tag pro Release** (`git tag v0.2.0 && git push --tags`) — macht jeden Auslieferungsstand im Verlauf eindeutig wiederfindbar, unabhängig vom Build-Ordner.
-4. **`header.tsx`s hartcodierten String durch die echte Version ersetzen** — z.B. per `import pkg from '../../../package.json'` (Next.js kann JSON importieren) statt eines von Hand gepflegten Texts. Kleiner, risikoarmer Fix, aber bewusst noch nicht umgesetzt (siehe Hinweis unten).
-5. **Web-Export (GitHub Pages) braucht keine eigene Versionsnummer im Dateinamen** — dort gibt es ohnehin nur einen aktuellen Stand, der Git-Commit-Hash reicht als Referenz.
+**Tatsächlich umgesetzt, leicht abweichend von der unten ursprünglich skizzierten Empfehlung:**
+- `package.json`s `version` ist jetzt `0.2.0` (erster echter Bump) und bleibt die Quelle der Wahrheit für die *semantische* Version — weitere Bumps bewusst manuell/nach Bedarf (nicht automatisch pro Commit, sonst wäre Major/Minor bedeutungslos).
+- Statt `npm version`/Git-Tags übernimmt `scripts/generate-build-info.js` die **Build-Nummer** automatisch über `git rev-list --count HEAD` — kein manueller Schritt pro Release nötig, kein Risiko, ihn zu vergessen. Läuft über `next.config.ts` vor jedem `next dev`/`next build` (und damit auch vor `electron-build`, siehe Abschnitt 3) und schreibt `src/build-info.json` (Version, Build-Nummer, Git-Commit, Zeitstempel).
+- `header.tsx` zeigt jetzt `Mazerations-Meister v{version}` mit Build-Nummer; die Einstellungen-Seite zeigt zusätzlich eine vollständige Fußzeile (Version, Build, Commit, Zeitstempel).
+- **Noch nicht umgesetzt** (siehe nächster Abschnitt): Git-Tags pro Release, versionierter Unterordner in `dist/`.
 
 ### Eindeutiger, versionierter Build-Ordner (für die portable EXE)
 
@@ -115,18 +100,18 @@ Ergebnis: `dist/0.2.0/MazerationsMeister-Portable-0.2.0.exe`, `dist/0.3.0/...` u
 
 > ⚠️ **Nicht umgesetzt, nur dokumentiert:** Ob electron-builder Unterverzeichnisse in `artifactName` tatsächlich wie erwartet anlegt, ließe sich nur durch einen echten Windows-Build verifizieren — das ist in dieser (Linux-)Umgebung nicht möglich. Vor dem nächsten echten Portable-Build einmal testweise ausprobieren, bevor darauf verlassen wird.
 
-## 6. Aufräumplan (dokumentiert, **noch nicht ausgeführt**)
+## 6. Aufräumplan — ✅ vollständig ausgeführt (01.10.2026)
 
-Reihenfolge nach Risiko, niedrigstes zuerst:
+Nutzer bestätigte auf Nachfrage „welches Build-Script wird verwendet, können die anderen weg?" → `electron-build`, Rest aufräumen.
 
 1. ✅ **Erledigt (27.09.2026):** `out/` aus dem Git-Tracking genommen, `.gitignore` bereinigt, `distDir: 'out'` aus `next.config.ts` entfernt. Zusätzlich (nicht ursprünglich in diesem Plan, aber im selben Zug gefunden und behoben): `staticPath`-Laufzeitfehler in `electron/main.js`/`main.ts` (zeigte über `app.getAppPath()` ins Leere), `out/` läuft jetzt korrekt als `extraResources`. Lokaler Windows-Build vom Nutzer bestätigt funktionierend.
-2. **Die 4 leeren Skripte löschen** (`build-optimized.js`, `build-optimized-full.js`, `build-static.js`, `fix-export.js`). Risiko: keins, sie tun nichts.
-3. **`server.js` + `start.bat` löschen**, sofern niemand sie noch manuell benutzt (kurz nachfragen/testen, ob `start.bat` überhaupt noch jemand ausführt). Risiko: gering, vermutlich bereits nicht mehr funktionsfähig.
-4. **`electron/main-simple.ts/js` löschen.** Risiko: keins (verwaist, keine Referenz).
-5. **Auf einen Packaging-Weg festlegen** (Empfehlung: `electron-build`/electron-builder behalten — **funktioniert nachweislich**, siehe Abschnitt 4), danach `build-portable`-npm-Skript, `scripts/build-fast.js` und `scripts/build-portable.js` löschen. Risiko: gering, die frühere Unsicherheit ("funktioniert electron-builder überhaupt?") ist ausgeräumt.
-6. **`nsis`-Konfigurationsblock** in `package.json` entweder entfernen oder bewusst aktivieren (`"nsis"` zu `win.target` hinzufügen, falls ein Setup-Installer neben der portablen Version gewünscht ist).
-7. **`.github/workflows/deploy.yml`** Trigger-Liste auf `[fresh-main]` reduzieren (die anderen beiden Branch-Namen existieren nicht mehr).
+2. ✅ **Erledigt (01.10.2026):** Die 4 leeren Skripte gelöscht (`build-optimized.js`, `build-optimized-full.js`, `build-static.js`, `fix-export.js`).
+3. ✅ **Erledigt (01.10.2026):** `server.js` + `start.bat` gelöscht.
+4. ✅ **Erledigt (01.10.2026):** `electron/main-simple.ts/js` gelöscht.
+5. ✅ **Erledigt (01.10.2026):** Nutzer bestätigte `electron-build` als tatsächlich verwendeten Weg — `build-portable`-npm-Skript, `scripts/build-fast.js` und `scripts/build-portable.js` gelöscht.
+6. ✅ **Erledigt (01.10.2026):** `nsis`-Konfigurationsblock (inkl. des nie aktiven `artifactName: "...-Setup-....exe"`) aus `package.json` entfernt.
+7. ✅ **Erledigt (01.10.2026):** `.github/workflows/deploy.yml` Trigger-Liste auf `[fresh-main]` reduziert.
 8. ✅ **Erledigt (27.09.2026):** `.next`-Bundling in der electron-builder-Konfiguration entfernt — war tatsächlich unnötig, siehe Schritt 1.
-9. **Versionierung einführen:** `header.tsx`s hartcodierten „V 1.0"-String durch die echte `package.json`-Version ersetzen, erste bewusste `npm version minor` (→ 0.2.0) für den aktuellen Stand setzen, Git-Tag dafür anlegen, `artifactName` um `${version}/`-Unterordner erweitern (mit Testbuild verifizieren). Risiko: gering (reine Anzeige- und Namensänderung), aber erst sinnvoll, sobald Schritt 5 (ein einziger Packaging-Weg) geklärt ist.
+9. ✅ **Größtenteils erledigt (Aufgabe 46, 01.10.2026):** `header.tsx` zeigt die echte Version + Build-Nummer, `package.json` auf `0.2.0` angehoben (siehe Abschnitt 5 für die genaue, vom ursprünglichen Plan leicht abweichende Umsetzung über `src/build-info.json`). **Noch offen, bewusst nicht umgesetzt:** Git-Tag pro Release, `artifactName` um `${version}/`-Unterordner erweitern (siehe Hinweis unten zur fehlenden Testbarkeit in dieser Umgebung).
 
-Jeder Schritt ist einzeln und risikoarm genug, um separat committet zu werden.
+Alle Schritte sind in dieser Session ausgeführt, typecheck- und testverifiziert (`tsc --noEmit`, 137/137 Vitest-Tests), aber **nicht mit einem echten Windows-Build von `npm run electron-build` nachgeprüft** — das ist in dieser (Linux-)Umgebung nicht möglich. Vor dem nächsten echten Build einmal durchlaufen lassen und bestätigen.
