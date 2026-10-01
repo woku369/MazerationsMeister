@@ -347,11 +347,16 @@
 
         <!-- ===== PROTOKOLLE ===== -->
         <div id="tab-content-list" class="hidden">
-            <div class="flex justify-between items-center mb-3">
+            <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
                 <h2 class="text-white font-bold text-base">Gespeicherte Protokolle</h2>
-                <button onclick="syncAll()" class="bg-white text-purple-700 font-bold px-4 py-2 rounded-lg text-sm shadow">
-                    ☁️ Alle syncen
-                </button>
+                <div class="flex gap-2">
+                    <button onclick="loadDraftsFromGithub()" class="bg-white text-purple-700 font-bold px-3 py-2 rounded-lg text-xs shadow" title="Entwürfe von einem anderen Gerät holen">
+                        ⬇️ Entwürfe laden
+                    </button>
+                    <button onclick="syncAll()" class="bg-white text-purple-700 font-bold px-3 py-2 rounded-lg text-xs shadow">
+                        ☁️ Alle syncen
+                    </button>
+                </div>
             </div>
             <div class="mb-3 space-y-2">
                 <input id="protocol-search" type="search" class="field-input text-gray-800 text-sm" placeholder="🔍 Name, Charge, Pflanze ..." oninput="renderProtocolList()">
@@ -496,6 +501,12 @@
         await restoreDraft();
         if ('Notification' in window) updateNotifStatus(Notification.permission);
         await checkEndDateNotifications();
+        // Leise im Hintergrund prüfen, ob auf GitHub Entwürfe liegen, die
+        // dieses Gerät noch nicht kennt (z.B. frisch eingerichtetes Ersatz-
+        // gerät, oder ein am anderen Gerät begonnener Entwurf) - rein additiv
+        // und dedupliziert über die ID, überschreibt also nie etwas Lokales.
+        // Bewusst nicht awaited, damit der Start nicht auf das Netzwerk wartet.
+        loadDraftsFromGithub(true);
     });
 
     window.addEventListener('online', updateOnlineStatus);
@@ -1302,6 +1313,63 @@
         showToast(`✅ ${ok}/${pending.length} Protokolle gesynct`);
         setStatus(`✅ ${ok} Protokolle gesynct`);
         await renderProtocolList();
+    }
+
+    /**
+     * Holt offene Entwürfe von GitHub (mazeration-drafts/) in die lokale
+     * Datenbank dieses Geräts - die Gegenrichtung zum automatischen Backup
+     * aus saveDraft() (Nutzer-Anfrage 01.10.2026). Ohne das wären auf GitHub
+     * gesicherte Entwürfe auf einem neuen/anderen Gerät unsichtbar: die
+     * lokale Datenbank dort ist leer, auch wenn das Backup längst existiert.
+     * Dedupliziert über die Protokoll-ID, importiert nur tatsächlich neue.
+     */
+    async function loadDraftsFromGithub(silent = false) {
+        const s = await getSettings();
+        if (!s.token || !s.repo) { if (!silent) showToast('❌ Kein GitHub-Token eingerichtet (Tab Einst.)', 3500); return; }
+        if (!navigator.onLine) { if (!silent) showToast('❌ Kein Internet verfügbar'); return; }
+        const [owner, repo] = s.repo.split('/');
+        const headers = { 'Authorization': `token ${s.token}`, 'Accept': 'application/vnd.github.v3+json' };
+        if (!silent) setStatus('⏳ Suche Entwürfe auf GitHub...');
+        try {
+            const listResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/mazeration-drafts?ref=${s.branch}`, { headers });
+            if (listResp.status === 404) { if (!silent) { showToast('ℹ️ Noch keine Entwürfe auf GitHub gesichert'); setStatus(''); } return; }
+            if (!listResp.ok) { if (!silent) { showToast(`❌ GitHub-Fehler (${listResp.status})`, 3500); setStatus(''); } return; }
+
+            const files = await listResp.json();
+            const jsonFiles = files.filter(f => f.name.endsWith('.json'));
+            const existingIds = new Set((await dbGetAll('protocols')).map(p => p.id));
+
+            let imported = 0;
+            for (const file of jsonFiles) {
+                try {
+                    const fileResp = await fetch(file.download_url);
+                    if (!fileResp.ok) continue;
+                    const protocol = await fileResp.json();
+                    if (!protocol.id || existingIds.has(protocol.id)) continue;
+                    // Kommt direkt von GitHub - lokal bereits im Sync-Zustand,
+                    // sonst würde "Alle syncen" ihn gleich wieder unnötig hochladen.
+                    await dbPut('protocols', { ...protocol, synced: true });
+                    existingIds.add(protocol.id);
+                    imported++;
+                } catch (e) {}
+            }
+
+            // "Nichts Neues" nur bei manuellem Klick melden - still() (z.B. beim
+            // App-Start automatisch aufgerufen) soll nicht bei jedem Öffnen auf
+            // demselben Gerät einen Toast zeigen, wenn es ohnehin nichts zu
+            // holen gibt. Ein tatsächlicher Fund wird immer gemeldet, auch im
+            // Hintergrund - das ist genau der Moment, in dem der Nutzer es
+            // wissen muss (z.B. neues Gerät mit leerer lokaler Datenbank).
+            if (imported === 0) {
+                if (!silent) showToast('✅ Alle Entwürfe bereits lokal vorhanden');
+            } else {
+                showToast(`⬇️ ${imported} Entwurf/Entwürfe von GitHub geladen`);
+                setStatus(`⬇️ ${imported} geladen`);
+                await renderProtocolList();
+            }
+        } catch (e) {
+            if (!silent) { showToast('❌ Fehler beim Laden von GitHub', 3500); setStatus(''); }
+        }
     }
 
     // ============================================================
