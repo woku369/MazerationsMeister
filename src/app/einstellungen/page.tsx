@@ -25,10 +25,20 @@ export default function EinstellungenPage() {
   const [hydrated, setHydrated] = useState(false);
   React.useEffect(() => { setHydrated(true); }, []);
   
-  // Daten-Speicherpfad
-  const [dataPath, setDataPath] = useState(() => {
+  // Lokaler Exportpfad - Ziel für XLSX-Exporte und Backups (Nutzer-Meldung
+  // 01.10.2026: Es gab bislang ZWEI Orte, einen Speicherpfad zu setzen -
+  // hier und zusätzlich ein eigener "Speicher-Einstellungen"-Dialog in der
+  // Lagerverwaltung. Verwirrend, und funktional war nur Letzterer wirksam:
+  // dieses Feld schrieb in den Schlüssel "dataPath", den schlicht niemand
+  // auslas (useAppSettings(), der einzige Konsument, wird nirgends
+  // verwendet) - tatsächlich benutzt wurde ausschließlich "exportPath" aus
+  // dem Lagerverwaltungs-Dialog. Jetzt vereinheitlicht: dieses Feld ist die
+  // einzige Stelle, liest/schreibt direkt "exportPath"; ein zuvor hier
+  // eingegebener (aber nie wirksamer) "dataPath"-Wert wird einmalig als
+  // Startwert übernommen, falls "exportPath" noch leer ist.
+  const [exportPath, setExportPath] = useState(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('dataPath');
+      const stored = localStorage.getItem('exportPath') || localStorage.getItem('dataPath');
       if (stored) return stored;
       // Standardpfad: %APPDATA%/MazerationsMeister. War bis Aufgabe 40 über
       // window.process?.env?.APPDATA gelesen - im echten Programm wegen
@@ -39,8 +49,8 @@ export default function EinstellungenPage() {
     }
     return '';
   });
-  const handleSaveDataPath = () => {
-    localStorage.setItem('dataPath', dataPath);
+  const handleSaveExportPath = () => {
+    localStorage.setItem('exportPath', exportPath);
   };
   
   // OneDrive-Pfad für automatische Sync
@@ -310,11 +320,11 @@ export default function EinstellungenPage() {
         </TabsList>
         <TabsContent value="speicher">
           <div className="max-w-md">
-            <label className="block text-sm font-medium text-primary mt-6 mb-2">Lokaler Daten-Speicherpfad</label>
-            <Input type="text" value={dataPath} onChange={e => setDataPath(e.target.value)} placeholder="z.B. C:\\Users\\wolfg\\Desktop\\MazerationsMeister Daten" />
-            <Button className="mt-2" onClick={handleSaveDataPath}>Pfad speichern</Button>
-            <div className="text-xs text-muted-foreground mt-1">Aktueller Pfad: <span className="font-mono">{hydrated ? (dataPath || '(nicht gesetzt)') : '(nicht gesetzt)'}</span></div>
-            <div className="text-xs text-muted-foreground mt-4">Hier werden die Anwendungsdaten (z.B. Lagerbestand, Artikelstamm) gespeichert und geladen.</div>
+            <label className="block text-sm font-medium text-primary mt-6 mb-2">Lokaler Exportpfad</label>
+            <Input type="text" value={exportPath} onChange={e => setExportPath(e.target.value)} placeholder="z.B. C:\\Users\\wolfg\\Desktop\\MazerationsMeister Exporte" />
+            <Button className="mt-2" onClick={handleSaveExportPath}>Pfad speichern</Button>
+            <div className="text-xs text-muted-foreground mt-1">Aktueller Pfad: <span className="font-mono">{hydrated ? (exportPath || '(nicht gesetzt, Arbeitsverzeichnis wird verwendet)') : '(nicht gesetzt)'}</span></div>
+            <div className="text-xs text-muted-foreground mt-4">Hier landen XLSX-Exporte (Lagerübersicht, Lagerbestand) und lokale Backups.</div>
             
             <label className="block text-sm font-medium text-primary mt-6 mb-2">OneDrive-Synchronisation</label>
             <Input type="text" value={oneDrivePath} onChange={e => setOneDrivePath(e.target.value)} placeholder="z.B. C:\\Users\\wolfg\\OneDrive\\MazerationsMeister" />

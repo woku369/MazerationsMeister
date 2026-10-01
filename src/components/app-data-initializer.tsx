@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { initializeApp, getAppDataStatus } from '@/lib/app-data-manager';
 import { getFullDataSync } from '@/lib/full-data-sync';
+import { getTankAutoSync } from '@/lib/tank-auto-sync';
 
 /**
  * 🚀 APP-DATEN-INITIALIZER
@@ -42,13 +43,18 @@ export default function AppDataInitializer({ children }: { children: React.React
 
     loadAppData();
 
-    // Instanziiert den Sync-Singleton auf jeder Seite, nicht erst beim
-    // Besuch der Einstellungen - sonst würde ein zuvor aktivierter
-    // automatischer Abgleich (und der "vor dem Beenden synchronisieren"-
-    // Hook) erst reaktiviert, wenn der Nutzer zufällig die Einstellungen
-    // öffnet (dieselbe Lücke, die für den Tank-Auto-Sync in Aufgabe 36
-    // behoben wurde, hier von Anfang an vermieden).
+    // Instanziiert beide Sync-Singletons auf jeder Seite, nicht erst beim
+    // Besuch der Einstellungen/Tankverwaltung. Beide Klassen reaktivieren
+    // einen zuvor aktivierten automatischen Abgleich zwar schon in ihrem
+    // eigenen Konstruktor (TankAutoSync seit Aufgabe 36) - aber dieser Code
+    // läuft nie, wenn niemand den Singleton je anfordert. getTankAutoSync()
+    // wurde bisher ausschließlich aus Einstellungen/Tank-Management heraus
+    // aufgerufen: ohne Besuch einer der beiden Seiten nach jedem App-Start
+    // blieb der Sync trotz aktivierter Konfiguration inaktiv - genau die
+    // Ursache für die vom Nutzer gemeldete, trotz aktiviertem Sync
+    // veraltete mobile Tankansicht (01.10.2026).
     getFullDataSync();
+    getTankAutoSync();
   }, []);
 
   // Loading Screen

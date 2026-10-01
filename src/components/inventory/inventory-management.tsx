@@ -90,13 +90,8 @@ export default function InventoryManagement() {
     return [];
   });
   const [clientMounted, setClientMounted] = useState(false);
-  const [localExportPath, setLocalExportPath] = useState('');
-  const [oneDrivePath, setOneDrivePath] = useState('');
-  const [autoSave, setAutoSave] = useState(false);
-  const [lastSaveInfo, setLastSaveInfo] = useState<string | null>(null);
   const [importWarnings, setImportWarnings] = useState<string[]>([]);
   const [isWarningDialogOpen, setIsWarningDialogOpen] = useState(false);
-  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false);
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   const [isArtikelDefinitionDialogOpen, setIsArtikelDefinitionDialogOpen] = useState(false);
@@ -785,46 +780,6 @@ export default function InventoryManagement() {
     handleCloseTransactionDialog();
   };
   useEffect(() => { setClientMounted(true); }, []);
-  // DEAKTIVIERT: Automatisches Laden verhindert, da es importierte Daten überschreibt
-  // Verwenden Sie stattdessen den manuellen "Daten aus Speicherpfad importieren" Button
-  /*
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.require && localExportPath) {
-      try {
-        const fs = window.require('fs');
-        const path = window.require('path');
-        const filePath = path.join(localExportPath, 'lagerbestand.json');
-        if (fs.existsSync(filePath)) {
-          const data = fs.readFileSync(filePath, 'utf-8');
-          const items = JSON.parse(data);
-          if (Array.isArray(items)) setInventoryItems(items);
-        }
-      } catch (err) {}
-    }
-    if (typeof window !== 'undefined' && window.require && oneDrivePath) {
-      try {
-        const fs = window.require('fs');
-        const path = window.require('path');
-        const filePath = path.join(oneDrivePath, 'lagerbestand.json');
-        if (fs.existsSync(filePath)) {
-          const data = fs.readFileSync(filePath, 'utf-8');
-          const items = JSON.parse(data);
-          if (Array.isArray(items)) setInventoryItems(items);
-        }
-      } catch (err) {}
-    }
-  }, [localExportPath, oneDrivePath]);
-  */
-
-  // Ergänze die Funktion saveAllData im Komponenten-Scope
-  const saveAllData = () => {
-    // Beispiel: Daten speichern
-    localStorage.setItem('artikelDefinitionen', JSON.stringify(artikelDefinitionen));
-    localStorage.setItem('inventoryItems', JSON.stringify(inventoryItems));
-    localStorage.setItem('inventoryTransactions', JSON.stringify(inventoryTransactions));
-    setLastSaveInfo(`Zuletzt gespeichert: ${new Date().toLocaleString()}`);
-    toast({ title: 'Daten gespeichert', description: 'Speichern erfolgreich.' });
-  };
 
   /**
    * Vollständiges JSON-Backup erstellen. Sicherte bis Aufgabe 39 nur 3 von
@@ -866,45 +821,6 @@ export default function InventoryManagement() {
           <span>Import läuft ... bitte warten</span>
         </div>
       )}
-      {/* Einstellungen-Dialog immer rendern */}
-      <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Einstellungen: Speicherpfade</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Lokaler Exportpfad</label>
-              <input type="text" value={localExportPath} onChange={e => {
-                setLocalExportPath(e.target.value);
-                if (typeof window !== 'undefined') localStorage.setItem('exportPath', e.target.value);
-              }} className="w-full border rounded px-2 py-1" />
-              <div className="text-xs text-muted-foreground mt-1">Aktueller Pfad: <span className="font-mono">{localExportPath || '(nicht gesetzt)'}</span></div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">OneDrive-Pfad</label>
-              <input type="text" value={oneDrivePath} onChange={e => {
-                setOneDrivePath(e.target.value);
-                if (typeof window !== 'undefined') localStorage.setItem('oneDrivePath', e.target.value);
-              }} className="w-full border rounded px-2 py-1" />
-              <div className="text-xs text-muted-foreground mt-1">Aktueller Pfad: <span className="font-mono">{oneDrivePath || '(nicht gesetzt)'}</span></div>
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              <input type="checkbox" id="autoSave" checked={autoSave} onChange={e => setAutoSave(e.target.checked)} />
-              <label htmlFor="autoSave" className="text-sm">Automatisch speichern</label>
-            </div>
-            <div className="flex gap-2 mt-2">
-              <Button type="button" onClick={() => saveAllData()} variant="outline">Manuell speichern</Button>
-            </div>
-            <div className="text-xs text-muted-foreground mt-2">
-              {lastSaveInfo ? lastSaveInfo : 'Noch nicht gespeichert.'}
-            </div>
-          </div>
-          <div className="flex gap-2 justify-end mt-4">
-            <Button onClick={() => setIsSettingsDialogOpen(false)} variant="default">Schließen</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
       {/* Ladeanzeige */}
       {!clientMounted ? (
         <div className="space-y-4 p-4 md:p-6">
@@ -915,10 +831,13 @@ export default function InventoryManagement() {
         </div>
       ) : (
         <div className="space-y-8">
-          {/* Einstellungen öffnen */}
+          {/* Speicherpfad-Einstellungen gibt es nur noch unter Einstellungen →
+              Speicherpfade (Nutzer-Meldung 01.10.2026: zwei Orte dafür waren
+              verwirrend - der dortige Pfad ist jetzt die einzige Stelle und
+              schreibt in denselben "exportPath"-Schlüssel, den der frühere
+              Dialog hier tatsächlich benutzte). */}
           <div className="mb-2 flex justify-end">
             <div className="flex items-center gap-2">
-              <Button type="button" onClick={() => setIsSettingsDialogOpen(true)} variant="outline" className="border-primary text-primary">Speicher-Einstellungen</Button>
               <Button type="button" onClick={() => createBackup()} variant="outline" className="border-amber-600 text-amber-600">Backup erstellen</Button>
             </div>
           </div>
