@@ -72,10 +72,18 @@ export class GitHubService {
         const response = await fetch(`${this.baseUrl}/contents/${file.path}`, {
           method: 'PUT',
           headers: {
+            // KEIN "Cache-Control" hier (siehe Nutzer-Meldung 02.10.2026):
+            // GitHubs API erlaubt diesen Header nicht in der CORS-Preflight-
+            // Antwort ("Access-Control-Allow-Headers"), wodurch der Browser
+            // die gesamte Anfrage blockierte, noch bevor der Token überhaupt
+            // geprüft wurde - jeder Sync (Tank-Daten UND Vollbackup, beide
+            // nutzen dieselbe Funktion) schlug dadurch fehl, unabhängig
+            // davon, ob der Token selbst gültig war. GET-Aufrufe
+            // (getFileSha) und der DELETE/CREATE-Workaround hatten diesen
+            // Header nie gesetzt und liefen deshalb bereits korrekt.
             'Authorization': `token ${this.config.token}`,
             'Content-Type': 'application/json',
-            'Accept': 'application/vnd.github.v3+json',
-            'Cache-Control': 'no-cache'
+            'Accept': 'application/vnd.github.v3+json'
           },
           body: JSON.stringify(payload)
         });
