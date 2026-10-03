@@ -19,6 +19,21 @@ export function calcContainerNettogewichtKg(container: VersandContainer[]): numb
   return container.reduce((sum, c) => sum + c.mengeLiter * (c.dichte20C as number), 0);
 }
 
+/**
+ * Summe Bruttogewicht (kg, Inhalt + Gebinde) über alle Gebinde eines
+ * Versands - seit Aufgabe 53 aus dem per-Gebinde-Tara berechnet statt aus
+ * einem einzelnen, für mehrere unterschiedliche Gebinde ohnehin ungenauen
+ * Gesamt-Eingabefeld. `null`, wenn bei mindestens einem Gebinde Tara oder
+ * Dichte fehlt - eine Teilsumme wäre irreführend statt hilfreich (siehe
+ * calcContainerNettogewichtKg).
+ */
+export function calcContainerBruttogewichtKg(container: VersandContainer[]): number | null {
+  const netto = calcContainerNettogewichtKg(container);
+  if (netto == null || container.some(c => c.taraKg == null)) return null;
+  const tara = container.reduce((sum, c) => sum + (c.taraKg as number), 0);
+  return tara + netto;
+}
+
 const STORAGE_KEY = 'lohnabfuellerVersaende';
 
 // ---------------------------------------------------------------------------
@@ -51,8 +66,6 @@ export function createVersand(
     versanddatum: string;
     container: VersandContainer[];
     bemerkungen?: string;
-    bruttogewichtKg?: number;
-    taragewichtKg?: number;
     plombenNummern?: string;
     externeLieferscheinNr?: string;
   },
@@ -64,8 +77,6 @@ export function createVersand(
     versanddatum: params.versanddatum,
     container: params.container,
     versandLA: parseFloat(calcContainerLA(params.container).toFixed(3)),
-    bruttogewichtKg: params.bruttogewichtKg,
-    taragewichtKg: params.taragewichtKg,
     plombenNummern: params.plombenNummern,
     externeLieferscheinNr: params.externeLieferscheinNr,
     bemerkungen: params.bemerkungen,
@@ -112,8 +123,6 @@ export function persistCreateVersand(params: {
   versanddatum: string;
   container: VersandContainer[];
   bemerkungen?: string;
-  bruttogewichtKg?: number;
-  taragewichtKg?: number;
   plombenNummern?: string;
   externeLieferscheinNr?: string;
 }): ReturnType<typeof createVersand> {

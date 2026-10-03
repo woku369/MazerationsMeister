@@ -49,7 +49,7 @@ describe('createVersand', () => {
       lohnabfuellerName: 'Mozart',
       versanddatum: '2026-10-05',
       container: [{
-        inventoryItemId: 'item-1', tankNr: 'T 342', produktName: 'GFKC-M',
+        inventoryItemId: 'item-1', leergebindeId: 'gb-item-1', tankNr: 'T 342', produktName: 'GFKC-M',
         chargenNummer: 'GFKC-M', mengeLiter: 3000, alkoholVolProzent: 53.5,
       }],
     }));
@@ -70,9 +70,9 @@ describe('createVersand', () => {
       lohnabfuellerName: 'Mozart',
       versanddatum: '2026-10-05',
       container: [
-        { inventoryItemId: 'ibc-1', tankNr: 'IBC-1', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
-        { inventoryItemId: 'ibc-2', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
-        { inventoryItemId: 'ibc-3', tankNr: 'IBC-3', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
+        { inventoryItemId: 'ibc-1', leergebindeId: 'gb-ibc-1', tankNr: 'IBC-1', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
+        { inventoryItemId: 'ibc-2', leergebindeId: 'gb-ibc-2', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
+        { inventoryItemId: 'ibc-3', leergebindeId: 'gb-ibc-3', tankNr: 'IBC-3', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
       ],
     }));
     expect(inventoryItems.every(i => i.currentQuantityLiters === 0)).toBe(true);
@@ -90,8 +90,8 @@ describe('Buchungsjournal', () => {
       lohnabfuellerName: 'Mozart',
       versanddatum: '2026-10-05',
       container: [
-        { inventoryItemId: 'ibc-1', tankNr: 'IBC-1', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
-        { inventoryItemId: 'ibc-2', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
+        { inventoryItemId: 'ibc-1', leergebindeId: 'gb-ibc-1', tankNr: 'IBC-1', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
+        { inventoryItemId: 'ibc-2', leergebindeId: 'gb-ibc-2', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
       ],
     }));
     expect(transactions).toHaveLength(2);
@@ -103,8 +103,8 @@ describe('Buchungsjournal', () => {
 describe('calcContainerLA', () => {
   it('summiert LA über mehrere Gebinde', () => {
     expect(calcContainerLA([
-      { inventoryItemId: 'a', tankNr: 'IBC-1', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
-      { inventoryItemId: 'b', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
+      { inventoryItemId: 'a', leergebindeId: 'gb-a', tankNr: 'IBC-1', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
+      { inventoryItemId: 'b', leergebindeId: 'gb-b', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5 },
     ])).toBeCloseTo(1070, 3);
   });
 });
@@ -112,16 +112,16 @@ describe('calcContainerLA', () => {
 describe('calcContainerNettogewichtKg (Aufgabe 30 - Werte fürs externe Lieferschein-Formular)', () => {
   it('summiert Nettogewicht über mehrere Gebinde via Menge x Dichte', () => {
     const kg = calcContainerNettogewichtKg([
-      { inventoryItemId: 'a', tankNr: 'IBC-1', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5, dichte20C: 0.92 },
-      { inventoryItemId: 'b', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 500, alkoholVolProzent: 53.5, dichte20C: 0.90 },
+      { inventoryItemId: 'a', leergebindeId: 'gb-a', tankNr: 'IBC-1', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5, dichte20C: 0.92 },
+      { inventoryItemId: 'b', leergebindeId: 'gb-b', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 500, alkoholVolProzent: 53.5, dichte20C: 0.90 },
     ]);
     expect(kg).toBeCloseTo(1000 * 0.92 + 500 * 0.90, 3);
   });
 
   it('gibt null zurück, wenn bei mindestens einem Gebinde die Dichte fehlt - eine Teilsumme wäre irreführend', () => {
     const kg = calcContainerNettogewichtKg([
-      { inventoryItemId: 'a', tankNr: 'IBC-1', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5, dichte20C: 0.92 },
-      { inventoryItemId: 'b', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 500, alkoholVolProzent: 53.5 },
+      { inventoryItemId: 'a', leergebindeId: 'gb-a', tankNr: 'IBC-1', produktName: 'GFKC-M', mengeLiter: 1000, alkoholVolProzent: 53.5, dichte20C: 0.92 },
+      { inventoryItemId: 'b', leergebindeId: 'gb-b', tankNr: 'IBC-2', produktName: 'GFKC-M', mengeLiter: 500, alkoholVolProzent: 53.5 },
     ]);
     expect(kg).toBeNull();
   });

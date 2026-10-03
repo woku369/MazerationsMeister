@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { Home, FlaskConical, Warehouse, Settings, BookOpen, TableProperties, Truck, Beaker, Send, Droplets } from 'lucide-react';
+import { Home, FlaskConical, Warehouse, Settings, BookOpen, TableProperties, Truck, Beaker, Send, Droplets, Package } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: Home },
@@ -10,6 +10,7 @@ const navItems = [
   { href: '/einlagerung', label: 'Einlagern', icon: Droplets },
   { href: '/rezepturen', label: 'Rezepturen (GFKC)', icon: Beaker },
   { href: '/lohnbrand', label: 'Lohnbrand-Aufträge', icon: Truck },
+  { href: '/leergebinde', label: 'Leergebinde', icon: Package },
   { href: '/versand', label: 'Versand an Lohnabfüller', icon: Send },
   { href: '/anleitungen', label: 'Anleitungen', icon: BookOpen },
   { href: '/einstellungen', label: 'Einstellungen', icon: Settings },

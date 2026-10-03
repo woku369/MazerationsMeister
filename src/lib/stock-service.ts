@@ -185,6 +185,12 @@ export type NeueMenge = {
   category: string;
   alkoholVolProzent: number;
   mengeLiter: number;
+  // Optional, da z.B. Einlagern aktuell keine Dichte erfasst. Wird ein Wert
+  // übergeben, bleibt er am konsolidierten Posten erhalten (siehe
+  // poolIntoTank) - sonst würde er beim Poolen stillschweigend verloren
+  // gehen, was für die Leergebinde-Verwaltung (Nettogewicht-Berechnung fürs
+  // Lieferschein-Formular) die eigentliche Datengrundlage wäre.
+  dichte20C?: number;
 };
 
 export type PoolIntoTankResult =
@@ -278,6 +284,7 @@ export function poolIntoTank(
     bemerkungen: basis?.bemerkungen ?? '',
     kennzeichen: basis?.kennzeichen ?? 'S',
     komponenten,
+    dichte20C: neu.dichte20C ?? basis?.dichte20C,
   });
 
   const ersetzteIds = new Set(bestehende.map(i => i.id));

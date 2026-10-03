@@ -1,12 +1,14 @@
 /** Ein Gebinde, das im Rahmen eines Versands an den Lohnabfüller das Haus verlässt. */
 export type VersandContainer = {
   inventoryItemId: string;   // Referenz auf das StoredInventoryItem, aus dem die Menge abgebucht wird
+  leergebindeId: string;     // Referenz auf das Leergebinde (siehe leergebindeSchema.ts), das verschickt wird
   tankNr: string;            // denormalisiert für Anzeige: welches Gebinde geht raus
   produktName: string;       // denormalisiert
   chargenNummer?: string;
   mengeLiter: number;        // Ausgangsmenge (kann eine Teilmenge des Lagerpostens sein)
   alkoholVolProzent: number; // Ausgangskonzentration
   dichte20C?: number;        // denormalisiert, für die Nettogewicht-Berechnung fürs Lieferschein-Formular
+  taraKg?: number;           // denormalisiert vom Leergebinde - Eigengewicht dieses einen Gebindes (Aufgabe 53)
 };
 
 /**
@@ -29,12 +31,14 @@ export type LohnabfuellerVersand = {
   // Schlumberger-Briefkopf ausgestellte) Lieferschein-Papierformular an einer
   // Stelle griffbereit zu haben - die App erzeugt kein eigenes Lieferschein-PDF,
   // dafür fehlt die Berechtigung (Schlumberger hält die Zolllager-Bewilligung).
-  // Brutto-, Tara- und (daraus) das tatsächliche Nettogewicht werden laut Nutzer
-  // ohnehin händisch mit der Waage ermittelt - beide hier eingetragen ergeben
-  // das reale, gewogene Netto (Brutto - Tara), zusätzlich zur rein rechnerischen
-  // Schätzung über Menge x Dichte (siehe calcContainerNettogewichtKg).
-  bruttogewichtKg?: number;      // inkl. Gebinde, per Waage ermittelt - manuell
-  taragewichtKg?: number;        // Eigengewicht der leeren Gebinde, per Waage ermittelt - manuell
+  // Brutto-/Tara-/Nettogewicht werden NICHT mehr aggregiert für den ganzen
+  // Versand erfasst (das frühere einzelne Eingabefeld-Paar), sondern ergeben
+  // sich aus der Summe der per-Gebinde-Werte (container[].taraKg, siehe
+  // calcContainerNettogewichtKg/calcContainerBruttogewichtKg in
+  // versand-service.ts) - seit Aufgabe 53 trägt jedes Gebinde sein eigenes,
+  // tatsächliches Tara (siehe leergebindeSchema.ts), eine einzelne
+  // Gesamt-Waage-Eingabe für mehrere unterschiedliche Gebinde wäre ohnehin
+  // nie präzise gewesen.
   plombenNummern?: string;       // z.B. "2762725-2762730" (je IBC 2 Plomben aus einem Vorratsbehälter), frei erfasst
   externeLieferscheinNr?: string; // Schlumbergers eigene Nummerierung, z.B. "1/2026" - unabhängig von versandNummer
   bemerkungen?: string;

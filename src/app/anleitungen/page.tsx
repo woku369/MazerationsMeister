@@ -22,6 +22,7 @@ import {
   PackageCheck,
   Droplets,
   Send,
+  Package,
 } from 'lucide-react';
 
 type SectionId =
@@ -31,6 +32,7 @@ type SectionId =
   | 'einlagerung'
   | 'rezepturen'
   | 'lohnbrand'
+  | 'leergebinde'
   | 'versand'
   | 'qr-codes'
   | 'github'
@@ -88,10 +90,17 @@ const overview: OverviewEntry[] = [
     badge: 'Neu',
   },
   {
+    id: 'leergebinde',
+    icon: <Package className="h-5 w-5 text-slate-600" />,
+    title: 'Leergebinde',
+    description: 'Versandgebinde (z.B. IBCs) anlegen, befüllen, für den Versand bereitstellen.',
+    badge: 'Neu',
+  },
+  {
     id: 'versand',
     icon: <Send className="h-5 w-5 text-indigo-600" />,
     title: 'Versand an Lohnabfüller',
-    description: 'Fertige Ware versenden, Abgang buchen, Lieferschein-Hilfsdaten.',
+    description: 'Befüllte Gebinde versenden, Abgang buchen, Lieferschein-Hilfsdaten.',
     badge: 'Neu',
   },
   {
@@ -593,6 +602,52 @@ export default function AnleitungenPage() {
         )}
       </Card>
 
+      {/* Leergebinde */}
+      <Card className="mb-6">
+        <SectionHeader id="leergebinde" icon={<Package className="h-6 w-6 text-slate-600" />} title="📦 Leergebinde" badge="Neu" />
+        {expandedSection === 'leergebinde' && (
+          <CardContent className="space-y-6">
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+              <h3 className="font-semibold text-slate-800 mb-2 flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Überblick
+              </h3>
+              <p className="text-slate-700 text-sm">
+                Bildet den Schritt zwischen Bulk-Tank und Versand ab: Aus einem Tank (z.B. T 341) wird in mehrere
+                einzeln benannte Versandgebinde (z.B. 3 IBCs) umgefüllt — jedes mit eigener Bezeichnung, eigenem
+                Tara und eigener Füllmenge. Gebinde können schon angelegt werden, <strong>bevor</strong> sie
+                physisch vor Ort sind (z.B. Leergut, das der Lohnabfüller noch schickt).
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <StepCard number={1} color="blue" title="Neues Leergebinde anlegen">
+                <Check>Bezeichnung (z.B. „IBC-A"), Tara (kg) und optional das Volumen (L) eintragen</Check>
+                <Check>Status beim Anlegen wählen: „Schon vor Ort (leer)" oder „Noch nicht da (erwartet)"</Check>
+                <Check>Bei „erwartet" zusätzlich optional die Herkunft eintragen (z.B. „Mozart")</Check>
+              </StepCard>
+
+              <StepCard number={2} color="green" title="Angekommenes Gebinde freigeben">
+                <Check>Ein als „erwartet" angelegtes Gebinde erscheint in der Liste „Erwartet"</Check>
+                <Check>„Als angekommen markieren" wechselt es zu „Leer — befüllbar", sobald es physisch eintrifft</Check>
+              </StepCard>
+
+              <StepCard number={3} color="orange" title="Befüllen" icon={<PackageCheck className="h-4 w-4 ml-1" />}>
+                <Check>Bei einem leeren Gebinde auf „Befüllen" klicken</Check>
+                <Check>Quellposten aus dem echten Lagerbestand wählen und die Menge (L) eintragen</Check>
+                <Check>Bucht sofort Abgang beim Quellposten und Zugang in das Gebinde (das Gebinde wird dabei selbst zu einem ganz normalen Tank/Lagerort)</Check>
+                <Warn>Dasselbe Quellposten kann mehrfach angezapft werden — z.B. 3× 1000 L aus demselben Tank in 3 verschiedene IBCs.</Warn>
+              </StepCard>
+
+              <StepCard number={4} color="pink" title="Bereit für den Versand">
+                <Check>Befüllte Gebinde erscheinen in der Liste „Befüllt — bereit für den Versand"</Check>
+                <Check>Die eigentliche Auswahl fürs Verschicken passiert auf der Seite „Versand an Lohnabfüller" (siehe unten)</Check>
+              </StepCard>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
       {/* Versand an Lohnabfüller */}
       <Card className="mb-6">
         <SectionHeader id="versand" icon={<Send className="h-6 w-6 text-indigo-600" />} title="📤 Versand an Lohnabfüller" badge="Neu" />
@@ -604,28 +659,30 @@ export default function AnleitungenPage() {
                 Überblick
               </h3>
               <p className="text-indigo-700 text-sm">
-                Fertige Ware (z.B. GFKC bulk) wird an den Lohnabfüller (Mozart) versendet und kommt als fertig
-                abgefüllte Flaschenware zurück. Die App führt nur den <strong>Versand</strong> (Abgang aus dem
-                Lager) — die zurückkommende Flaschenware wird nicht als eigener Bulk-Bestand getrackt.
+                Fertige Ware (z.B. GFKC bulk, bereits in Leergebinde abgefüllt — siehe Abschnitt „Leergebinde" oben)
+                wird an den Lohnabfüller (Mozart) versendet und kommt als fertig abgefüllte Flaschenware zurück.
+                Die App führt nur den <strong>Versand</strong> (Abgang aus dem Lager) — die zurückkommende
+                Flaschenware wird nicht als eigener Bulk-Bestand getrackt.
               </p>
             </div>
 
             <div className="space-y-4">
               <StepCard number={1} color="blue" title="Neuen Versand anlegen">
                 <Check>Lohnabfüller-Name und Versanddatum eintragen</Check>
-                <Check>Ein oder mehrere Gebinde aus dem echten Lagerbestand wählen, je Gebinde die Menge eintragen</Check>
-                <Check>Die Gesamtsumme (Liter und LA) über alle gewählten Gebinde wird direkt im Dialog live angezeigt</Check>
+                <Check>Ein oder mehrere bereits befüllte Leergebinde auswählen — jedes geht komplett mit seiner gesamten Füllmenge raus, keine erneute Mengeneingabe nötig</Check>
+                <Check>Die Gesamtsumme (Liter, LA und Gewicht) über alle gewählten Gebinde wird direkt im Dialog live angezeigt</Check>
               </StepCard>
 
               <StepCard number={2} color="green" title="Angaben fürs externe Lieferschein-Formular (optional)">
                 <Check>Plomben-Nummern und externe Schlumberger-Lieferschein-Nr. eintragen</Check>
-                <Check>Brutto- und Taragewicht (per Waage) erfassen — die App rechnet daraus das gewogene Nettogewicht und vergleicht es mit der aus Menge × Dichte geschätzten Variante</Check>
+                <Check>Brutto- und Nettogewicht werden automatisch aus dem Tara jedes einzelnen Gebindes (siehe „Leergebinde") und der Menge × Dichte berechnet — kein manuelles Wiegen-Eingabefeld mehr nötig</Check>
                 <Warn>Dient nur der Dokumentation — die App erzeugt kein eigenes Lieferschein-PDF, das offizielle Formular läuft auf Schlumberger-Briefkopf.</Warn>
               </StepCard>
 
               <StepCard number={3} color="orange" title="Versand anlegen & Abgang buchen" icon={<PackageCheck className="h-4 w-4 ml-1" />}>
                 <Check>Bucht sofort den Lagerabgang für alle ausgewählten Gebinde</Check>
                 <Check>Der Versand erhält automatisch eine fortlaufende Versandnummer</Check>
+                <Check>Die verschickten Leergebinde wechseln automatisch in den Status „Versendet"</Check>
               </StepCard>
 
               <StepCard number={4} color="pink" title="Versand-Historie">
