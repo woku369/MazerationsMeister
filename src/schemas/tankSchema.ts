@@ -11,6 +11,13 @@ export type TankDefinition = {
   hasUniqueNumber?: boolean;
   currentContent?: string;
   status?: string;
+  // Eigengewicht des leeren Gebindes, optional (Nutzer-Anfrage 03.10.2026):
+  // macht nur für mobile Gebinde (Fässer, IBCs, Ballons) Sinn, nicht für fest
+  // installierte Tanks - deshalb kein Pflichtfeld, sondern bei Bedarf
+  // nachpflegbar. Keine automatische Tank/Gebinde-Unterscheidung im Schema,
+  // da es dafür keine zuverlässige Regel gibt (nur Namenskonvention) - der
+  // Nutzer entscheidet selbst, wo das Feld sinnvoll ist.
+  taraKg?: number;
 };
 
 export const initialTankDefinitions: TankDefinition[] = [

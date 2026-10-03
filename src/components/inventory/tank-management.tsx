@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from "react";
+import { v4 as uuidv4 } from "uuid";
 import { initialTankDefinitions, TankDefinition } from "@/schemas/tankSchema";
 import type { StoredInventoryItem } from "@/schemas/inventorySchema";
 import { syncTankDefinitionsWithInventory, getTankDefinitions } from "@/lib/tank-sync";
+import * as StockService from "@/lib/stock-service";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,7 +14,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import QRCode from "qrcode";
 import { getTankAutoSync } from "@/lib/tank-auto-sync";
 import { getGithubToken, getGithubEnabled, setGithubConfig, onGithubConfigChanged } from "@/lib/github-token";
@@ -24,6 +29,9 @@ import {
   AlertCircle,
   CheckCircle,
   Github,
+  Split,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 type Tank = TankDefinition;
@@ -70,14 +78,17 @@ function TankForm({
   const [tankNr, setTankNr] = useState(initialData?.tankNr || "");
   const [bezeichnung, setBezeichnung] = useState(initialData?.bezeichnung || "");
   const [volumenLiter, setVolumenLiter] = useState(initialData?.volumenLiter || 5000); // Standard 5.000L
+  const [taraKg, setTaraKg] = useState(initialData?.taraKg != null ? String(initialData.taraKg) : "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (tankNr.trim() && bezeichnung.trim() && volumenLiter > 0) {
+      const taraNum = parseFloat(taraKg.replace(',', '.'));
       onSubmit({
         tankNr: tankNr.trim(),
         bezeichnung: bezeichnung.trim(),
-        volumenLiter
+        volumenLiter,
+        taraKg: taraKg.trim() && Number.isFinite(taraNum) ? taraNum : undefined,
       });
     }
   };
@@ -116,6 +127,19 @@ function TankForm({
           Standard: 5.000 Liter (bearbeitbar)
         </p>
       </div>
+      <div>
+        <label className="text-sm font-medium">Tara (kg, optional)</label>
+        <Input
+          type="text"
+          inputMode="decimal"
+          value={taraKg}
+          onChange={(e) => setTaraKg(e.target.value)}
+          placeholder="nur für mobile Gebinde relevant, z.B. 60"
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          Eigengewicht des leeren Gebindes - nur bei Bedarf eintragen, macht für fest installierte Tanks keinen Sinn.
+        </p>
+      </div>
       <div className="flex gap-2">
         <Button type="submit">
           {initialData ? "Aktualisieren" : "Hinzufügen"}
@@ -128,11 +152,14 @@ function TankForm({
   );
 }
 
+type SplitRow = { bezeichnung: string; mengeLiter: string; volumenLiter: string; taraKg: string };
+
 export default function TankManagement() {
+  const { toast } = useToast();
   // Lade echte Tank-Definitionen aus localStorage (synchronisiert mit Inventar)
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [inventoryItems, setInventoryItems] = useState<StoredInventoryItem[]>([]);
-  
+
   // Lade Daten beim Component Mount und bei Änderungen
   useEffect(() => {
     loadTankData();
@@ -187,6 +214,8 @@ export default function TankManagement() {
   const [selectedTanks, setSelectedTanks] = useState<Set<string>>(new Set());
   const [qrCodeTank, setQrCodeTank] = useState<Tank | null>(null);
   const [allSelected, setAllSelected] = useState(false);
+  const [splittingTank, setSplittingTank] = useState<Tank | null>(null);
+  const [splitRows, setSplitRows] = useState<SplitRow[]>([]);
   
   // GitHub Integration State - Von Einstellungen laden
   const [githubEnabled, setGithubEnabled] = useState(() => getGithubEnabled());
@@ -329,11 +358,147 @@ export default function TankManagement() {
     }
   };
 
+  /**
+   * Splittet ein Gebinde, das in Wahrheit mehrere physische Behälter zusammenfasst
+   * (Nutzer-Meldung 03.10.2026: "Fass-2301" ist nicht 1 Fass, sondern 2 - entsteht
+   * z.B. durch die automatische Vereindeutigung generischer Tanknummern aus
+   * Aufgabe 50, die nur die Chargennummer, nicht die Anzahl physischer Behälter
+   * kennt). Manuelle Nachkorrektur, keine automatische Import-Erkennung - die
+   * Importdaten selbst bilden diesen Split nicht ab.
+   */
+  const openSplit = (tank: Tank) => {
+    setSplittingTank(tank);
+    setSplitRows([
+      { bezeichnung: `${tank.tankNr}-A`, mengeLiter: '', volumenLiter: String(tank.volumenLiter), taraKg: '' },
+      { bezeichnung: `${tank.tankNr}-B`, mengeLiter: '', volumenLiter: String(tank.volumenLiter), taraKg: '' },
+    ]);
+  };
+
+  const addSplitRow = () => {
+    setSplitRows(prev => [...prev, { bezeichnung: '', mengeLiter: '', volumenLiter: '', taraKg: '' }]);
+  };
+  const removeSplitRow = (idx: number) => {
+    setSplitRows(prev => prev.filter((_, i) => i !== idx));
+  };
+  const updateSplitRow = (idx: number, patch: Partial<SplitRow>) => {
+    setSplitRows(prev => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  };
+
+  const handleSplit = () => {
+    if (!splittingTank) return;
+    const itemsInTank = inventoryItems.filter(i => i.tankNr === splittingTank.tankNr);
+    if (itemsInTank.length !== 1) {
+      toast({
+        title: 'Split nicht möglich',
+        description: itemsInTank.length === 0
+          ? 'Dieses Gebinde enthält keinen Lagerposten.'
+          : 'Dieses Gebinde enthält mehrere unterschiedliche Lagerposten - Split wird derzeit nur für ein einzelnes Produkt je Gebinde unterstützt.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const sourceItem = itemsInTank[0];
+
+    if (splitRows.length < 2) {
+      toast({ title: 'Mindestens 2 neue Gebinde nötig', variant: 'destructive' });
+      return;
+    }
+    const bezeichnungen = splitRows.map(r => r.bezeichnung.trim());
+    if (bezeichnungen.some(b => !b)) {
+      toast({ title: 'Bezeichnung fehlt bei mindestens einem neuen Gebinde', variant: 'destructive' });
+      return;
+    }
+    const existierendeTankNrs = new Set(tanks.filter(t => t.id !== splittingTank.id).map(t => t.tankNr));
+    const doppelteBezeichnung = bezeichnungen.find((b, i) => existierendeTankNrs.has(b) || bezeichnungen.indexOf(b) !== i);
+    if (doppelteBezeichnung) {
+      toast({ title: `Bezeichnung "${doppelteBezeichnung}" bereits vergeben`, variant: 'destructive' });
+      return;
+    }
+    const parsed = splitRows.map(r => ({
+      bezeichnung: r.bezeichnung.trim(),
+      menge: parseFloat(r.mengeLiter.replace(',', '.')),
+      volumen: parseFloat(r.volumenLiter.replace(',', '.')),
+      tara: r.taraKg.trim() ? parseFloat(r.taraKg.replace(',', '.')) : undefined,
+    }));
+    if (parsed.some(r => !Number.isFinite(r.menge) || r.menge <= 0 || !Number.isFinite(r.volumen) || r.volumen <= 0)) {
+      toast({ title: 'Menge und Kapazität müssen bei jedem neuen Gebinde gültig sein', variant: 'destructive' });
+      return;
+    }
+    const summe = parsed.reduce((s, r) => s + r.menge, 0);
+    if (Math.abs(summe - sourceItem.currentQuantityLiters) > 0.01) {
+      toast({
+        title: 'Menge stimmt nicht überein',
+        description: `Summe der neuen Gebinde: ${summe.toLocaleString('de-DE')} L, aber Quellgebinde enthält ${sourceItem.currentQuantityLiters.toLocaleString('de-DE')} L.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const abgang = StockService.recordTransaction(
+      StockService.readAll(),
+      StockService.readTransactions(),
+      sourceItem.id,
+      'Abgang',
+      sourceItem.currentQuantityLiters,
+      { notes: `Aufgeteilt auf: ${bezeichnungen.join(', ')}` },
+    );
+    if (!abgang.ok) {
+      toast({ title: 'Split fehlgeschlagen', description: abgang.error, variant: 'destructive' });
+      return;
+    }
+    let items = abgang.items;
+    let txs = abgang.transactions;
+    const neueTanks: Tank[] = [];
+    for (const row of parsed) {
+      const neuesItem: StoredInventoryItem = {
+        id: uuidv4(),
+        artikelNummer: sourceItem.artikelNummer,
+        produktName: sourceItem.produktName,
+        chargenNummer: sourceItem.chargenNummer,
+        category: sourceItem.category,
+        tankNr: row.bezeichnung,
+        currentQuantityLiters: row.menge,
+        alcoholVolProzent: sourceItem.alcoholVolProzent,
+        dichte20C: sourceItem.dichte20C,
+        lastInventoryDate: new Date(),
+        bemerkungen: sourceItem.bemerkungen,
+        kennzeichen: sourceItem.kennzeichen,
+      };
+      const zugang = StockService.recordNewEntry(items, txs, neuesItem, { notes: `Aufgeteilt aus ${splittingTank.tankNr}` });
+      items = zugang.items;
+      txs = zugang.transactions;
+      neueTanks.push({
+        id: row.bezeichnung,
+        tankNr: row.bezeichnung,
+        bezeichnung: row.bezeichnung,
+        volumenLiter: row.volumen,
+        taraKg: row.tara,
+        hasUniqueNumber: true,
+      });
+    }
+
+    StockService.writeAll(items);
+    StockService.writeTransactions(txs);
+    const updatedTanks = tanks.filter(t => t.id !== splittingTank.id).concat(neueTanks);
+    setTanks(updatedTanks);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tankDefinitions', JSON.stringify(updatedTanks));
+    }
+
+    toast({ title: `"${splittingTank.tankNr}" aufgeteilt`, description: `${bezeichnungen.length} neue Gebinde angelegt: ${bezeichnungen.join(', ')}.` });
+    setSplittingTank(null);
+    loadTankData();
+    loadInventoryData();
+  };
+
   // Berechne aktuellen Füllstand aus Inventar
   const getTankFillLevel = (tankNr: string) => {
     const tankItems = inventoryItems.filter(item => item.tankNr === tankNr);
     const totalVolume = tankItems.reduce((sum, item) => sum + (item.currentQuantityLiters || 0), 0);
-    const contents = tankItems.map(item => `${item.produktName} (${item.currentQuantityLiters}L)`).join(', ') || 'Leer';
+    // Kategorie (z.B. Mazerat/Destillat) mit anzeigen - ohne sie war hier nicht
+    // unterscheidbar, was tatsächlich im Gebinde liegt (Nutzer-Meldung 03.10.2026:
+    // "wieder einmal" nicht die Kategorie, gleicher Lückentyp wie Aufgabe 42).
+    const contents = tankItems.map(item => `${item.produktName} [${item.category || '–'}] (${item.currentQuantityLiters}L)`).join(', ') || 'Leer';
     
     return {
       totalVolume,
@@ -486,6 +651,80 @@ export default function TankManagement() {
             </DialogContent>
           </Dialog>
 
+          {/* Gebinde splitten Dialog */}
+          <Dialog open={!!splittingTank} onOpenChange={(open) => !open && setSplittingTank(null)}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Gebinde splitten{splittingTank ? ` – ${splittingTank.tankNr}` : ''}</DialogTitle>
+                <DialogDescription>
+                  Für Gebinde, die in Wahrheit mehrere physische Behälter zusammenfassen (z.B. ein als "Fass-2301"
+                  gebuchter Posten, der tatsächlich auf 2 Fässer verteilt ist). Bucht den Abgang beim Quellgebinde und
+                  legt die neuen Gebinde mit eigener Bezeichnung, Menge, Kapazität und optionalem Tara an.
+                </DialogDescription>
+              </DialogHeader>
+              {splittingTank && (() => {
+                const sourceItems = inventoryItems.filter(i => i.tankNr === splittingTank.tankNr);
+                const sourceItem = sourceItems.length === 1 ? sourceItems[0] : null;
+                const summe = splitRows.reduce((s, r) => {
+                  const m = parseFloat(r.mengeLiter.replace(',', '.'));
+                  return s + (Number.isFinite(m) ? m : 0);
+                }, 0);
+                const rest = sourceItem ? sourceItem.currentQuantityLiters - summe : null;
+                return (
+                  <div className="space-y-3">
+                    {!sourceItem && (
+                      <p className="text-sm text-red-600">
+                        {sourceItems.length === 0
+                          ? 'Dieses Gebinde enthält keinen Lagerposten.'
+                          : 'Dieses Gebinde enthält mehrere unterschiedliche Lagerposten - Split wird derzeit nur für ein einzelnes Produkt je Gebinde unterstützt.'}
+                      </p>
+                    )}
+                    {sourceItem && (
+                      <p className="text-sm bg-muted rounded-md px-3 py-2">
+                        {sourceItem.produktName} [{sourceItem.category}]: <span className="font-semibold">{sourceItem.currentQuantityLiters.toLocaleString('de-DE')} L</span> @ {sourceItem.alcoholVolProzent}%
+                      </p>
+                    )}
+                    {splitRows.map((row, idx) => (
+                      <div key={idx} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 items-end">
+                        <div>
+                          {idx === 0 && <label className="text-xs text-muted-foreground">Bezeichnung</label>}
+                          <Input value={row.bezeichnung} onChange={e => updateSplitRow(idx, { bezeichnung: e.target.value })} placeholder="z.B. Fass-2301-A" />
+                        </div>
+                        <div>
+                          {idx === 0 && <label className="text-xs text-muted-foreground">Menge (L)</label>}
+                          <Input type="text" inputMode="decimal" value={row.mengeLiter} onChange={e => updateSplitRow(idx, { mengeLiter: e.target.value })} placeholder="z.B. 100" />
+                        </div>
+                        <div>
+                          {idx === 0 && <label className="text-xs text-muted-foreground">Kapazität (L)</label>}
+                          <Input type="text" inputMode="decimal" value={row.volumenLiter} onChange={e => updateSplitRow(idx, { volumenLiter: e.target.value })} placeholder="z.B. 220" />
+                        </div>
+                        <div>
+                          {idx === 0 && <label className="text-xs text-muted-foreground">Tara (kg, optional)</label>}
+                          <Input type="text" inputMode="decimal" value={row.taraKg} onChange={e => updateSplitRow(idx, { taraKg: e.target.value })} placeholder="z.B. 25" />
+                        </div>
+                        <Button type="button" size="icon" variant="ghost" onClick={() => removeSplitRow(idx)} disabled={splitRows.length <= 2}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button type="button" size="sm" variant="outline" onClick={addSplitRow}><Plus className="w-4 h-4 mr-1" />Weiteres Gebinde</Button>
+                    {sourceItem && rest != null && (
+                      <p className={`text-sm font-medium text-right ${Math.abs(rest) > 0.01 ? 'text-amber-700' : 'text-foreground'}`}>
+                        {Math.abs(rest) > 0.01
+                          ? `Noch zu verteilen: ${rest.toLocaleString('de-DE')} L (Quellmenge ${sourceItem.currentQuantityLiters.toLocaleString('de-DE')} L)`
+                          : `Vollständig verteilt: ${sourceItem.currentQuantityLiters.toLocaleString('de-DE')} L`}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSplittingTank(null)}>Abbrechen</Button>
+                <Button onClick={handleSplit}>Aufteilen &amp; Buchen</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           {/* Tanks Liste */}
           <div className="space-y-4">
             {tanks.length === 0 ? (
@@ -523,6 +762,12 @@ export default function TankManagement() {
                               <span className="text-muted-foreground">Aktueller Inhalt:</span>
                               <div className="font-medium">{fillInfo.totalVolume.toLocaleString('de-DE')} L ({fillPercentage}%)</div>
                             </div>
+                            {tank.taraKg != null && (
+                              <div>
+                                <span className="text-muted-foreground">Tara:</span>
+                                <div className="font-medium">{tank.taraKg.toLocaleString('de-DE')} kg</div>
+                              </div>
+                            )}
                           </div>
                           
                           {fillInfo.contents !== 'Leer' && (
@@ -560,6 +805,16 @@ export default function TankManagement() {
                           >
                             Bearbeiten
                           </Button>
+                          {fillInfo.totalVolume > 0 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openSplit(tank)}
+                            >
+                              <Split className="mr-1 h-3 w-3" />
+                              Splitten
+                            </Button>
+                          )}
                           <Button
                             variant="destructive"
                             size="sm"
