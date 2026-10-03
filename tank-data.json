@@ -15,9 +15,9 @@
       "hasUniqueNumber": true
     },
     {
-      "id": "IBC",
-      "tankNr": "IBC",
-      "bezeichnung": "Auto-erkannt: IBC",
+      "id": "IBC-GFKC-M",
+      "tankNr": "IBC-GFKC-M",
+      "bezeichnung": "Auto-erkannt: IBC-GFKC-M",
       "volumenLiter": 5000,
       "hasUniqueNumber": true
     },
@@ -29,23 +29,23 @@
       "hasUniqueNumber": true
     },
     {
-      "id": "Fass",
-      "tankNr": "Fass",
-      "bezeichnung": "Auto-erkannt: Fass",
+      "id": "Fass-141618",
+      "tankNr": "Fass-141618",
+      "bezeichnung": "Auto-erkannt: Fass-141618",
       "volumenLiter": 5000,
       "hasUniqueNumber": true
     },
     {
-      "id": "Fl",
-      "tankNr": "Fl",
-      "bezeichnung": "Auto-erkannt: Fl",
+      "id": "Fl-1301",
+      "tankNr": "Fl-1301",
+      "bezeichnung": "Auto-erkannt: Fl-1301",
       "volumenLiter": 5000,
       "hasUniqueNumber": true
     },
     {
-      "id": "B",
-      "tankNr": "B",
-      "bezeichnung": "Auto-erkannt: B",
+      "id": "B-1801",
+      "tankNr": "B-1801",
+      "bezeichnung": "Auto-erkannt: B-1801",
       "volumenLiter": 5000,
       "hasUniqueNumber": true
     },
@@ -64,6 +64,34 @@
       "hasUniqueNumber": true
     },
     {
+      "id": "IBC-2301/2018",
+      "tankNr": "IBC-2301/2018",
+      "bezeichnung": "Auto-erkannt: IBC-2301/2018",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-1201",
+      "tankNr": "B-1201",
+      "bezeichnung": "Auto-erkannt: B-1201",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-1302",
+      "tankNr": "B-1302",
+      "bezeichnung": "Auto-erkannt: B-1302",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-1302-2",
+      "tankNr": "B-1302-2",
+      "bezeichnung": "Auto-erkannt: B-1302-2",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
       "id": "T 345",
       "tankNr": "T 345",
       "bezeichnung": "Auto-erkannt: T 345",
@@ -78,9 +106,65 @@
       "hasUniqueNumber": true
     },
     {
+      "id": "Fass-2301",
+      "tankNr": "Fass-2301",
+      "bezeichnung": "Auto-erkannt: Fass-2301",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-1201-2",
+      "tankNr": "B-1201-2",
+      "bezeichnung": "Auto-erkannt: B-1201-2",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-1301",
+      "tankNr": "B-1301",
+      "bezeichnung": "Auto-erkannt: B-1301",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-1501",
+      "tankNr": "B-1501",
+      "bezeichnung": "Auto-erkannt: B-1501",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-1501-2",
+      "tankNr": "B-1501-2",
+      "bezeichnung": "Auto-erkannt: B-1501-2",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-1501-3",
+      "tankNr": "B-1501-3",
+      "bezeichnung": "Auto-erkannt: B-1501-3",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
       "id": "T 348",
       "tankNr": "T 348",
       "bezeichnung": "Auto-erkannt: T 348",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-2015",
+      "tankNr": "B-2015",
+      "bezeichnung": "Auto-erkannt: B-2015",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-2015-2",
+      "tankNr": "B-2015-2",
+      "bezeichnung": "Auto-erkannt: B-2015-2",
       "volumenLiter": 5000,
       "hasUniqueNumber": true
     },
@@ -92,6 +176,48 @@
       "hasUniqueNumber": true
     },
     {
+      "id": "Fass-2201",
+      "tankNr": "Fass-2201",
+      "bezeichnung": "Auto-erkannt: Fass-2201",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-1201-3",
+      "tankNr": "B-1201-3",
+      "bezeichnung": "Auto-erkannt: B-1201-3",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-1303",
+      "tankNr": "B-1303",
+      "bezeichnung": "Auto-erkannt: B-1303",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-1701",
+      "tankNr": "B-1701",
+      "bezeichnung": "Auto-erkannt: B-1701",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "Fl-1301-2",
+      "tankNr": "Fl-1301-2",
+      "bezeichnung": "Auto-erkannt: Fl-1301-2",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "Fass-2023",
+      "tankNr": "Fass-2023",
+      "bezeichnung": "Auto-erkannt: Fass-2023",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
       "id": "T1564",
       "tankNr": "T1564",
       "bezeichnung": "Auto-erkannt: T1564",
@@ -99,23 +225,156 @@
       "hasUniqueNumber": true
     },
     {
-      "id": "K",
-      "tankNr": "K",
-      "bezeichnung": "Auto-erkannt: K",
+      "id": "Fass-2500",
+      "tankNr": "Fass-2500",
+      "bezeichnung": "Auto-erkannt: Fass-2500",
       "volumenLiter": 5000,
       "hasUniqueNumber": true
     },
     {
-      "id": "Cont",
-      "tankNr": "Cont",
-      "bezeichnung": "Auto-erkannt: Cont",
+      "id": "B-1701-2",
+      "tankNr": "B-1701-2",
+      "bezeichnung": "Auto-erkannt: B-1701-2",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "Fl-1301-3",
+      "tankNr": "Fl-1301-3",
+      "bezeichnung": "Auto-erkannt: Fl-1301-3",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "Fass-2014",
+      "tankNr": "Fass-2014",
+      "bezeichnung": "Auto-erkannt: Fass-2014",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "Fass-1400",
+      "tankNr": "Fass-1400",
+      "bezeichnung": "Auto-erkannt: Fass-1400",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "Fl-1304",
+      "tankNr": "Fl-1304",
+      "bezeichnung": "Auto-erkannt: Fl-1304",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "Fl-1301-4",
+      "tankNr": "Fl-1301-4",
+      "bezeichnung": "Auto-erkannt: Fl-1301-4",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-1400",
+      "tankNr": "B-1400",
+      "bezeichnung": "Auto-erkannt: B-1400",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "K-1301",
+      "tankNr": "K-1301",
+      "bezeichnung": "Auto-erkannt: K-1301",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-2015-3",
+      "tankNr": "B-2015-3",
+      "bezeichnung": "Auto-erkannt: B-2015-3",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "Cont-GFKC-K",
+      "tankNr": "Cont-GFKC-K",
+      "bezeichnung": "Auto-erkannt: Cont-GFKC-K",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "K-2012",
+      "tankNr": "K-2012",
+      "bezeichnung": "Auto-erkannt: K-2012",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "K-2012-2",
+      "tankNr": "K-2012-2",
+      "bezeichnung": "Auto-erkannt: K-2012-2",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-2012",
+      "tankNr": "B-2012",
+      "bezeichnung": "Auto-erkannt: B-2012",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-2012-2",
+      "tankNr": "B-2012-2",
+      "bezeichnung": "Auto-erkannt: B-2012-2",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-2012-3",
+      "tankNr": "B-2012-3",
+      "bezeichnung": "Auto-erkannt: B-2012-3",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-S3 2013",
+      "tankNr": "B-S3 2013",
+      "bezeichnung": "Auto-erkannt: B-S3 2013",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-CS 2015-1",
+      "tankNr": "B-CS 2015-1",
+      "bezeichnung": "Auto-erkannt: B-CS 2015-1",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-CS 2015-1-2",
+      "tankNr": "B-CS 2015-1-2",
+      "bezeichnung": "Auto-erkannt: B-CS 2015-1-2",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-X-2016",
+      "tankNr": "B-X-2016",
+      "bezeichnung": "Auto-erkannt: B-X-2016",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-S1 2013",
+      "tankNr": "B-S1 2013",
+      "bezeichnung": "Auto-erkannt: B-S1 2013",
       "volumenLiter": 5000,
       "hasUniqueNumber": true
     }
   ],
   "inventory": [
     {
-      "id": "f19a2688-d1cc-4df0-9bf2-0897d371f772",
+      "id": "b8b0e92c-b1ab-4fba-83a7-d7621e1f37de",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "GFKC-M",
@@ -130,7 +389,7 @@
       "bemerkungen": ""
     },
     {
-      "id": "48134a3b-9d5e-43e3-8569-4dccd7dfe280",
+      "id": "25e0e7f3-5907-4243-81ec-5e3887da5902",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "GFKC-M",
@@ -145,13 +404,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "9ad2f125-a6ba-45e9-afc4-41e9980957c6",
+      "id": "36ff8e26-bb6e-4385-bcc1-3c1048086b57",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "GFKC-M",
       "produktName": "GFKC-M",
       "category": "M",
-      "tankNr": "IBC",
+      "tankNr": "IBC-GFKC-M",
       "currentQuantityLiters": 3290,
       "alcoholVolProzent": 53.5,
       "dichte20C": 0.9257,
@@ -160,7 +419,7 @@
       "bemerkungen": ""
     },
     {
-      "id": "ad4876cf-9273-45ef-bc08-d9374789f1e0",
+      "id": "eb4e6b9e-a985-4023-8a05-84971fb6d4ec",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2201-2400",
@@ -175,13 +434,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "af9510e0-0791-47ab-9a7a-ed9d0ce770f0",
+      "id": "73ba9d5e-8b4f-4686-8cb3-aa3fea38e872",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "141618",
       "produktName": "Koenigskerze",
       "category": "Dest",
-      "tankNr": "Fass",
+      "tankNr": "Fass-141618",
       "currentQuantityLiters": 89,
       "alcoholVolProzent": 77.5,
       "dichte20C": 0.8873,
@@ -190,13 +449,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "aa580d3e-c99b-423d-b822-fa8fd1ec375d",
+      "id": "c41caef8-01c6-4ffe-b075-7f7408f6db93",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1301",
       "produktName": "Koenigskerze",
       "category": "M",
-      "tankNr": "Fl",
+      "tankNr": "Fl-1301",
       "currentQuantityLiters": 6.75,
       "alcoholVolProzent": 54.3,
       "dichte20C": 0.9231,
@@ -205,13 +464,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "43263748-927c-43f7-abfc-1d92c420d2d6",
+      "id": "bf4e7d0f-ad69-4148-b92e-26180e38dad4",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1801",
       "produktName": "Koenigskerze",
       "category": "M",
-      "tankNr": "B",
+      "tankNr": "B-1801",
       "currentQuantityLiters": 16.8,
       "alcoholVolProzent": 39.2,
       "dichte20C": 0.9231,
@@ -220,7 +479,7 @@
       "bemerkungen": ""
     },
     {
-      "id": "577e5fd3-d090-4be6-9be0-0144f3b103a3",
+      "id": "2d49ec76-d2a0-41ab-ba43-139792fbddc9",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2102",
@@ -235,7 +494,7 @@
       "bemerkungen": ""
     },
     {
-      "id": "7cbd1d26-c7e9-4137-bdd8-d18c594ee160",
+      "id": "664ce320-6491-4267-b159-306d22db988a",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2500",
@@ -249,13 +508,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "80bbaab5-5fe1-40de-bfba-7eb0281a5098",
+      "id": "2859498c-ce9e-4417-8234-576dd47cbcc2",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2301/2018",
       "produktName": "Pfefferminze",
       "category": "Dest",
-      "tankNr": "IBC",
+      "tankNr": "IBC-2301/2018",
       "currentQuantityLiters": 493.02,
       "alcoholVolProzent": 79.4,
       "dichte20C": 0.8625,
@@ -264,13 +523,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "a41512b7-1f39-4931-a549-5cef60c8971e",
+      "id": "499479de-c9ff-4519-bb33-b8671681b979",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1201",
       "produktName": "Pfefferminze",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-1201",
       "currentQuantityLiters": 31,
       "alcoholVolProzent": 72.6,
       "dichte20C": 0.8805,
@@ -279,13 +538,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "2f2b75fa-1587-4ace-bf88-b4a2d97b076a",
+      "id": "78574572-9efc-4198-9bdf-5f4581544951",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1302",
       "produktName": "Pfefferminze",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-1302",
       "currentQuantityLiters": 11.3,
       "alcoholVolProzent": 71.8,
       "dichte20C": 0.8845,
@@ -294,13 +553,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "f5ee6a97-a123-4051-bc9d-ec7f6842ade4",
+      "id": "e033dba9-c4ab-49e3-8215-791b1699059c",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1302",
       "produktName": "Pfefferminze",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-1302-2",
       "currentQuantityLiters": 5,
       "alcoholVolProzent": 71.5,
       "dichte20C": 0.8833,
@@ -309,7 +568,7 @@
       "bemerkungen": ""
     },
     {
-      "id": "cef3c1bc-5aaa-4f1f-bed8-326e13e80d8f",
+      "id": "256dab63-2c55-4a9f-ae9c-896259ef6579",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2201/2400",
@@ -324,7 +583,7 @@
       "bemerkungen": ""
     },
     {
-      "id": "56de8d2b-b3ec-4ff0-8a30-78ef79ec56cf",
+      "id": "7783b1a8-199e-46d6-a52e-3d774bf9223d",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2201",
@@ -339,13 +598,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "ac38b3ad-1038-4276-96f9-be0a495518f0",
+      "id": "862a6c7b-5978-4183-8475-0fc93815dc94",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2301",
       "produktName": "Zitronenmelisse",
       "category": "Dest",
-      "tankNr": "Fass",
+      "tankNr": "Fass-2301",
       "currentQuantityLiters": 268,
       "alcoholVolProzent": 80.1,
       "dichte20C": 0.8602,
@@ -354,13 +613,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "fb136f40-d398-4a80-9395-3206f7538eb0",
+      "id": "ddc40aed-8641-4c67-97cf-e60a05649e68",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1201",
       "produktName": "Zitronenmelisse",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-1201-2",
       "currentQuantityLiters": 24,
       "alcoholVolProzent": 74.6,
       "dichte20C": 0.8735,
@@ -369,13 +628,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "98500ee7-3b00-46ed-9b0e-a037dd96eb20",
+      "id": "0a075a2c-3e43-4c89-8a8c-be2b99c39b2a",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1301",
       "produktName": "Zitronenmelisse",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-1301",
       "currentQuantityLiters": 31.39,
       "alcoholVolProzent": 67.9,
       "dichte20C": 0.892,
@@ -384,13 +643,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "0d95b32d-5ba0-4695-a6ea-aee9ef4326c4",
+      "id": "a7f6b1f5-5c01-479f-92c1-dc14116e38b9",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1501",
       "produktName": "Zitronenmelisse",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-1501",
       "currentQuantityLiters": 25.3,
       "alcoholVolProzent": 76.8,
       "dichte20C": 0.8695,
@@ -399,13 +658,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "dbd3837e-0096-4090-98ad-dc25b9d496fd",
+      "id": "1a60c8ba-8114-49fb-b52b-172fbe46b2e8",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1501",
       "produktName": "Zitronenmelisse",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-1501-2",
       "currentQuantityLiters": 31,
       "alcoholVolProzent": 76.8,
       "dichte20C": 0.8695,
@@ -414,13 +673,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "e1c88f59-583c-41b4-9f66-40f2c6459ab5",
+      "id": "d358f006-67a3-4200-8056-5ad87acf54b2",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1501",
       "produktName": "Zitronenmelisse",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-1501-3",
       "currentQuantityLiters": 29.9,
       "alcoholVolProzent": 76.8,
       "dichte20C": 0.8695,
@@ -429,7 +688,7 @@
       "bemerkungen": ""
     },
     {
-      "id": "41d53d27-f91f-45a3-a18f-23b55e874927",
+      "id": "7903e840-07b9-4875-9e18-b7bb378dae64",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2400/2500",
@@ -444,13 +703,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "127a895b-33e1-4024-bcae-4fb068f3071d",
+      "id": "930b7179-d2f2-4d73-b4a9-30992cefd677",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2015",
       "produktName": "Thymian",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-2015",
       "currentQuantityLiters": 16,
       "alcoholVolProzent": 71.7,
       "dichte20C": 0.8811,
@@ -459,13 +718,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "1ba394aa-dfcf-4c89-b73c-a80520a7518f",
+      "id": "7a7ce7b8-e2d0-4c38-87e6-0ef4f183af5b",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2015",
       "produktName": "Thymian",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-2015-2",
       "currentQuantityLiters": 25,
       "alcoholVolProzent": 71.7,
       "dichte20C": 0.8811,
@@ -474,7 +733,7 @@
       "bemerkungen": ""
     },
     {
-      "id": "34c18101-d9d2-468e-b709-1b90ac572fdf",
+      "id": "038f8b3d-6def-4c8e-a5ae-56749b9913e9",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2203/2400/2500",
@@ -489,13 +748,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "025362ca-e3a0-4b1d-9798-f61fcb8602fa",
+      "id": "c9017689-d580-4af7-ab4b-9e7314122f87",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2201",
       "produktName": "Salbei",
       "category": "Dest",
-      "tankNr": "Fass",
+      "tankNr": "Fass-2201",
       "currentQuantityLiters": 241.1,
       "alcoholVolProzent": 77.7,
       "dichte20C": 0.8671,
@@ -504,13 +763,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "e9288ef4-e0c4-43a6-b62d-0574449f7b00",
+      "id": "7cd6b897-4758-4d7c-ad01-266dfbfc4214",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1201",
       "produktName": "Salbei",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-1201-3",
       "currentQuantityLiters": 25,
       "alcoholVolProzent": 73.1,
       "dichte20C": 0.879,
@@ -519,13 +778,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "8b17a62f-1346-4802-b22c-820feaac63ba",
+      "id": "e998686a-3f2e-4dd0-9f61-db75121e3aea",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1303",
       "produktName": "Salbei",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-1303",
       "currentQuantityLiters": 31,
       "alcoholVolProzent": 67.7,
       "dichte20C": 0.8925,
@@ -534,13 +793,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "5fb3610b-f3af-4593-9bdd-c0a2d6312ea6",
+      "id": "9fe52d78-4934-44e5-9844-f854b08f358b",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1701",
       "produktName": "Salbei",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-1701",
       "currentQuantityLiters": 25,
       "alcoholVolProzent": 76.5,
       "dichte20C": 0.8703,
@@ -549,13 +808,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "92c6a54d-5f19-4a1a-ac83-6eb4d37a1af8",
+      "id": "684df4c5-b026-40b0-af1c-c6e2c852363b",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1301",
       "produktName": "Mariendistel",
       "category": "M",
-      "tankNr": "Fl",
+      "tankNr": "Fl-1301-2",
       "currentQuantityLiters": 6.75,
       "alcoholVolProzent": 54.2,
       "dichte20C": 0.9233,
@@ -564,13 +823,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "b942a7f3-72eb-445b-8b03-53bb252a6adc",
+      "id": "d53582f3-51fa-4201-80ef-aa1b201f1643",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2023",
       "produktName": "Mariendistel",
       "category": "Dest",
-      "tankNr": "Fass",
+      "tankNr": "Fass-2023",
       "currentQuantityLiters": 154.6,
       "alcoholVolProzent": 77.9,
       "dichte20C": 0.8661,
@@ -579,7 +838,7 @@
       "bemerkungen": ""
     },
     {
-      "id": "408a2540-aa38-465a-ad29-7387c4bd9a22",
+      "id": "2b7f9c2c-48dc-408f-a880-dfbeb04f5ddd",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2500",
@@ -593,13 +852,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "4a907592-1239-461c-9f83-64f80fb8d708",
+      "id": "5a33221f-485a-4059-8fea-a6b378c9b483",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2500",
       "produktName": "Oregano",
       "category": "M",
-      "tankNr": "Fass",
+      "tankNr": "Fass-2500",
       "currentQuantityLiters": 200,
       "alcoholVolProzent": 54.5,
       "literAbsolutalkohol": 109,
@@ -607,13 +866,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "ef34e1e9-8d7a-480e-901d-e810297978dd",
+      "id": "cc04c46f-e415-4f97-9b57-f9e9bcd4a52c",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1701",
       "produktName": "Oregano",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-1701-2",
       "currentQuantityLiters": 30.5,
       "alcoholVolProzent": 74.5,
       "dichte20C": 0.8755,
@@ -622,13 +881,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "e6c12311-674a-4eb7-8046-0d21e4abec42",
+      "id": "df0e4360-2177-47a2-ad29-718073fb87ed",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1301",
       "produktName": "Benedikten",
       "category": "M",
-      "tankNr": "Fl",
+      "tankNr": "Fl-1301-3",
       "currentQuantityLiters": 6.75,
       "alcoholVolProzent": 54.2,
       "dichte20C": 0.9233,
@@ -637,13 +896,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "34163dcf-4938-4700-85c4-32dcc3e52868",
+      "id": "ce7c237f-3dbd-4187-9e8b-8a3f3a332afd",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2014",
       "produktName": "Benedikten",
       "category": "Dest",
-      "tankNr": "Fass",
+      "tankNr": "Fass-2014",
       "currentQuantityLiters": 70.45,
       "alcoholVolProzent": 72.7,
       "dichte20C": 0.8815,
@@ -652,13 +911,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "3de1d368-36f8-49cc-aad3-5e46b5a17bf5",
+      "id": "434dc3d4-f43d-4108-80fc-66bb3efa0122",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1400",
       "produktName": "Baldrian",
       "category": "M",
-      "tankNr": "Fass",
+      "tankNr": "Fass-1400",
       "currentQuantityLiters": 81,
       "alcoholVolProzent": 47.1,
       "dichte20C": 0.9373,
@@ -667,13 +926,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "e85dc9cc-d509-4cd3-b574-f87d090e333a",
+      "id": "79bd6d1a-b27f-4123-ad8d-67b1736e3eff",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1304",
       "produktName": "Baldrian",
       "category": "M",
-      "tankNr": "Fl",
+      "tankNr": "Fl-1304",
       "currentQuantityLiters": 6.75,
       "alcoholVolProzent": 51,
       "dichte20C": 0.9298,
@@ -682,13 +941,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "52bec3de-2c40-40b4-8de8-dabc28e2674c",
+      "id": "406a7176-3d46-437a-9aff-c21c48cab6ee",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1301",
       "produktName": "Zirbe",
       "category": "M",
-      "tankNr": "Fl",
+      "tankNr": "Fl-1301-4",
       "currentQuantityLiters": 6,
       "alcoholVolProzent": 51.6,
       "dichte20C": 0.9286,
@@ -697,13 +956,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "ce4273e6-f150-4daf-96eb-e0b75440019e",
+      "id": "1195a89f-e457-47e6-af64-44c6b868cee3",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1400",
       "produktName": "Zirbe",
       "category": "M",
-      "tankNr": "B",
+      "tankNr": "B-1400",
       "currentQuantityLiters": 31.56,
       "alcoholVolProzent": 39.5,
       "dichte20C": 0.9505,
@@ -712,13 +971,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "93504f2c-7478-4818-8512-876ff98cb8e0",
+      "id": "93e40d83-bcdc-42cc-8a4e-a95690c39441",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "1301",
       "produktName": "Zirbe",
       "category": "Dest",
-      "tankNr": "K",
+      "tankNr": "K-1301",
       "currentQuantityLiters": 15.8,
       "alcoholVolProzent": 70.5,
       "dichte20C": 0.886,
@@ -727,13 +986,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "5207c0d4-1c9f-4506-b3cd-fec0f53191a4",
+      "id": "f407be53-6dfa-4517-930c-cd2092993326",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2015",
       "produktName": "GFKC-A",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-2015-3",
       "currentQuantityLiters": 25,
       "alcoholVolProzent": 74,
       "dichte20C": 0.877,
@@ -742,13 +1001,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "1070a8b8-eea9-489d-819e-7e51b1beb3b4",
+      "id": "560406a3-45cb-42a0-ac38-bd801fca0cf9",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "GFKC-K",
       "produktName": "GFKC-K",
       "category": "Dest",
-      "tankNr": "Cont",
+      "tankNr": "Cont-GFKC-K",
       "currentQuantityLiters": 138.9,
       "alcoholVolProzent": 78.3,
       "dichte20C": 0.8695,
@@ -757,13 +1016,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "7f264983-67ce-4c42-a52a-27785641317a",
+      "id": "59de4020-7ed0-4530-b385-584d712080ec",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2012",
       "produktName": "VL Zirbe",
       "category": "Dest",
-      "tankNr": "K",
+      "tankNr": "K-2012",
       "currentQuantityLiters": 6,
       "alcoholVolProzent": 77.4,
       "dichte20C": 0.868,
@@ -772,13 +1031,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "ef4b1b76-99fb-429e-8218-bf6c2753b51d",
+      "id": "5a8bf45c-27c9-4434-af4c-a8bbe1eebed0",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2012",
       "produktName": "VL Zirbe",
       "category": "Sbl",
-      "tankNr": "K",
+      "tankNr": "K-2012-2",
       "currentQuantityLiters": 6,
       "alcoholVolProzent": 74,
       "dichte20C": 0.877,
@@ -787,13 +1046,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "5116fd64-16e4-4055-ada2-790f141f5b61",
+      "id": "66cf3956-4f90-48a9-b479-a038cfd9ad58",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2012",
       "produktName": "Sauvignon Bl",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-2012",
       "currentQuantityLiters": 31,
       "alcoholVolProzent": 75.3,
       "dichte20C": 0.8735,
@@ -802,13 +1061,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "18d627a4-7c1a-4c93-9716-625e667cf315",
+      "id": "e647f335-23a8-4eca-a741-d67079bdd5ec",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2012",
       "produktName": "Sauvignon Bl",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-2012-2",
       "currentQuantityLiters": 31,
       "alcoholVolProzent": 75.3,
       "dichte20C": 0.8735,
@@ -817,13 +1076,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "2d73f444-6b51-45fa-afb7-7a52692faa87",
+      "id": "ef3b8afd-7d51-4e7b-a302-47c32d7b4f40",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "2012",
       "produktName": "Sauvignon Bl",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-2012-3",
       "currentQuantityLiters": 31,
       "alcoholVolProzent": 75.3,
       "dichte20C": 0.8735,
@@ -832,13 +1091,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "b5f09d0b-63b0-434e-be59-cf901c7d88c6",
+      "id": "713447d9-7991-49af-a7d4-d777b13b040e",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "S3 2013",
       "produktName": "Marc d SWS",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-S3 2013",
       "currentQuantityLiters": 28.61,
       "alcoholVolProzent": 73,
       "dichte20C": 0.8325,
@@ -847,13 +1106,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "c5420c57-d3ee-41c0-85cd-f217ae9115a4",
+      "id": "e4046c0c-5047-4224-ae56-dc3f7e4af073",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "CS 2015-1",
       "produktName": "Marc d SWS",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-CS 2015-1",
       "currentQuantityLiters": 29,
       "alcoholVolProzent": 73,
       "dichte20C": 0.8325,
@@ -862,13 +1121,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "76bab366-0e48-489a-b225-31c77a303a91",
+      "id": "d7a123b1-1db9-4e84-becc-98c1b5f5bd6c",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "CS 2015-1",
       "produktName": "Marc d SWS",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-CS 2015-1-2",
       "currentQuantityLiters": 30.17,
       "alcoholVolProzent": 73,
       "dichte20C": 0.8325,
@@ -877,13 +1136,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "8cf29406-dba9-4dbc-b26a-475b9eab291a",
+      "id": "dd840c37-a560-4685-9de8-17f4f0e1d6ae",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "X-2016",
       "produktName": "Marc d SWS",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-X-2016",
       "currentQuantityLiters": 26.34,
       "alcoholVolProzent": 73,
       "dichte20C": 0.8325,
@@ -892,13 +1151,13 @@
       "bemerkungen": ""
     },
     {
-      "id": "5a05aff2-888b-4d49-9a39-8be927fe7f91",
+      "id": "7669605c-35c4-4fa2-b8ae-93385c963914",
       "artikelNummer": "",
       "kennzeichen": "",
       "chargenNummer": "S1 2013",
       "produktName": "Marc d SWS",
       "category": "Dest",
-      "tankNr": "B",
+      "tankNr": "B-S1 2013",
       "currentQuantityLiters": 29.53,
       "alcoholVolProzent": 73,
       "dichte20C": 0.8325,
@@ -907,5 +1166,5 @@
       "bemerkungen": ""
     }
   ],
-  "lastUpdated": "2026-10-03T18:08:00.493Z"
+  "lastUpdated": "2026-10-03T19:23:26.673Z"
 }
