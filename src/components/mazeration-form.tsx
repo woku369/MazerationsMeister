@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { calculateNetWeightDetailsForProtocol, korrDichte20, calcVolumeFromMassAndDensity, toVolumeLiters } from '@/lib/mazeration-calc';
 import { getGithubToken } from '@/lib/github-token';
-import { getTankDefinitions, syncTankDefinitionsWithInventory } from '@/lib/tank-sync';
+import { getTankDefinitions, syncTankDefinitionsWithInventory, formatTankLabel } from '@/lib/tank-sync';
 import type { TankDefinition } from '@/schemas/tankSchema';
 import {
   TARE_PER_CRATE_KG_FIXED,
@@ -1338,7 +1338,7 @@ export default function MazerationForm() {
                           <SelectContent>
                             <SelectItem value="__none__">— Kein Zieltank / Einbuchung überspringen —</SelectItem>
                             {availableTanks.map(t => (
-                              <SelectItem key={t.tankNr} value={t.tankNr}>{t.bezeichnung} ({t.tankNr})</SelectItem>
+                              <SelectItem key={t.tankNr} value={t.tankNr}>{formatTankLabel(t)}</SelectItem>
                             ))}
                             <SelectItem value="__custom__">+ Anderer/neuer Tank (manuell eingeben)…</SelectItem>
                           </SelectContent>

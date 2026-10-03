@@ -20,14 +20,18 @@ import {
   TableProperties,
   Github,
   PackageCheck,
+  Droplets,
+  Send,
 } from 'lucide-react';
 
 type SectionId =
   | 'mazerationen'
   | 'sammelliste'
   | 'lagerverwaltung'
+  | 'einlagerung'
   | 'rezepturen'
   | 'lohnbrand'
+  | 'versand'
   | 'qr-codes'
   | 'github'
   | 'onedrive';
@@ -63,6 +67,13 @@ const overview: OverviewEntry[] = [
     badge: 'Grundlagen',
   },
   {
+    id: 'einlagerung',
+    icon: <Droplets className="h-5 w-5 text-cyan-600" />,
+    title: 'Einlagern',
+    description: 'Neue Menge direkt in einen oder mehrere Tanks einbuchen.',
+    badge: 'Neu',
+  },
+  {
     id: 'rezepturen',
     icon: <Beaker className="h-5 w-5 text-pink-600" />,
     title: 'Rezepturen (GFKC)',
@@ -74,6 +85,13 @@ const overview: OverviewEntry[] = [
     icon: <Truck className="h-5 w-5 text-orange-600" />,
     title: 'Lohnbrand-Aufträge',
     description: 'Mazerat zum Lohnbrenner, Rücklauf des Destillats verbuchen.',
+    badge: 'Neu',
+  },
+  {
+    id: 'versand',
+    icon: <Send className="h-5 w-5 text-indigo-600" />,
+    title: 'Versand an Lohnabfüller',
+    description: 'Fertige Ware versenden, Abgang buchen, Lieferschein-Hilfsdaten.',
     badge: 'Neu',
   },
   {
@@ -402,6 +420,51 @@ export default function AnleitungenPage() {
         )}
       </Card>
 
+      {/* Einlagern */}
+      <Card className="mb-6">
+        <SectionHeader id="einlagerung" icon={<Droplets className="h-6 w-6 text-cyan-600" />} title="💧 Einlagern" badge="Neu" />
+        {expandedSection === 'einlagerung' && (
+          <CardContent className="space-y-6">
+            <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4">
+              <h3 className="font-semibold text-cyan-800 mb-2 flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Überblick
+              </h3>
+              <p className="text-cyan-700 text-sm">
+                Direkter Weg, um eine neue Menge (z.B. extern zugekaufte Ware oder eine Charge ohne eigenes
+                Mazerations- oder Rezeptur-Protokoll) in einen oder mehrere Tanks einzubuchen — ohne Umweg über ein
+                Mazerationsformular. Liegt im Zieltank bereits dasselbe Produkt, wird automatisch zu einem Posten mit
+                neu berechnetem Misch-ABV verschmolzen, statt eine zweite Zeile anzulegen.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <StepCard number={1} color="blue" title="Produktdaten erfassen">
+                <Check>Produktname und optional Chargennummer eintragen (bekannte Chargen werden als Vorschlag angeboten)</Check>
+                <Check>Kategorie, Alkoholgehalt (%vol.) und Gesamtmenge (L) angeben</Check>
+                <Warn>Ist unter „Kategorie" nichts auswählbar, zuerst unter Einstellungen → Kategorien mindestens eine Kategorie anlegen.</Warn>
+              </StepCard>
+
+              <StepCard number={2} color="green" title="Zieltank(s) wählen">
+                <Check>Je Zieltank werden Kapazität, aktuell belegte Menge und freie Menge sofort angezeigt</Check>
+                <Check>Enthält der Tank bereits dasselbe Produkt, wird die resultierende Gesamtmenge und der neue Misch-ABV live vorgerechnet</Check>
+                <Warn>Enthält der Tank ein anderes Produkt oder würde die Kapazität überschritten, erscheint eine deutliche Warnung — eingelagert werden kann trotzdem, falls das beabsichtigt ist.</Warn>
+              </StepCard>
+
+              <StepCard number={3} color="orange" title="Auf mehrere Tanks aufteilen (optional)">
+                <Check>„Weiterer Tank" fügt eine zusätzliche Zeile hinzu, falls die Menge nicht in einen Tank passt</Check>
+                <Check>Die Anzeige „Noch zu verteilen" zeigt, ob die Summe der Zieltank-Mengen bereits der Gesamtmenge entspricht</Check>
+              </StepCard>
+
+              <StepCard number={4} color="pink" title="Einlagern & Buchen" icon={<PackageCheck className="h-4 w-4 ml-1" />}>
+                <Check>Bucht den Zugang sofort für jeden angegebenen Zieltank</Check>
+                <Check>Taucht danach wie jede andere Buchung im Buchungsjournal der Lagerverwaltung auf</Check>
+              </StepCard>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
       {/* Rezepturen (GFKC) */}
       <Card className="mb-6">
         <SectionHeader id="rezepturen" icon={<Beaker className="h-6 w-6 text-pink-600" />} title="🧪 Rezepturen (GFKC)" badge="Neu" />
@@ -524,6 +587,50 @@ export default function AnleitungenPage() {
                   Der Brennverlust wird bewusst dokumentiert, nicht stillschweigend hingenommen — er muss im
                   Gesamt-LA-Bestand erklärbar bleiben.
                 </Warn>
+              </StepCard>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Versand an Lohnabfüller */}
+      <Card className="mb-6">
+        <SectionHeader id="versand" icon={<Send className="h-6 w-6 text-indigo-600" />} title="📤 Versand an Lohnabfüller" badge="Neu" />
+        {expandedSection === 'versand' && (
+          <CardContent className="space-y-6">
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+              <h3 className="font-semibold text-indigo-800 mb-2 flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Überblick
+              </h3>
+              <p className="text-indigo-700 text-sm">
+                Fertige Ware (z.B. GFKC bulk) wird an den Lohnabfüller (Mozart) versendet und kommt als fertig
+                abgefüllte Flaschenware zurück. Die App führt nur den <strong>Versand</strong> (Abgang aus dem
+                Lager) — die zurückkommende Flaschenware wird nicht als eigener Bulk-Bestand getrackt.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <StepCard number={1} color="blue" title="Neuen Versand anlegen">
+                <Check>Lohnabfüller-Name und Versanddatum eintragen</Check>
+                <Check>Ein oder mehrere Gebinde aus dem echten Lagerbestand wählen, je Gebinde die Menge eintragen</Check>
+                <Check>Die Gesamtsumme (Liter und LA) über alle gewählten Gebinde wird direkt im Dialog live angezeigt</Check>
+              </StepCard>
+
+              <StepCard number={2} color="green" title="Angaben fürs externe Lieferschein-Formular (optional)">
+                <Check>Plomben-Nummern und externe Schlumberger-Lieferschein-Nr. eintragen</Check>
+                <Check>Brutto- und Taragewicht (per Waage) erfassen — die App rechnet daraus das gewogene Nettogewicht und vergleicht es mit der aus Menge × Dichte geschätzten Variante</Check>
+                <Warn>Dient nur der Dokumentation — die App erzeugt kein eigenes Lieferschein-PDF, das offizielle Formular läuft auf Schlumberger-Briefkopf.</Warn>
+              </StepCard>
+
+              <StepCard number={3} color="orange" title="Versand anlegen & Abgang buchen" icon={<PackageCheck className="h-4 w-4 ml-1" />}>
+                <Check>Bucht sofort den Lagerabgang für alle ausgewählten Gebinde</Check>
+                <Check>Der Versand erhält automatisch eine fortlaufende Versandnummer</Check>
+              </StepCard>
+
+              <StepCard number={4} color="pink" title="Versand-Historie">
+                <Check>Jeder Versand zeigt Gebinde, Mengen, Alkoholgehalt und die Gesamt-LA</Check>
+                <Check>Darunter die aufbereiteten Lieferschein-Hilfsdaten (Ladestelle, Charge, Gebindeanzahl, Nettogewicht) zum Abtippen ins externe Formular</Check>
               </StepCard>
             </div>
           </CardContent>

@@ -10,7 +10,7 @@ import { Droplets, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import * as StockService from '@/lib/stock-service';
 import { findAehnlichenWert } from '@/lib/stock-service';
 import { calcLA } from '@/lib/mazeration-calc';
-import { getTankDefinitions } from '@/lib/tank-sync';
+import { getTankDefinitions, formatTankLabel } from '@/lib/tank-sync';
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 import type { TankDefinition } from '@/schemas/tankSchema';
 
@@ -188,6 +188,7 @@ export default function EinlagerungPage() {
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger><SelectValue placeholder="Kategorie wählen" /></SelectTrigger>
                 <SelectContent>
+                  {categories.length === 0 && <SelectItem value="no-cat" disabled>Keine Kategorien angelegt - siehe Einstellungen → Kategorien.</SelectItem>}
                   {categories.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -206,7 +207,7 @@ export default function EinlagerungPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Zieltank(e)</CardTitle>
+          <CardTitle className="text-lg">Zieltank(s)</CardTitle>
           <CardDescription>Passt die Menge nicht in einen Tank, auf mehrere aufteilen.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -225,7 +226,7 @@ export default function EinlagerungPage() {
                   <Select value={row.tankNr} onValueChange={v => updateZielTankRow(idx, { tankNr: v })}>
                     <SelectTrigger className="flex-1"><SelectValue placeholder="Tank wählen" /></SelectTrigger>
                     <SelectContent>
-                      {tanks.map(t => <SelectItem key={t.tankNr} value={t.tankNr}>{t.bezeichnung} ({t.tankNr})</SelectItem>)}
+                      {tanks.map(t => <SelectItem key={t.tankNr} value={t.tankNr}>{formatTankLabel(t)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Input

@@ -81,3 +81,16 @@ export function getTankByNumber(tankNr: string): TankDefinition | null {
   return tanks.find(tank => tank.tankNr === tankNr) || null;
 }
 
+/**
+ * Anzeigetext für einen Tank in Dropdowns. Auto-angelegte Tanks (siehe oben)
+ * tragen die Tanknummer bereits in der Bezeichnung ("Auto-erkannt: T 349") -
+ * ein pauschal angehängtes "(T 349)" würde sie doppelt zeigen (Nutzer-Meldung
+ * 03.10.2026, Seite "Einlagern"). Nur anhängen, wenn die Nummer nicht schon
+ * Teil der Bezeichnung ist.
+ */
+export function formatTankLabel(tank: TankDefinition): string {
+  return tank.bezeichnung.includes(tank.tankNr)
+    ? tank.bezeichnung
+    : `${tank.bezeichnung} (${tank.tankNr})`;
+}
+

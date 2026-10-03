@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Plus, Trash2, Beaker, FlaskConical, PackageCheck } from 'lucide-react';
 import * as StockService from '@/lib/stock-service';
 import * as RezepturService from '@/lib/rezeptur-service';
-import { getTankDefinitions } from '@/lib/tank-sync';
+import { getTankDefinitions, formatTankLabel } from '@/lib/tank-sync';
 import {
   fuegeKomponenteHinzu, fuegeFreieZutatHinzu, entferneKomponente, aktualisiereKomponente,
   berechneRezeptur, berechneVerschnittMitFixUndReduzierbar, berechneAlkoholKorrektur,
@@ -417,7 +417,7 @@ export default function RezepturEditor() {
               <Select value={zielTankNr} onValueChange={setZielTankNr}>
                 <SelectTrigger><SelectValue placeholder="Tank wählen" /></SelectTrigger>
                 <SelectContent>
-                  {tanks.map(t => <SelectItem key={t.tankNr} value={t.tankNr}>{t.bezeichnung} ({t.tankNr})</SelectItem>)}
+                  {tanks.map(t => <SelectItem key={t.tankNr} value={t.tankNr}>{formatTankLabel(t)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

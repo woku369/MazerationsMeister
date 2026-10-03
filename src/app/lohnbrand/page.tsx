@@ -15,7 +15,7 @@ import { Truck, PackageCheck, Plus, Trash2 } from 'lucide-react';
 import * as StockService from '@/lib/stock-service';
 import * as LohnbrandService from '@/lib/lohnbrand-service';
 import { calcLA } from '@/lib/mazeration-calc';
-import { getTankDefinitions } from '@/lib/tank-sync';
+import { getTankDefinitions, formatTankLabel } from '@/lib/tank-sync';
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 import type { LohnbrandAuftrag, LohnbrandContainer } from '@/schemas/lohnbrandSchema';
 import type { TankDefinition } from '@/schemas/tankSchema';
@@ -337,7 +337,7 @@ export default function LohnbrandPage() {
                   <SelectTrigger><SelectValue placeholder="Tank wählen" /></SelectTrigger>
                   <SelectContent>
                     {tanks.map(t => (
-                      <SelectItem key={t.tankNr} value={t.tankNr}>{t.bezeichnung} ({t.tankNr})</SelectItem>
+                      <SelectItem key={t.tankNr} value={t.tankNr}>{formatTankLabel(t)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
