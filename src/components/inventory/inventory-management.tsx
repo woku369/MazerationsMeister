@@ -201,11 +201,41 @@ export default function InventoryManagement() {
     const neueInventoryItems = geparsteZeilen.filter(i => i.currentQuantityLiters > 0);
     const uebersprungen = geparsteZeilen.length - neueInventoryItems.length;
 
+    // Automatische Vereindeutigung generischer Behälter-Bezeichnungen (Nutzer-
+    // Meldung 03.10.2026: mehrere verschiedene Chargen mit z.B. "Fass" oder
+    // "IBC" in der Tank-Nr.-Spalte der Importdatei landeten sonst alle unter
+    // demselben Auto-erkannt-Tank und wurden im Tank-Viewer fälschlich als ein
+    // einziges, gemeinsam befülltes Gebinde dargestellt. Die Quelldatei selbst
+    // enthält keine Einzelnummerierung pro Gebinde - die Chargennummer ist der
+    // einzige Wert, der jede Zeile bereits eindeutig unterscheidet.
+    const istGenerischeTankNr = (tankNr: string) => {
+      const t = tankNr.trim();
+      if (t === '') return false;
+      return !/^(.+)-(\d+)$/.test(t) && !/^[T]\s?\d+/.test(t);
+    };
+    const vergebeneTankNrn = new Map<string, number>();
+    let automatischEindeutigGemacht = 0;
+    neueInventoryItems.forEach(item => {
+      const rohTankNr = item.tankNr.trim();
+      if (!istGenerischeTankNr(rohTankNr)) return;
+      const basis = `${rohTankNr}-${item.chargenNummer.trim() || 'X'}`;
+      const bisherigeAnzahl = vergebeneTankNrn.get(basis) ?? 0;
+      vergebeneTankNrn.set(basis, bisherigeAnzahl + 1);
+      item.tankNr = bisherigeAnzahl === 0 ? basis : `${basis}-${bisherigeAnzahl + 1}`;
+      automatischEindeutigGemacht++;
+    });
+
     setInventoryItems(neueInventoryItems);
     toast({
       title: 'Lagerbestand importiert',
       description: `${neueInventoryItems.length} Lagerartikel wurden hinzugefügt.` + (uebersprungen > 0 ? ` ${uebersprungen} Zeile(n) ohne Menge übersprungen.` : ''),
     });
+    if (automatischEindeutigGemacht > 0) {
+      toast({
+        title: `${automatischEindeutigGemacht} Gebinde automatisch eindeutig benannt`,
+        description: `Generische Behälter-Bezeichnungen (z.B. "Fass", "IBC") wurden anhand der Chargennummer eindeutig gemacht (z.B. "Fass-${'<Charge>'}"), damit jede Charge einen eigenen Tank-Eintrag erhält statt mit anderen zusammengefasst zu werden.`,
+      });
+    }
 
     // syncTankDefinitionsWithInventory() liest inventoryItems direkt aus dem
     // localStorage, das schreibt aber erst ein useEffect ein Render später -
