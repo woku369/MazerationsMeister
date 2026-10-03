@@ -106,8 +106,8 @@ const overview: OverviewEntry[] = [
   {
     id: 'qr-codes',
     icon: <QrCode className="h-5 w-5 text-blue-600" />,
-    title: 'QR-Code Tankverwaltung',
-    description: 'Tanks mit QR-Codes versehen und mobil per Smartphone abrufen.',
+    title: 'Tank-Verwaltung & QR-Codes',
+    description: 'Tanks/Gebinde anlegen, splitten, mit QR-Codes versehen und mobil abrufen.',
   },
   {
     id: 'github',
@@ -695,9 +695,9 @@ export default function AnleitungenPage() {
         )}
       </Card>
 
-      {/* QR-Code Tankverwaltung */}
+      {/* Tank-Verwaltung & QR-Codes */}
       <Card className="mb-6">
-        <SectionHeader id="qr-codes" icon={<QrCode className="h-6 w-6 text-blue-600" />} title="📱 QR-Code Tankverwaltung" />
+        <SectionHeader id="qr-codes" icon={<QrCode className="h-6 w-6 text-blue-600" />} title="📱 Tank-Verwaltung & QR-Codes" />
         {expandedSection === 'qr-codes' && (
           <CardContent className="space-y-6">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -707,8 +707,10 @@ export default function AnleitungenPage() {
               </h3>
               <div className="text-blue-700 text-sm space-y-2">
                 <p>
-                  Jeder Tank kann einen QR-Code erhalten, der auf dem Smartphone die aktuellen Tank-Infos zeigt —{' '}
-                  <strong>ohne App-Installation</strong>. Es gibt dabei zwei Betriebsarten:
+                  Eigener Menüpunkt „Tank-Verwaltung" in der Seitenleiste (bis Aufgabe 55 ein Tab unter
+                  Einstellungen) — hier werden Tanks und Gebinde verwaltet und jeder kann einen QR-Code erhalten,
+                  der auf dem Smartphone die aktuellen Infos zeigt — <strong>ohne App-Installation</strong>. Es gibt
+                  dabei zwei Betriebsarten für den QR-Code:
                 </p>
                 <div className="bg-white rounded p-3 mt-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
@@ -737,24 +739,30 @@ export default function AnleitungenPage() {
               <h3 className="text-xl font-semibold">🎯 Schritt-für-Schritt Anleitung</h3>
 
               <StepCard number={1} color="blue" title="GitHub-Integration aktivieren (empfohlen)">
-                <Check>Siehe Abschnitt „GitHub-Integration" unten — einmalig einrichten</Check>
+                <Check>Siehe Abschnitt „GitHub-Integration" unten — einmalig einrichten (geht auch direkt von dieser Seite aus über den Button „GitHub verbinden")</Check>
                 <Warn>Ohne aktivierte Integration funktionieren QR-Codes nur im lokalen WLAN.</Warn>
               </StepCard>
 
-              <StepCard number={2} color="green" title="Tank-Definitionen erstellen & QR-Codes generieren">
-                <Check>Navigieren Sie zu <strong>Tank-Verwaltung</strong> (eigener Menüpunkt in der Seitenleiste)</Check>
-                <Check>„Tanks aus Inventar synchronisieren" lädt automatisch erkannte Tanks</Check>
-                <Check>Tank-Kapazitäten prüfen und bei Bedarf anpassen</Check>
-                <Check>Checkboxen für gewünschte Tanks aktivieren und „QR-Codes generieren" klicken</Check>
+              <StepCard number={2} color="green" title="Tanks/Gebinde anlegen oder automatisch übernehmen">
+                <Check>Navigieren Sie zu <strong>Tank-Verwaltung</strong> in der Seitenleiste</Check>
+                <Check>Neue Tanknummern aus Mazeration/Einlagerung/Import werden automatisch als Tank übernommen — kein manueller Sync-Schritt nötig</Check>
+                <Check>Alternativ „Neuen Tank hinzufügen" für eine manuelle Anlage (Tank-Nummer, Bezeichnung, Kapazität, optional Tara)</Check>
+                <Check>Jede Karte zeigt Kapazität, aktuellen Inhalt inkl. Kategorie (z.B. Mazerat/Destillat) und, falls eingetragen, das Tara-Gewicht</Check>
               </StepCard>
 
-              <StepCard number={3} color="purple" title="QR-Codes drucken & anbringen">
-                <Check>„QR-Codes drucken" für eine optimierte Druckansicht nutzen</Check>
+              <StepCard number={3} color="orange" title="Gebinde splitten (falls ein Posten mehrere physische Behälter zusammenfasst)">
+                <Check>„Splitten" bei einem befüllten Gebinde öffnet den Aufteilungs-Dialog</Check>
+                <Check>Je neuem Gebinde eigene Bezeichnung, Menge, Kapazität und optional Tara eintragen — die Summe der Mengen muss der bisherigen Gesamtmenge entsprechen</Check>
+                <Check>Bucht den Abgang beim bisherigen Sammelposten und legt die neuen Gebinde als eigene, einzeln QR-codierbare Tanks an</Check>
+              </StepCard>
+
+              <StepCard number={4} color="purple" title="QR-Code erzeugen & anbringen">
+                <Check>Bei einem Tank auf „QR-Code" klicken, im Dialog „Herunterladen" (PNG) oder „Drucken"</Check>
                 <Check>Auf selbstklebende Etiketten drucken (mindestens 4×4 cm empfohlen)</Check>
-                <Check>Jeden QR-Code gut sichtbar und vor Feuchtigkeit geschützt am Tank anbringen</Check>
+                <Check>Jeden QR-Code gut sichtbar und vor Feuchtigkeit geschützt am Tank/Gebinde anbringen</Check>
               </StepCard>
 
-              <StepCard number={4} color="orange" title="QR-Code mit Smartphone scannen" icon={<Smartphone className="h-4 w-4 ml-1" />}>
+              <StepCard number={5} color="orange" title="QR-Code mit Smartphone scannen" icon={<Smartphone className="h-4 w-4 ml-1" />}>
                 <Check>Kamera-App oder QR-Scanner öffnen (iPhone/Android)</Check>
                 <Check>Auf den QR-Code richten (Abstand ca. 10–20 cm) und den Link öffnen</Check>
                 <Check>Zeigt Sorte, Charge, Inhalt (Liter) und Alkoholgehalt in großen, gut lesbaren Karten</Check>
@@ -764,7 +772,7 @@ export default function AnleitungenPage() {
                 </Check>
               </StepCard>
 
-              <StepCard number={5} color="pink" title="Alle-Tanks-Übersicht (ohne einzelnen QR-Scan)">
+              <StepCard number={6} color="pink" title="Alle-Tanks-Übersicht (ohne einzelnen QR-Scan)">
                 <Check>
                   Im GitHub-Pages-Modus ist unter{' '}
                   <code className="text-xs bg-muted px-1 py-0.5 rounded">
