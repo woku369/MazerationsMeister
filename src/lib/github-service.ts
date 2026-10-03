@@ -194,6 +194,18 @@ export class GitHubService {
       console.log(`🔍 Getting SHA for ${path} on branch ${this.config.branch}`);
       
       const response = await fetch(`${this.baseUrl}/contents/${path}?ref=${this.config.branch}`, {
+        // cache: 'no-store' ist eine reine Fetch-API-Option (kein HTTP-Header,
+        // kein CORS-Preflight-Risiko wie beim entfernten Cache-Control-Header
+        // aus Aufgabe 49) - ohne sie konnte der Browser diese GET-Antwort aus
+        // seinem eigenen HTTP-Cache bedienen. Das führte reproduzierbar dazu,
+        // dass ein Sync direkt nach einem erfolgreichen vorherigen Sync (z.B.
+        // automatischer Sofort-Sync nach dem Speichern + manueller Klick auf
+        // "Jetzt synchronisieren" kurz danach) hier die SHA von VOR dem
+        // letzten Upload zurückbekam statt der aktuellen - und damit jeden
+        // PUT-Versuch (inkl. aller Retries und des DELETE/CREATE-Workarounds)
+        // mit 409 Conflict scheitern ließ, obwohl der Upload selbst in
+        // Ordnung gewesen wäre (Nutzer-Meldung 03.10.2026).
+        cache: 'no-store',
         headers: {
           'Authorization': `token ${this.config.token}`,
           'Accept': 'application/vnd.github.v3+json'
