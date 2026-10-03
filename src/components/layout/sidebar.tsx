@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { Home, FlaskConical, Warehouse, Settings, BookOpen, TableProperties, Truck, Beaker, Send, Droplets, Package } from 'lucide-react';
+import { Home, FlaskConical, Warehouse, Settings, BookOpen, TableProperties, Truck, Beaker, Send, Droplets, Package, QrCode } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: Home },
   { href: '/mazerationen', label: 'Mazerationen', icon: FlaskConical },
   { href: '/mazerationen/sammelliste', label: 'Sammelliste', icon: TableProperties },
   { href: '/inventory', label: 'Lagerverwaltung', icon: Warehouse },
+  { href: '/tank-verwaltung', label: 'Tank-Verwaltung', icon: QrCode },
   { href: '/einlagerung', label: 'Einlagern', icon: Droplets },
   { href: '/rezepturen', label: 'Rezepturen (GFKC)', icon: Beaker },
   { href: '/lohnbrand', label: 'Lohnbrand-Aufträge', icon: Truck },

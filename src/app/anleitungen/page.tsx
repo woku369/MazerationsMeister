@@ -419,8 +419,9 @@ export default function AnleitungenPage() {
             </div>
 
             <Tip color="green">
-              Tank-Definitionen und QR-Codes für die physischen Behälter werden im selben Bereich verwaltet — siehe
-              Abschnitt „QR-Code Tankverwaltung" unten. Wird ein Tank mehrfach mit unterschiedlichen Chargen
+              Tank-Definitionen und QR-Codes für die physischen Behälter werden im eigenen Menüpunkt
+              „Tank-Verwaltung" verwaltet — siehe Abschnitt „QR-Code Tankverwaltung" unten. Wird ein Tank mehrfach
+              mit unterschiedlichen Chargen
               nachgefüllt (gepoolt), zeigt die Spalte „Charge" in der Bestandstabelle die kombinierte
               Chargennummer (z.B. „2500 + 2600"); die genaue Aufteilung nach Litern je Charge zeigt zusätzlich
               der QR-Code-Tankviewer (siehe unten).
@@ -741,7 +742,7 @@ export default function AnleitungenPage() {
               </StepCard>
 
               <StepCard number={2} color="green" title="Tank-Definitionen erstellen & QR-Codes generieren">
-                <Check>Navigieren Sie zu <strong>Lagerverwaltung → Tank-Management</strong></Check>
+                <Check>Navigieren Sie zu <strong>Tank-Verwaltung</strong> (eigener Menüpunkt in der Seitenleiste)</Check>
                 <Check>„Tanks aus Inventar synchronisieren" lädt automatisch erkannte Tanks</Check>
                 <Check>Tank-Kapazitäten prüfen und bei Bedarf anpassen</Check>
                 <Check>Checkboxen für gewünschte Tanks aktivieren und „QR-Codes generieren" klicken</Check>

@@ -4,7 +4,6 @@ import * as React from "react";
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import TankManagement from '@/components/inventory/tank-management';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -316,7 +315,6 @@ export default function EinstellungenPage() {
           <TabsTrigger value="speicher">Speicherpfade</TabsTrigger>
           <TabsTrigger value="github">GitHub Integration</TabsTrigger>
           <TabsTrigger value="kategorien">Kategorien</TabsTrigger>
-          <TabsTrigger value="tank">QR-Codes</TabsTrigger>
           <TabsTrigger value="backup">Datensicherung</TabsTrigger>
         </TabsList>
         <TabsContent value="speicher">
@@ -482,9 +480,6 @@ export default function EinstellungenPage() {
                Kategorie-Management temporär deaktiviert (Hydration-Fix)
              </p>
            </div>
-        </TabsContent>
-        <TabsContent value="tank">
-          <TankManagement />
         </TabsContent>
         <TabsContent value="backup">
           <div className="max-w-2xl space-y-6">
