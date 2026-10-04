@@ -190,4 +190,48 @@ describe('backup-service', () => {
       }
     });
   });
+
+  describe('gleichzeitiger Zugriff (Nebenläufigkeits-Sperre, Aufgabe 57)', () => {
+    it('lehnt einen zweiten Upload ab, solange ein erster noch läuft - verhindert zwei parallele Schreibzugriffe auf dieselbe GitHub-Datei', async () => {
+      getGithubTokenMock.mockReturnValue('tok');
+      let resolveFirst!: (v: boolean) => void;
+      uploadFileMock.mockReturnValueOnce(new Promise<boolean>(resolve => { resolveFirst = resolve; }));
+
+      const first = uploadBackupToGithub();
+      const second = await uploadBackupToGithub();
+
+      expect(second.ok).toBe(false);
+      if (!second.ok) expect(second.error).toContain('läuft gerade');
+      expect(uploadFileMock).toHaveBeenCalledTimes(1);
+
+      resolveFirst(true);
+      expect((await first).ok).toBe(true);
+    });
+
+    it('gibt die Sperre nach einem fehlgeschlagenen Upload wieder frei, statt die App dauerhaft zu blockieren', async () => {
+      getGithubTokenMock.mockReturnValue('tok');
+      uploadFileMock.mockResolvedValueOnce(false);
+      const first = await uploadBackupToGithub();
+      expect(first.ok).toBe(false);
+
+      uploadFileMock.mockResolvedValueOnce(true);
+      const second = await uploadBackupToGithub();
+      expect(second.ok).toBe(true);
+    });
+
+    it('lehnt einen Fetch ab, solange ein Upload noch läuft (und umgekehrt) - eine einzige Sperre für beide Richtungen', async () => {
+      getGithubTokenMock.mockReturnValue('tok');
+      let resolveUpload!: (v: boolean) => void;
+      uploadFileMock.mockReturnValueOnce(new Promise<boolean>(resolve => { resolveUpload = resolve; }));
+
+      const upload = uploadBackupToGithub();
+      const fetchResult = await fetchBackupFromGithub();
+
+      expect(fetchResult.ok).toBe(false);
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      resolveUpload(true);
+      await upload;
+    });
+  });
 });

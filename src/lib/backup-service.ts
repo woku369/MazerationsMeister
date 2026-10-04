@@ -194,18 +194,42 @@ function buildGithubService(): GitHubService | null {
 
 export type BackupResult = { ok: true } | { ok: false; error: string };
 
+// Beide Funktionen unten greifen auf dieselbe GitHub-Datei (app-data-backup.json)
+// zu und werden von mehreren, voneinander unabhängigen Stellen aufgerufen: dem
+// Button "Jetzt zu GitHub sichern" (direkt), dem Button "Jetzt abgleichen" und
+// dem periodischen Auto-Sync-Timer (beide über full-data-sync.ts' reconcileNow()).
+// full-data-sync.ts hatte zwar eine eigene isBusy-Sperre, die aber NUR dessen
+// eigene reconcileNow()-Aufrufe untereinander serialisierte, nicht den direkten
+// Button-Aufruf von uploadBackupToGithub() hier. Klickt man beide Buttons kurz
+// hintereinander (oder der Auto-Sync-Timer feuert während eines manuellen
+// Klicks), laufen zwei parallele Schreibzugriffe auf dieselbe GitHub-Datei -
+// beobachtet als verwirrende, sich widersprechende Netzwerkfehler (ungültiger
+// CORS-Header, abgebrochene Verbindungen), nicht als sauberer 409-Konflikt
+// (Nutzer-Meldung 04.10.2026). Eine gemeinsame Sperre an dieser zentralen
+// Stelle schützt alle Aufrufer gleichermaßen, statt dass jeder Aufrufer sich
+// selbst merken müsste, mit wem er sich sonst noch abstimmen muss.
+let githubIoBusy = false;
+
 /** Lädt den aktuellen Datenstand als eine Datei zu GitHub hoch (überschreibt eine vorherige Sicherung dort). */
 export async function uploadBackupToGithub(): Promise<BackupResult> {
+  if (githubIoBusy) {
+    return { ok: false, error: 'Ein anderer GitHub-Abgleich läuft gerade (automatisch oder manuell) - bitte kurz warten und erneut versuchen.' };
+  }
   const service = buildGithubService();
   if (!service) return { ok: false, error: 'Kein GitHub-Token konfiguriert. Bitte zuerst im Tab "GitHub Integration" einrichten.' };
 
-  const backup = collectFullBackup();
-  const ok = await service.uploadFile({
-    path: GITHUB_BACKUP_PATH,
-    content: JSON.stringify(backup, null, 2),
-    message: `Datensicherung - ${new Date().toLocaleString('de-DE')}`,
-  });
-  return ok ? { ok: true } : { ok: false, error: 'Upload zu GitHub fehlgeschlagen. Details in der Konsole (F12).' };
+  githubIoBusy = true;
+  try {
+    const backup = collectFullBackup();
+    const ok = await service.uploadFile({
+      path: GITHUB_BACKUP_PATH,
+      content: JSON.stringify(backup, null, 2),
+      message: `Datensicherung - ${new Date().toLocaleString('de-DE')}`,
+    });
+    return ok ? { ok: true } : { ok: false, error: 'Upload zu GitHub fehlgeschlagen. Details in der Konsole (F12).' };
+  } finally {
+    githubIoBusy = false;
+  }
 }
 
 export type FetchBackupResult = { ok: true; backup: FullBackup } | { ok: false; error: string };
@@ -214,7 +238,11 @@ export type FetchBackupResult = { ok: true; backup: FullBackup } | { ok: false; 
 export async function fetchBackupFromGithub(): Promise<FetchBackupResult> {
   const token = getGithubToken();
   if (!token) return { ok: false, error: 'Kein GitHub-Token konfiguriert. Bitte zuerst im Tab "GitHub Integration" einrichten.' };
+  if (githubIoBusy) {
+    return { ok: false, error: 'Ein anderer GitHub-Abgleich läuft gerade (automatisch oder manuell) - bitte kurz warten und erneut versuchen.' };
+  }
 
+  githubIoBusy = true;
   try {
     const response = await fetch(
       `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPOSITORY}/contents/${GITHUB_BACKUP_PATH}?ref=${GITHUB_BRANCH}`,
@@ -235,5 +263,7 @@ export async function fetchBackupFromGithub(): Promise<FetchBackupResult> {
     return { ok: true, backup };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : 'Unbekannter Fehler beim Laden von GitHub.' };
+  } finally {
+    githubIoBusy = false;
   }
 }
