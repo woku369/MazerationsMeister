@@ -124,16 +124,39 @@ async function startSimpleServer(): Promise<string> {
       }
     });
 
+    // FESTER Port statt listen(0) (zufälliger, bei jedem Start anderer Port):
+    // localStorage ist strikt pro Origin (Schema+Host+PORT) getrennt - bei
+    // jedem Start ein anderer Port bedeutete bei jedem Start eine andere,
+    // leere Origin. Die alten Daten lagen dadurch nicht etwa weg, sondern
+    // unerreichbar unter der vorherigen, verwaisten Port-Origin - genau das
+    // vom Nutzer gemeldete "nach erneutem Öffnen sind keine Daten mehr da"
+    // (inkl. Speicherpfade und Importdatei, die ebenfalls nur in localStorage
+    // lagen). Mit `app.requestSingleInstanceLock()` unten ist eine zweite,
+    // gleichzeitig laufende Instanz ausgeschlossen, die sich sonst denselben
+    // festen Port streitig machen könnte.
+    const FIXED_PORT = 47893;
     return new Promise<string>((resolve, reject) => {
-      server.listen(0, 'localhost', (err?: Error) => {
+      server.listen(FIXED_PORT, 'localhost', (err?: Error) => {
         if (err) {
-          console.error('Server start error:', err);
-          reject(err);
+          console.error(`Server start error on fixed port ${FIXED_PORT}, falling back to random port:`, err);
+          // Fallback nur fuer den unwahrscheinlichen Fall, dass der feste Port
+          // durch einen fremden Prozess belegt ist (Single-Instance-Lock
+          // schliesst eine zweite eigene Instanz bereits aus) - lieber mit
+          // einem zufaelligen Port starten (und das klar loggen, damit es
+          // auffindbar bleibt) als gar nicht.
+          server.listen(0, 'localhost', (fallbackErr?: Error) => {
+            if (fallbackErr) {
+              reject(fallbackErr);
+              return;
+            }
+            const address = server.address() as any;
+            const port = address.port;
+            console.warn(`Simple server started on FALLBACK random port ${port} - localStorage wird bei naechstem Start NICHT erhalten bleiben!`);
+            resolve(`http://localhost:${port}`);
+          });
         } else {
-          const address = server.address() as any;
-          const port = address.port;
-          console.log(`Simple server started on port ${port}`);
-          resolve(`http://localhost:${port}`);
+          console.log(`Simple server started on fixed port ${FIXED_PORT}`);
+          resolve(`http://localhost:${FIXED_PORT}`);
         }
       });
     });
@@ -264,10 +287,26 @@ function registerIpcHandlers() {
   });
 }
 
-app.whenReady().then(() => {
-  registerIpcHandlers();
-  createWindow();
-});
+// Verhindert, dass eine zweite gleichzeitig gestartete Instanz sich mit der
+// ersten den festen Server-Port (siehe startSimpleServer()) streitig macht,
+// oder beide gleichzeitig in dieselbe localStorage-Origin schreiben. Statt
+// eines zweiten Fensters wird die bereits laufende Instanz fokussiert.
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+
+  app.whenReady().then(() => {
+    registerIpcHandlers();
+    createWindow();
+  });
+}
 
 app.on('window-all-closed', () => {
   if (server) {
