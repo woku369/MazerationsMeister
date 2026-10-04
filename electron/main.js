@@ -258,12 +258,13 @@ function createWindow() {
  * nach dem Beenden wieder verschwindenden Ordner (Nutzer-Frage 04.10.2026:
  * "wohin geht die Backup-Datei eigentlich?" - dieselbe Ursachenfamilie wie
  * der zufällige Server-Port aus Aufgabe 58, nur für Datei-Exporte statt
- * localStorage). electron-builder setzt für die portable .exe zusätzlich
- * PORTABLE_EXECUTABLE_DIR auf den Ordner, in dem die .exe selbst liegt (z.B.
- * Desktop oder USB-Stick) - das ist der eigentlich gemeinte, stabile Ort.
+ * localStorage). Downloads statt Dokumente (Nutzer-Vorgabe 04.10.2026: "am
+ * besten in Downloads", leicht auffindbar - anders als z.B.
+ * PORTABLE_EXECUTABLE_DIR, das bei einem USB-Stick oder einem schon wieder
+ * vergessenen Ablageort selbst erst gesucht werden müsste).
  */
 function getDefaultExportDir() {
-    return process.env.PORTABLE_EXECUTABLE_DIR || electron_1.app.getPath('documents');
+    return electron_1.app.getPath('downloads');
 }
 /**
  * IPC-Gegenstücke zur in preload.js über contextBridge freigegebenen API
