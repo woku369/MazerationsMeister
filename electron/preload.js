@@ -20,7 +20,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   appDataDir: process.env.APPDATA || '',
 
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
-  getCwd: () => ipcRenderer.invoke('get-cwd'),
+  // War bis Aufgabe 59 "getCwd" und lieferte process.cwd() - bei der
+  // selbstentpackenden portable .exe ein bei jedem Start anderer, temporärer
+  // Ordner. Liefert jetzt einen stabilen Default-Ordner (siehe
+  // getDefaultExportDir() im Hauptprozess).
+  getDefaultExportDir: () => ipcRenderer.invoke('get-default-export-dir'),
 
   /**
    * Schreibt eine Datei in ein Verzeichnis (wird bei Bedarf angelegt).

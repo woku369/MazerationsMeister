@@ -44,14 +44,14 @@ describe('electron-bridge', () => {
   describe('mit window.electronAPI (echtes Electron-Programm)', () => {
     const writeFileMock = vi.fn();
     const openPathMock = vi.fn();
-    const getCwdMock = vi.fn();
+    const getDefaultExportDirMock = vi.fn();
     const onBeforeQuitMock = vi.fn();
     const notifyQuitReadyMock = vi.fn();
 
     beforeEach(() => {
       writeFileMock.mockReset();
       openPathMock.mockReset();
-      getCwdMock.mockReset().mockResolvedValue('/arbeitsverzeichnis');
+      getDefaultExportDirMock.mockReset().mockResolvedValue('/arbeitsverzeichnis');
       onBeforeQuitMock.mockReset();
       notifyQuitReadyMock.mockReset();
 
@@ -59,7 +59,7 @@ describe('electron-bridge', () => {
         electronAPI: {
           isElectron: true,
           appDataDir: 'C:/Users/wolfg/AppData/Roaming',
-          getCwd: getCwdMock,
+          getDefaultExportDir: getDefaultExportDirMock,
           writeFile: writeFileMock,
           openPath: openPathMock,
           onBeforeQuit: onBeforeQuitMock,
@@ -80,15 +80,16 @@ describe('electron-bridge', () => {
       const result = await writeToExportDir('test.json', '{"a":1}');
       expect(result).toEqual({ ok: true, path: 'D:/Exporte/test.json', dir: 'D:/Exporte' });
       expect(writeFileMock).toHaveBeenCalledWith('D:/Exporte', 'test.json', '{"a":1}', 'utf-8');
-      expect(getCwdMock).not.toHaveBeenCalled();
+      expect(getDefaultExportDirMock).not.toHaveBeenCalled();
     });
 
-    it('writeToExportDir() fällt auf das Arbeitsverzeichnis zurück, wenn kein Exportpfad konfiguriert ist', async () => {
+    it('writeToExportDir() fällt auf den stabilen Default-Exportordner zurück, wenn kein Exportpfad konfiguriert ist (nicht mehr process.cwd(), siehe Aufgabe 59)', async () => {
       writeFileMock.mockResolvedValue({ ok: true, path: '/arbeitsverzeichnis/test.json' });
 
       const result = await writeToExportDir('test.json', 'inhalt', 'base64');
       expect(result).toEqual({ ok: true, path: '/arbeitsverzeichnis/test.json', dir: '/arbeitsverzeichnis' });
       expect(writeFileMock).toHaveBeenCalledWith('/arbeitsverzeichnis', 'test.json', 'inhalt', 'base64');
+      expect(getDefaultExportDirMock).toHaveBeenCalled();
     });
 
     it('writeToExportDir() gibt den Fehler durch, statt ihn zu verschlucken', async () => {

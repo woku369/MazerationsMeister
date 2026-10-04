@@ -233,19 +233,36 @@ function createWindow() {
 }
 
 /**
+ * Stabiler Default-Ordner für Exporte/Backups, wenn in den Einstellungen
+ * kein eigener Speicherpfad gesetzt ist. Bewusst NICHT process.cwd(): Die
+ * portable .exe (electron-builder NSIS "portable"-Target) entpackt sich bei
+ * jedem Start in einen neuen, temporären Ordner und startet von dort aus -
+ * process.cwd() zeigte dadurch bisher bei jedem Start auf einen anderen,
+ * nach dem Beenden wieder verschwindenden Ordner (Nutzer-Frage 04.10.2026:
+ * "wohin geht die Backup-Datei eigentlich?" - dieselbe Ursachenfamilie wie
+ * der zufällige Server-Port aus Aufgabe 58, nur für Datei-Exporte statt
+ * localStorage). electron-builder setzt für die portable .exe zusätzlich
+ * PORTABLE_EXECUTABLE_DIR auf den Ordner, in dem die .exe selbst liegt (z.B.
+ * Desktop oder USB-Stick) - das ist der eigentlich gemeinte, stabile Ort.
+ */
+function getDefaultExportDir(): string {
+  return process.env.PORTABLE_EXECUTABLE_DIR || app.getPath('documents');
+}
+
+/**
  * IPC-Gegenstücke zur in preload.js über contextBridge freigegebenen API
  * (Aufgabe 40). Ersetzt die zuvor im Renderer verwendeten, dort aber nie
  * tatsächlich funktionierenden window.require('fs'/'path'/'electron')-Aufrufe.
  */
 function registerIpcHandlers() {
   ipcMain.handle('get-app-version', () => app.getVersion());
-  ipcMain.handle('get-cwd', () => process.cwd());
+  ipcMain.handle('get-default-export-dir', () => getDefaultExportDir());
 
   ipcMain.handle(
     'fs-write-file',
     async (_event, dir: string, fileName: string, content: string, encoding: 'utf-8' | 'base64') => {
       try {
-        const targetDir = dir && dir.trim() ? dir : process.cwd();
+        const targetDir = dir && dir.trim() ? dir : getDefaultExportDir();
         if (!existsSync(targetDir)) {
           mkdirSync(targetDir, { recursive: true });
         }

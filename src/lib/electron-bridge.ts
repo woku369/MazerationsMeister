@@ -14,7 +14,7 @@ interface ElectronAPI {
   isElectron: true;
   appDataDir: string;
   getAppVersion: () => Promise<string>;
-  getCwd: () => Promise<string>;
+  getDefaultExportDir: () => Promise<string>;
   writeFile: (
     dir: string,
     fileName: string,
@@ -56,7 +56,7 @@ export async function writeToExportDir(
   if (!api) return { ok: false, error: 'Kein Electron-Kontext verfügbar.' };
 
   const configuredDir = typeof window !== 'undefined' ? localStorage.getItem('exportPath') || '' : '';
-  const dir = configuredDir || (await api.getCwd());
+  const dir = configuredDir || (await api.getDefaultExportDir());
   const result = await api.writeFile(dir, fileName, content, encoding);
   return result.ok ? { ok: true, path: result.path, dir } : { ok: false, error: result.error };
 }
