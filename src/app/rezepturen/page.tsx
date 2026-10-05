@@ -3,9 +3,11 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Beaker, Search } from 'lucide-react';
 import * as RezepturService from '@/lib/rezeptur-service';
 import { erstelleNeueRezeptur } from '@/lib/rezeptur-manager';
@@ -20,11 +22,23 @@ export default function RezepturenPage() {
     setRezepturen(RezepturService.readAll());
   }, []);
 
+  // Echter Dialog statt window.prompt() - wird von Electron nicht unterstützt
+  // (wirft "prompt() is and will not be supported", der Klick blieb dadurch
+  // wirkungslos, Nutzer-Meldung 05.10.2026). Dasselbe Muster wie bereits in
+  // inventory-management.tsx für den Lagerbestand-Import.
+  const [isNewOpen, setIsNewOpen] = useState(false);
+  const [neuName, setNeuName] = useState('');
+  const [neuZielProdukt, setNeuZielProdukt] = useState('GFKC-O');
+
+  function openNeueRezeptur() {
+    setNeuName('');
+    setNeuZielProdukt('GFKC-O');
+    setIsNewOpen(true);
+  }
+
   function handleNeueRezeptur() {
-    const name = prompt('Name der neuen Rezeptur (z.B. "GFKC-O Muster 1")');
-    if (!name?.trim()) return;
-    const zielProduktName = prompt('Zielprodukt-/Chargenbezeichnung (z.B. "GFKC-O")', 'GFKC-O') || 'GFKC';
-    const neu = erstelleNeueRezeptur(name.trim(), zielProduktName.trim());
+    if (!neuName.trim()) return;
+    const neu = erstelleNeueRezeptur(neuName.trim(), (neuZielProdukt.trim() || 'GFKC'));
     const alle = [...rezepturen, neu];
     RezepturService.writeAll(alle);
     setRezepturen(alle);
@@ -43,7 +57,7 @@ export default function RezepturenPage() {
           <h1 className="text-2xl font-bold text-primary flex items-center gap-2"><Beaker className="w-6 h-6" />Rezepturen / GFKC-Ausmischung</h1>
           <p className="text-muted-foreground text-sm">Verschnitte planen, ausmischen und buchen.</p>
         </div>
-        <Button onClick={handleNeueRezeptur}><Plus className="w-4 h-4 mr-1" />Neue Rezeptur</Button>
+        <Button onClick={openNeueRezeptur}><Plus className="w-4 h-4 mr-1" />Neue Rezeptur</Button>
       </div>
 
       <div className="flex gap-3">
@@ -94,6 +108,29 @@ export default function RezepturenPage() {
           </Link>
         ))}
       </div>
+
+      <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Neue Rezeptur</DialogTitle>
+            <DialogDescription>Legt eine neue, leere Rezeptur an und öffnet sie direkt zum Bearbeiten.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Name</Label>
+              <Input value={neuName} onChange={e => setNeuName(e.target.value)} placeholder='z.B. "GFKC-O Muster 1"' autoFocus />
+            </div>
+            <div>
+              <Label>Zielprodukt-/Chargenbezeichnung</Label>
+              <Input value={neuZielProdukt} onChange={e => setNeuZielProdukt(e.target.value)} placeholder='z.B. "GFKC-O"' />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewOpen(false)}>Abbrechen</Button>
+            <Button onClick={handleNeueRezeptur} disabled={!neuName.trim()}>Erstellen</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
