@@ -371,9 +371,12 @@
             document.getElementById('fill-bar').style.width = `${Math.min(fillPercentage, 100)}%`;
             
             // Content description - verwende produktName und currentQuantityLiters
+            // Kategorie (z.B. Mazerat/Destillat) mit anzeigen, sonst nicht
+            // unterscheidbar, was tatsächlich im Gebinde liegt (gleiche Lücke wie
+            // Aufgabe 54 für die Desktop-Tank-Verwaltung, dort bereits behoben).
             if (tankInventory.length > 0) {
                 const contents = tankInventory.map(item =>
-                    `${escapeHtml(item.produktName)} (${item.currentQuantityLiters}L, ${item.alcoholVolProzent}%)${formatKomponentenHtml(item)}`
+                    `${escapeHtml(item.produktName)} [${escapeHtml(item.category || '–')}] (${item.currentQuantityLiters}L, ${item.alcoholVolProzent}%)${formatKomponentenHtml(item)}`
                 ).join('<br>');
                 document.getElementById('tank-content').innerHTML = contents;
             } else {
@@ -516,8 +519,9 @@
                     fill  = items.reduce((s, i) => s + (i.currentQuantityLiters || 0), 0);
                     pct   = vol > 0 ? Math.min(Math.round(fill / vol * 100), 100) : 0;
                     color = pct >= 80 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#6b7280';
+                    // Kategorie (z.B. Mazerat/Destillat) mit anzeigen, siehe Aufgabe 54 (Desktop)
                     inhalt = items.length
-                        ? items.map(i => `${escapeHtml(i.produktName || '–')} (${(i.currentQuantityLiters||0).toFixed(0)} L, ${escapeHtml(String(i.alcoholVolProzent||'–'))}%)${formatKomponentenHtml(i)}`).join('<br>')
+                        ? items.map(i => `${escapeHtml(i.produktName || '–')} [${escapeHtml(i.category || '–')}] (${(i.currentQuantityLiters||0).toFixed(0)} L, ${escapeHtml(String(i.alcoholVolProzent||'–'))}%)${formatKomponentenHtml(i)}`).join('<br>')
                         : '<span class="text-gray-400">Leer</span>';
                     barHtml = `
                     <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
