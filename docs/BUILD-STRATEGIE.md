@@ -96,6 +96,14 @@ Ursprünglicher Befund (bis 01.10.2026 zutreffend): `package.json` stand seit de
 - `header.tsx` zeigt jetzt `Mazerations-Meister v{version}` mit Build-Nummer; die Einstellungen-Seite zeigt zusätzlich eine vollständige Fußzeile (Version, Build, Commit, Zeitstempel).
 - **Noch nicht umgesetzt** (siehe nächster Abschnitt): Git-Tags pro Release, versionierter Unterordner in `dist/`.
 
+### Konvention für weitere Versionssprünge (Aufgabe 62, Nutzer-Entscheidung 05.10.2026)
+
+Nach dem Sprung auf `1.0.0` (Aufgabe 60) stellte der Nutzer die Frage, wie es mit der Versionierung weitergeht — insbesondere, da sie auf `package.json`s `version` bewusst nicht automatisch pro Commit läuft (s.o.). Festgelegte Regel, angelehnt an das Muster, das auf dem alten (nicht fortgeführten) Branch `pages-clean` bereits funktioniert hatte (dort: `1.1.0` als Meilenstein-Sprung nach dem Rezeptur-System, danach einzelne Patch-Bumps wie `1.2.3`/`1.2.4` pro neuem Einzelfeature — **nicht**, wie vom Nutzer zunächst erinnert, bis `1.4.x`):
+
+- **Patch (1.0.x):** jeder abgeschlossene Bugfix-/Korrektur-Batch (eine "Aufgabe" oder mehrere kleinere zusammen) — Bump unmittelbar vor dem nächsten echten Build, nicht bei jedem einzelnen Commit. Wird von Claude eigenständig vorgenommen.
+- **Minor (1.x.0):** ein neuer, in sich abgeschlossener Funktionsbereich kommt dazu (Beispiel rückwirkend: die Leergebinde-Verwaltung aus Aufgabe 53 hätte einen Minor-Sprung verdient). Claude schlägt den Sprung vor, Nutzer bestätigt.
+- **Major (x.0.0):** große Meilensteine/Zäsuren wie der produktionsreife Stand, der zu `1.0.0` geführt hat — nur nach ausdrücklicher Rücksprache mit dem Nutzer.
+
 ### Eindeutiger, versionierter Build-Ordner (für die portable EXE)
 
 Aktuell landet jeder Build undifferenziert in `dist/` (electron-builder) bzw. wird dort von den Packager-Skripten sogar aktiv vorher gelöscht ("Bereinige alten Build..."). Es gibt keine Historie lauffähiger Vorgänger-Builds.
