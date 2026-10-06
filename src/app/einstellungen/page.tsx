@@ -403,12 +403,10 @@ export default function EinstellungenPage() {
                         Sync-Intervall (Minuten)
                       </Label>
                       <Input
-                        id="sync-interval"
-                        type="number"
-                        min="5"
-                        max="1440"
-                        value={autoSyncInterval}
-                        onChange={e => setAutoSyncInterval(parseInt(e.target.value) || 15)}
+                        id="sync-interval" key={autoSyncInterval}
+                        type="text" inputMode="numeric"
+                        defaultValue={autoSyncInterval}
+                        onBlur={e => setAutoSyncInterval(parseInt(e.target.value) || 15)}
                         className="mt-1 w-32"
                       />
                       <div className="text-xs text-muted-foreground mt-1">
@@ -565,12 +563,10 @@ export default function EinstellungenPage() {
                         <div>
                           <Label htmlFor="full-sync-interval" className="text-sm">Intervall (Minuten)</Label>
                           <Input
-                            id="full-sync-interval"
-                            type="number"
-                            min="5"
-                            max="1440"
-                            value={fullSyncInterval}
-                            onChange={e => setFullSyncInterval(parseInt(e.target.value) || 15)}
+                            id="full-sync-interval" key={fullSyncInterval}
+                            type="text" inputMode="numeric"
+                            defaultValue={fullSyncInterval}
+                            onBlur={e => setFullSyncInterval(parseInt(e.target.value) || 15)}
                             className="mt-1 w-32"
                           />
                         </div>

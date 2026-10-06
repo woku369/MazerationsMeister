@@ -1461,11 +1461,8 @@ export default function MazerationForm() {
                         <FormControl>
                           <Input type="text" inputMode="decimal" placeholder="1,0000"
                             {...field}
-                            value={field.value != null ? String(field.value).replace('.', ',') : ''}
-                            onChange={e => {
-                              const v = e.target.value.replace(',', '.');
-                              field.onChange(v === '' ? null : parseFloat(v) || null);
-                            }}
+                            value={getNumericFieldValueForDisplay(field.value)}
+                            onChange={e => handleNumericInputChange(field, e.target.value)}
                           />
                         </FormControl>
                       </FormItem>

@@ -77,17 +77,18 @@ function TankForm({
 }) {
   const [tankNr, setTankNr] = useState(initialData?.tankNr || "");
   const [bezeichnung, setBezeichnung] = useState(initialData?.bezeichnung || "");
-  const [volumenLiter, setVolumenLiter] = useState(initialData?.volumenLiter || 5000); // Standard 5.000L
+  const [volumenLiter, setVolumenLiter] = useState(String(initialData?.volumenLiter || 5000)); // Standard 5.000L
   const [taraKg, setTaraKg] = useState(initialData?.taraKg != null ? String(initialData.taraKg) : "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (tankNr.trim() && bezeichnung.trim() && volumenLiter > 0) {
+    const volumenNum = parseFloat(volumenLiter.replace(',', '.'));
+    if (tankNr.trim() && bezeichnung.trim() && Number.isFinite(volumenNum) && volumenNum > 0) {
       const taraNum = parseFloat(taraKg.replace(',', '.'));
       onSubmit({
         tankNr: tankNr.trim(),
         bezeichnung: bezeichnung.trim(),
-        volumenLiter,
+        volumenLiter: volumenNum,
         taraKg: taraKg.trim() && Number.isFinite(taraNum) ? taraNum : undefined,
       });
     }
@@ -116,11 +117,10 @@ function TankForm({
       <div>
         <label className="text-sm font-medium">Volumen (Liter)</label>
         <Input
-          type="number"
+          type="text" inputMode="decimal"
           value={volumenLiter}
-          onChange={(e) => setVolumenLiter(Number(e.target.value))}
+          onChange={(e) => setVolumenLiter(e.target.value)}
           placeholder="5000"
-          min="1"
           required
         />
         <p className="text-xs text-muted-foreground mt-1">

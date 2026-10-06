@@ -295,8 +295,8 @@ export default function RezepturEditor() {
               </div>
               <Input
                 type="text" inputMode="decimal" className="w-24" disabled={gesperrt}
-                value={k.eingabeWert} placeholder="Menge"
-                onChange={e => handleUpdateKomponente(k.id, { eingabeWert: parseFloat(e.target.value.replace(',', '.')) || 0 })}
+                defaultValue={k.eingabeWert} placeholder="Menge" key={`${k.id}-eingabeWert-${k.eingabeWert}`}
+                onBlur={e => handleUpdateKomponente(k.id, { eingabeWert: parseFloat(e.target.value.replace(',', '.')) || 0 })}
               />
               <span className="text-xs text-muted-foreground w-8">{k.eingabeTyp === 'liter' ? 'L' : '%'}</span>
               {!k.istFreieZutat && (
@@ -308,8 +308,8 @@ export default function RezepturEditor() {
               {!k.istFix && (
                 <Input
                   type="text" inputMode="decimal" className="w-20" disabled={gesperrt}
-                  value={k.reduktionsfaktor} placeholder="Faktor"
-                  onChange={e => handleUpdateKomponente(k.id, { reduktionsfaktor: Math.min(1, Math.max(0, parseFloat(e.target.value.replace(',', '.')) || 0)) })}
+                  defaultValue={k.reduktionsfaktor} placeholder="Faktor" key={`${k.id}-reduktionsfaktor-${k.reduktionsfaktor}`}
+                  onBlur={e => handleUpdateKomponente(k.id, { reduktionsfaktor: Math.min(1, Math.max(0, parseFloat(e.target.value.replace(',', '.')) || 0)) })}
                 />
               )}
               <span className="text-xs text-muted-foreground w-20 text-right">{fmt(k.literAlkohol)} LA</span>
