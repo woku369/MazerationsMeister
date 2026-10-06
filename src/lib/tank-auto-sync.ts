@@ -4,8 +4,9 @@
  */
 
 import { GitHubService, TankDataGitHubSync } from './github-service';
-import { universalStorage } from './universal-storage-simple';
 import { getGithubToken } from './github-token';
+import { getTankDefinitions } from './tank-sync';
+import * as StockService from './stock-service';
 import { toast } from '@/hooks/use-toast';
 
 export interface AutoSyncConfig {
@@ -137,17 +138,30 @@ export class TankAutoSync {
       this.isUploading = true; // LOCK
       console.log('🔄 Starte manuelle Tank-Synchronisation...');
 
-      // Lade aktuelle Tank-Daten über universalStorage
-      const data = universalStorage.getData();
-      if (!data?.tankDefinitions || !data?.inventoryItems) {
+      // Tank-Daten direkt und frisch aus localStorage lesen - NICHT über
+      // universalStorage.getData(). Nutzer-Meldung 06.10.2026: tank-data.json
+      // auf GitHub zeigte für mehrere Gebinde noch den Stand von vor dem
+      // Splitten, obwohl das vollständige Backup (gleiche Sekunde synchronisiert)
+      // bereits korrekt war. Ursache: universalStorage ist ein Singleton mit
+      // einem einmalig beim App-Start geladenen In-Memory-Snapshot
+      // (isInitialized-Guard in initializeAppData()) - Splitten/Löschen in
+      // tank-management.tsx schreibt aber direkt über StockService/localStorage,
+      // ohne diesen Snapshot zu aktualisieren. Jeder Sync-Lauf danach lud
+      // deshalb einen veralteten Stand hoch, unabhängig davon, wie frisch der
+      // Intervall-Timer selbst war. getTankDefinitions()/StockService.readAll()
+      // lesen dagegen bei jedem Aufruf frisch aus localStorage, wie der Rest
+      // der App es bereits tut.
+      const tankDefinitions = getTankDefinitions();
+      const inventoryItems = StockService.readAll();
+      if (!tankDefinitions.length && !inventoryItems.length) {
         console.warn('⚠️ Keine Tank-Daten gefunden zum Synchronisieren');
         return false;
       }
 
       // Synchronisiere zu GitHub
       const success = await this.githubSync.syncTankData(
-        data.tankDefinitions,
-        data.inventoryItems
+        tankDefinitions,
+        inventoryItems
       );
 
       if (success.success) {

@@ -4,11 +4,12 @@ import { TankAutoSync } from '../tank-auto-sync';
 // vi.mock()-Fabriken werden von vitest an den Dateianfang gehoisted - Variablen,
 // auf die sie zugreifen, müssen deshalb über vi.hoisted() deklariert werden,
 // sonst schlägt der Zugriff mit einem "temporal dead zone"-Fehler fehl.
-const { testConnectionMock, syncTankDataMock, toastMock, universalStorageDataMock, lastGithubServiceConfig } = vi.hoisted(() => ({
+const { testConnectionMock, syncTankDataMock, toastMock, getTankDefinitionsMock, stockServiceReadAllMock, lastGithubServiceConfig } = vi.hoisted(() => ({
   testConnectionMock: vi.fn(),
   syncTankDataMock: vi.fn(),
   toastMock: vi.fn(),
-  universalStorageDataMock: vi.fn(),
+  getTankDefinitionsMock: vi.fn(),
+  stockServiceReadAllMock: vi.fn(),
   lastGithubServiceConfig: { current: null as any },
 }));
 
@@ -30,9 +31,10 @@ vi.mock('../github-service', () => ({
 
 vi.mock('../github-token', () => ({ getGithubToken: () => 'test-token' }));
 vi.mock('@/hooks/use-toast', () => ({ toast: toastMock }));
-vi.mock('../universal-storage-simple', () => ({
-  universalStorage: { getData: () => universalStorageDataMock() },
-}));
+// Aufgabe 70: liest Tank-Daten jetzt direkt/frisch statt über den
+// potenziell veralteten universalStorage-Singleton-Cache, siehe tank-auto-sync.ts.
+vi.mock('../tank-sync', () => ({ getTankDefinitions: () => getTankDefinitionsMock() }));
+vi.mock('../stock-service', () => ({ readAll: () => stockServiceReadAllMock() }));
 
 // In-Memory localStorage-Polyfill: vitest läuft standardmäßig im node-
 // Environment (kein window/localStorage), tank-auto-sync.ts unterscheidet
@@ -62,10 +64,8 @@ describe('TankAutoSync', () => {
     testConnectionMock.mockReset().mockResolvedValue(true);
     syncTankDataMock.mockReset();
     toastMock.mockReset();
-    universalStorageDataMock.mockReset().mockReturnValue({
-      tankDefinitions: [{ id: 't1' }],
-      inventoryItems: [{ id: 'i1' }],
-    });
+    getTankDefinitionsMock.mockReset().mockReturnValue([{ id: 't1' }]);
+    stockServiceReadAllMock.mockReset().mockReturnValue([{ id: 'i1' }]);
     lastGithubServiceConfig.current = null;
 
     (globalThis as any).window = globalThis;
@@ -144,5 +144,27 @@ describe('TankAutoSync', () => {
     await autoSync.syncNow();
 
     expect(toastMock).not.toHaveBeenCalled();
+  });
+
+  it('Regressionstest (Nutzer-Meldung 06.10.2026): synct bei jedem Aufruf den aktuellen Stand, nicht einen veralteten Snapshot vom App-Start', async () => {
+    // Reproduziert das gemeldete Muster: tank-data.json auf GitHub zeigte für
+    // mehrere per "Splitten" aufgeteilte Gebinde noch den Stand von vor dem
+    // Split, weil der frühere Code über universalStorage.getData() einen beim
+    // App-Start einmalig geladenen In-Memory-Snapshot sync'te, der von
+    // direkten StockService/localStorage-Schreibzugriffen (z.B. in
+    // tank-management.tsx) nie aktualisiert wurde.
+    syncTankDataMock.mockResolvedValue({ success: true });
+    autoSync = new TankAutoSync();
+    await autoSync.initialize(BASE_CONFIG);
+    await vi.waitFor(() => expect(syncTankDataMock).toHaveBeenCalledTimes(1));
+    expect(syncTankDataMock).toHaveBeenNthCalledWith(1, [{ id: 't1' }], [{ id: 'i1' }]);
+
+    // Simuliert eine zwischenzeitliche Änderung (z.B. ein Split), die NICHT
+    // über diesen Mock, sondern direkt in echtem Code passieren würde.
+    getTankDefinitionsMock.mockReturnValue([{ id: 't1-A' }, { id: 't1-B' }]);
+    stockServiceReadAllMock.mockReturnValue([{ id: 'i1-A' }, { id: 'i1-B' }]);
+
+    await autoSync.syncNow();
+    expect(syncTankDataMock).toHaveBeenNthCalledWith(2, [{ id: 't1-A' }, { id: 't1-B' }], [{ id: 'i1-A' }, { id: 'i1-B' }]);
   });
 });
