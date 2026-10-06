@@ -13,14 +13,14 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Trash2, Beaker, FlaskConical, PackageCheck } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Beaker, FlaskConical, PackageCheck, ArrowUpCircle } from 'lucide-react';
 import * as StockService from '@/lib/stock-service';
 import * as RezepturService from '@/lib/rezeptur-service';
 import { getTankDefinitions, formatTankLabel } from '@/lib/tank-sync';
 import {
   fuegeKomponenteHinzu, fuegeFreieZutatHinzu, entferneKomponente, aktualisiereKomponente,
   berechneRezeptur, berechneVerschnittMitFixUndReduzierbar, berechneAlkoholKorrektur,
-  kannFreigebenWerden,
+  kannFreigebenWerden, berechneMaxProduktionsmenge, erstelleScaleUp, formatiereRezepturWert,
 } from '@/lib/rezeptur-manager';
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 import type { Rezeptur } from '@/schemas/rezepturSchema';
@@ -41,6 +41,7 @@ export default function RezepturEditor() {
   const [notFound, setNotFound] = useState(false);
   const [inventoryItems, setInventoryItems] = useState<StoredInventoryItem[]>([]);
   const [tanks, setTanks] = useState<TankDefinition[]>([]);
+  const [alleRezepturen, setAlleRezepturen] = useState<Rezeptur[]>([]);
 
   const [neueKomponenteId, setNeueKomponenteId] = useState('');
   const [neueKomponenteFix, setNeueKomponenteFix] = useState(true);
@@ -57,12 +58,17 @@ export default function RezepturEditor() {
   const [zielTankNr, setZielTankNr] = useState('');
   const [chargenNummer, setChargenNummer] = useState('');
 
+  const [isScaleUpOpen, setIsScaleUpOpen] = useState(false);
+  const [scaleUpTankNr, setScaleUpTankNr] = useState('');
+  const [scaleUpMenge, setScaleUpMenge] = useState('');
+
   useEffect(() => {
     if (!id) { setNotFound(true); return; }
     const alle = RezepturService.readAll();
     const gefunden = alle.find(r => r.id === id);
     setRezeptur(gefunden || null);
     setNotFound(!gefunden);
+    setAlleRezepturen(alle);
     setInventoryItems(StockService.readAll());
     setTanks(getTankDefinitions());
   }, [id]);
@@ -74,6 +80,19 @@ export default function RezepturEditor() {
   }
 
   const availableItems = useMemo(() => inventoryItems.filter(i => i.currentQuantityLiters > 0), [inventoryItems]);
+
+  // Testansatz, aus dem diese Rezeptur per "Scale-up ableiten" entstanden ist
+  // (falls vorhanden) - für den Sensorik-Vergleich im UI, siehe
+  // docs/GFKC-VERSCHNITT-BESTANDSAUFNAHME.md Abschnitt 8.
+  const vorgaenger = useMemo(
+    () => rezeptur?.vorgaengerRezepturId ? alleRezepturen.find(r => r.id === rezeptur.vorgaengerRezepturId) : undefined,
+    [rezeptur?.vorgaengerRezepturId, alleRezepturen],
+  );
+
+  const scaleUpTank = tanks.find(t => t.tankNr === scaleUpTankNr);
+  const maxProduktion = rezeptur && scaleUpTank
+    ? berechneMaxProduktionsmenge(rezeptur, scaleUpTank.volumenLiter ?? 0)
+    : null;
 
   if (notFound) {
     return (
@@ -190,6 +209,26 @@ export default function RezepturEditor() {
     setInventoryItems(result.inventoryItems);
   }
 
+  function handleOpenScaleUp() {
+    setScaleUpTankNr('');
+    setScaleUpMenge('');
+    setIsScaleUpOpen(true);
+  }
+
+  function handleErstelleScaleUp() {
+    if (!rezeptur) return;
+    const menge = parseFloat(scaleUpMenge.replace(',', '.'));
+    if (!Number.isFinite(menge) || menge <= 0) {
+      toast({ title: 'Bitte eine gültige Produktionsmenge eingeben', variant: 'destructive' });
+      return;
+    }
+    const scaleUp = erstelleScaleUp(rezeptur, menge, inventoryItems);
+    const alle = [...RezepturService.readAll(), scaleUp];
+    RezepturService.writeAll(alle);
+    toast({ title: 'Scale-up angelegt', description: `${fmt(menge)} L, Verhältnis vom Testansatz übernommen.` });
+    router.push(`/rezepturen/editor?id=${scaleUp.id}`);
+  }
+
   const freigabe = kannFreigebenWerden(rezeptur);
   const verschnittPreview = rezeptur.verschnittZiel
     ? berechneVerschnittMitFixUndReduzierbar(
@@ -222,13 +261,21 @@ export default function RezepturEditor() {
               onBlur={e => handleBasisMenge(e.target.value)} />
           </div>
           <div>
-            <Label>Ergebnis</Label>
+            <Label>Ergebnis (Basismenge)</Label>
             <div className="text-sm pt-2">
               {rezeptur.ergebnis
                 ? <>{fmt(rezeptur.ergebnis.gesamtMengeLiter)} L bei <strong>{fmt(rezeptur.ergebnis.durchschnittAlkohol)}%</strong> vol ({fmt(rezeptur.ergebnis.gesamtLiterAlkohol)} LA)</>
                 : '–'}
             </div>
           </div>
+          {rezeptur.produktionsMenge != null && (
+            <div className="col-span-2 border-t pt-3">
+              <Label>Produktionsmenge (Scale-up)</Label>
+              <div className="text-sm pt-1">
+                <strong>{fmt(rezeptur.produktionsMenge)} L</strong> — Komponentenmengen unten zeigen „→ X L für Produktion"
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -240,7 +287,11 @@ export default function RezepturEditor() {
             <div key={k.id} className="flex items-center gap-2 border rounded-lg p-2">
               <div className="flex-1">
                 <div className="font-medium text-sm">{k.produktName}{k.istFreieZutat && <span className="text-muted-foreground"> (freie Zutat)</span>}</div>
-                <div className="text-xs text-muted-foreground">{k.alkoholgehalt}% vol{k.tankNr ? ` · ${k.tankNr}` : ''}{!k.istVerfuegbar && !k.istFreieZutat && <span className="text-red-600"> · nicht genug auf Lager</span>}</div>
+                <div className="text-xs text-muted-foreground">
+                  {k.alkoholgehalt}% vol{k.tankNr ? ` · ${k.tankNr}` : ''}
+                  {k.mengeFuerProduktion != null && <span className="font-medium text-primary"> · → {fmt(k.mengeFuerProduktion)} L für Produktion</span>}
+                  {!k.istVerfuegbar && !k.istFreieZutat && <span className="text-red-600"> · nicht genug auf Lager</span>}
+                </div>
               </div>
               <Input
                 type="text" inputMode="decimal" className="w-24" disabled={gesperrt}
@@ -375,6 +426,35 @@ export default function RezepturEditor() {
         </CardContent>
       </Card>
 
+      {/* Vergleich mit dem Testansatz, aus dem diese Rezeptur per Scale-up entstand */}
+      {vorgaenger && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Vergleich mit Testansatz „{vorgaenger.name}{vorgaenger.variantenName ? ` – ${vorgaenger.variantenName}` : ''}"</CardTitle>
+            <CardDescription>Zur sensorischen Gegenprobe: Ergebnis und Bewertungen der Rezeptur, aus der dieses Scale-up abgeleitet wurde.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {vorgaenger.ergebnis && (
+              <p>{fmt(vorgaenger.ergebnis.gesamtMengeLiter)} L bei <strong>{fmt(vorgaenger.ergebnis.durchschnittAlkohol)}%</strong> vol</p>
+            )}
+            {vorgaenger.sensorikBewertungen.length === 0 ? (
+              <p className="text-muted-foreground">Keine Sensorik-Bewertungen beim Testansatz hinterlegt.</p>
+            ) : vorgaenger.sensorikBewertungen.map(b => (
+              <div key={b.id} className="border-b pb-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span>{b.datum}</span>
+                  {b.freigegeben && <Badge variant="outline" className="text-green-700">freigegeben</Badge>}
+                </div>
+                <p>{b.notizen}</p>
+              </div>
+            ))}
+            <Button variant="link" className="px-0 h-auto" onClick={() => router.push(`/rezepturen/editor?id=${vorgaenger.id}`)}>
+              Testansatz öffnen
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Status & Produktion */}
       <Card>
         <CardHeader><CardTitle className="text-base">Status</CardTitle></CardHeader>
@@ -398,9 +478,16 @@ export default function RezepturEditor() {
               <p className="text-xs text-muted-foreground">Tatsächlicher ABV für Lohnabfüller-Neuberechnung: {fmt(rezeptur.produktionsDaten?.tatsaechlicherAlkohol)}%</p>
             </div>
           ) : (
-            <Button onClick={() => { setZielTankNr(''); setChargenNummer(''); setIsProduceOpen(true); }} disabled={!freigabe.kannFreigeben}>
-              <PackageCheck className="w-4 h-4 mr-1" />Produzieren &amp; Buchen
-            </Button>
+            <div className="flex gap-2 flex-wrap">
+              {rezeptur.status === 'freigegeben' && (
+                <Button variant="outline" onClick={handleOpenScaleUp}>
+                  <ArrowUpCircle className="w-4 h-4 mr-1" />Scale-up ableiten
+                </Button>
+              )}
+              <Button onClick={() => { setZielTankNr(''); setChargenNummer(''); setIsProduceOpen(true); }} disabled={!freigabe.kannFreigeben}>
+                <PackageCheck className="w-4 h-4 mr-1" />Produzieren &amp; Buchen
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -429,6 +516,54 @@ export default function RezepturEditor() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsProduceOpen(false)}>Abbrechen</Button>
             <Button onClick={handleProduzieren}>Buchen</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isScaleUpOpen} onOpenChange={setIsScaleUpOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Scale-up ableiten</DialogTitle>
+            <DialogDescription>
+              Legt eine neue Rezeptur mit demselben Komponentenverhältnis in Produktionsmenge an. Die Menge
+              ist durch die knappste Komponente und die Kapazität des gewählten Tanks begrenzt.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Ausmisch-Tank (für die Kapazitätsgrenze)</Label>
+              <Select value={scaleUpTankNr} onValueChange={v => { setScaleUpTankNr(v); setScaleUpMenge(''); }}>
+                <SelectTrigger><SelectValue placeholder="Tank wählen" /></SelectTrigger>
+                <SelectContent>
+                  {tanks.map(t => <SelectItem key={t.tankNr} value={t.tankNr}>{formatTankLabel(t)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {maxProduktion && (
+              <div className="text-sm border rounded-lg p-3 bg-muted/50 space-y-1">
+                <p>Maximal möglich: <strong>{fmt(maxProduktion.maxMenge)} L</strong></p>
+                <p className="text-xs text-muted-foreground">
+                  {maxProduktion.limitiertDurchTank
+                    ? `Begrenzt durch die Tank-Kapazität (${fmt(maxProduktion.tankKapazitaet, 0)} L).`
+                    : maxProduktion.limitierendeKomponente
+                      ? `Begrenzt durch die verfügbare Menge von „${maxProduktion.limitierendeKomponente}".`
+                      : 'Keine Lagerbindung in den Komponenten gefunden.'}
+                </p>
+                {maxProduktion.maxMenge > 0 && (
+                  <Button size="sm" variant="link" className="px-0 h-auto" onClick={() => setScaleUpMenge(formatiereRezepturWert(maxProduktion.maxMenge, 2))}>
+                    Maximalmenge übernehmen
+                  </Button>
+                )}
+              </div>
+            )}
+            <div>
+              <Label>Produktionsmenge (L)</Label>
+              <Input type="text" inputMode="decimal" value={scaleUpMenge} onChange={e => setScaleUpMenge(e.target.value)} placeholder="z.B. 80" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsScaleUpOpen(false)}>Abbrechen</Button>
+            <Button onClick={handleErstelleScaleUp}>Scale-up erstellen</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -183,9 +183,29 @@ Nach dem ersten echten Arbeiten mit dem seit Aufgabe 17 bestehenden Rezepturen(G
 `skaliereRezeptur()` (`src/lib/rezeptur-manager.ts:84`) verlangt heute eine bereits feststehende `produktionsMenge` als Eingabe, skaliert alle Komponenten stur linear mit diesem Faktor hoch und prüft **danach** erst, ob jede Komponente in ausreichender Menge vorhanden ist (`fehlendeKomponenten`). Der echte Ablauf braucht es umgekehrt: Die **maximal mögliche** Produktionsmenge soll sich aus der knappsten verfügbaren Komponente **und** der Kapazität des gewählten Ausmisch-Tanks ergeben — nicht raten/vorgeben und dann scheitern. Zusätzlich fehlt jede Verknüpfung zwischen einem freigegebenen Testansatz (Stufe 1) und der daraus abgeleiteten Scale-up-Rezeptur (Stufe 2) — `skaliereRezeptur()` nimmt zwar eine bestehende Rezeptur als Ausgangspunkt, aber nichts in der UI führt den Nutzer aktuell durch „Testansatz freigeben → daraus Scale-up ableiten → gegen Testansatz-Sensorik vergleichen" als zusammenhängenden Vorgang.
 
 **Noch offen, bewusst nicht sofort umgesetzt** (Nutzer erwartet weitere Ergänzungen, sobald er tiefer mit dem Modul arbeitet):
-- Wie die Verfügbarkeits-/Kapazitätsgrenze technisch berechnet wird (kleinste Komponente vs. Tankkapazität — wer gewinnt, wenn beide unterschiedliche Obergrenzen ergeben)
+- ~~Wie die Verfügbarkeits-/Kapazitätsgrenze technisch berechnet wird~~ — **umgesetzt, siehe Abschnitt 9**
 - Ob/wie `vorgaengerRezepturId` für den Jahresvergleich („vom Vorjahresergebnis ausgehen") tatsächlich genutzt werden soll, über die bisherige Varianten-Verwendung (A/B-Vergleich) hinaus
-- UI-Führung für den Übergang Testansatz → Scale-up als zusammenhängender, geführter Vorgang statt zweier unabhängiger Rezeptur-Datensätze
-- Eingabefelder für Kleinstmengen (siehe ROADMAP „GFKC: Ablauf für Kleinmengen-Testansätze" — Beispiel 0,02 L Korrekturzugabe), eng verwandt, aber eigener Teilaspekt
+- ~~UI-Führung für den Übergang Testansatz → Scale-up als zusammenhängender, geführter Vorgang~~ — **umgesetzt, siehe Abschnitt 9**
+- Eingabefelder für Kleinstmengen (siehe ROADMAP „GFKC: Ablauf für Kleinmengen-Testansätze" — Beispiel 0,02 L Korrekturzugabe), eng verwandt, aber eigener Teilaspekt — **weiterhin offen**
 
-**Nicht sofort — wächst weiter, bis der Nutzer sagt, dass der Entwurf vollständig genug zum Umsetzen ist.**
+---
+
+## 9. Umsetzung Testansatz → Scale-up (Aufgabe 65, 06.10.2026)
+
+Setzt direkt auf Abschnitt 8 auf — Nutzer-Entscheidung: "Dann beginnen wir einfach mit der Umsetzung des Projekts." Umgesetzt in `src/lib/rezeptur-manager.ts` und `src/components/rezeptur-editor.tsx`, ohne Schema-Änderung (alle nötigen Felder waren bereits vorhanden).
+
+**Neue Funktionen (`rezeptur-manager.ts`):**
+- `berechneMaxProduktionsmenge(rezeptur, tankKapazitaet)`: ermittelt die maximal mögliche Produktionsmenge aus der knappsten Komponente (Faktor `verfuegbareMenge / mengeInLiter`, kleinster Wert gewinnt) **und** der Tankkapazität — meldet zusätzlich, welche der beiden Grenzen tatsächlich greift (`limitierendeKomponente` vs. `limitiertDurchTank`). Freie Zutaten (Wasser) werden bei der Begrenzung ignoriert.
+- `erstelleScaleUp(testansatz, produktionsMenge, inventoryItems)`: leitet aus einem freigegebenen Testansatz eine neue Rezeptur ab (Komponentenverhältnis übernommen, auf `produktionsMenge` skaliert über das bestehende `skaliereRezeptur()`), verknüpft über `vorgaengerRezepturId`, startet wieder bei `status: 'entwurf'` — die Scale-up-Charge durchläuft denselben Sensorik-/Freigabeprozess wie der Testansatz, nur in Produktionsmenge. Eigene, leere `sensorikBewertungen` (keine Übernahme vom Testansatz), `alkoholKorrektur` wird zurückgesetzt (muss für die Produktionscharge neu gemessen werden).
+- `berechneRezeptur()` erweitert: hält `mengeFuerProduktion` automatisch synchron, falls nach dem Scale-up noch eine Komponente nachjustiert wird (echter Ablauf, Stufe 2, Schritt 9: "eventuell Nachbesserung") — ohne diese Ergänzung wäre die Produktionsmenge nach einer Nachbesserung veraltet stehen geblieben. Die Verfügbarkeitsprüfung gegen den echten Lagerbestand bleibt `skaliereRezeptur()` vorbehalten (braucht frische Inventory-Daten); `produziereRezeptur()` prüft das Lager beim tatsächlichen Buchen ohnehin nochmal verbindlich, das hier betrifft nur die Anzeige.
+
+**UI (`rezeptur-editor.tsx`):**
+- Neuer Button „Scale-up ableiten" (sichtbar ab `status: 'freigegeben'`) öffnet einen Dialog: Tank wählen → zeigt die berechnete Maximalmenge inkl. limitierendem Faktor im Klartext → Produktionsmenge eingeben (vorbelegbar mit der Maximalmenge) → legt die neue Rezeptur an und navigiert direkt in deren Editor.
+- Jede Komponentenzeile zeigt jetzt zusätzlich „→ X L für Produktion", sobald eine Produktionsmenge gesetzt ist — vorher stand nur die kleine Testansatz-Menge da, ohne jeden Hinweis auf die tatsächlich zu entnehmende Produktionsmenge (im Review vor dem ersten Commit aufgefallen, siehe Testprotokoll unten).
+- Neue Karte „Vergleich mit Testansatz" erscheint in einer Scale-up-Rezeptur (sobald `vorgaengerRezepturId` gesetzt ist): zeigt Ergebnis und Sensorik-Bewertungen der verlinkten Ursprungsrezeptur zur direkten Gegenprobe, mit Link zum Öffnen.
+
+**Verifikation:**
+- 5 neue Vitest-Tests (`berechneMaxProduktionsmenge`: Komponenten-Limit, Tank-Limit, freie Zutat ignoriert; `erstelleScaleUp`: korrekte Skalierung + Verknüpfung; Nachbesserungs-Sync) — 157/157 Tests grün, `tsc --noEmit` sauber.
+- **Vollständiger Browser-Durchlauf mit Playwright** (nach der Lehre aus Aufgabe 63/64 — Unit-Tests allein hätten eine tote UI-Verdrahtung nicht gefunden): simulierter Testansatz mit 3 Komponenten (GFKC-M alt 0,3L/50L verfügbar, Mazerat 0,5L/40L verfügbar, Destillat 0,2L/100L verfügbar) und einem 300L-Tank, Status auf „Freigegeben" gesetzt, „Scale-up ableiten" geklickt. Ergebnis: korrekt mit 80L als Maximalmenge berechnet (limitiert durch die Mazerat-Komponente, nicht den Tank), neue Rezeptur mit eigener ID angelegt und verknüpft, „Vergleich mit Testansatz"-Karte erscheint, Komponentenzeilen zeigen korrekt 24L/40L/16L für Produktion (0,3/0,5/0,2 × Faktor 80). Dabei im ersten Durchlauf **die oben genannte Lücke gefunden und sofort behoben**, dass `mengeFuerProduktion` nirgends angezeigt wurde — ohne den Browsertest wäre das unbemerkt geblieben.
+
+**Bewusst nicht in dieser Runde umgesetzt** (siehe weiterhin offene Punkte oben): Jahresvergleich über `vorgaengerRezepturId` hinaus (z.B. automatischer Verweis "letztes Jahr: X% vol"), Kleinstmengen-Eingabefelder.

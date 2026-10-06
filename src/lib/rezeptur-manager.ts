@@ -42,9 +42,24 @@ export function berechneKomponente(
 export function berechneRezeptur(rezeptur: Rezeptur): Rezeptur {
   const updated = { ...rezeptur };
 
-  updated.komponenten = rezeptur.komponenten.map(k =>
-    berechneKomponente(k, rezeptur.basisMenge)
-  );
+  // Skalierungsfaktor für eine bereits abgeleitete Scale-up-Rezeptur (produktionsMenge
+  // gesetzt) - hält mengeFuerProduktion automatisch synchron, falls nach dem Scale-up
+  // noch eine Komponente nachjustiert wird (siehe echter Ablauf, Stufe 2: "eventuell
+  // Nachbesserung"). Die Verfügbarkeitsprüfung gegen den echten Lagerbestand in
+  // Produktionsmenge bleibt weiterhin skaliereRezeptur() vorbehalten (braucht frische
+  // Inventory-Daten) - produziereRezeptur() prüft das Lager ohnehin nochmal verbindlich
+  // beim tatsächlichen Buchen, das hier ist nur die Anzeige.
+  const produktionsFaktor = rezeptur.produktionsMenge != null && rezeptur.basisMenge > 0
+    ? rezeptur.produktionsMenge / rezeptur.basisMenge
+    : null;
+
+  updated.komponenten = rezeptur.komponenten.map(k => {
+    const berechnet = berechneKomponente(k, rezeptur.basisMenge);
+    if (produktionsFaktor != null) {
+      berechnet.mengeFuerProduktion = berechnet.mengeInLiter * produktionsFaktor;
+    }
+    return berechnet;
+  });
 
   let gesamtMenge = 0;
   let gesamtLA = 0;
@@ -219,6 +234,78 @@ export function berechneAlkoholKorrektur(
     return { wasserZugabe: 0, spritZugabe: Math.max(0, spritZugabe), endmenge: aktuelleMenge + Math.max(0, spritZugabe) };
   }
   return { wasserZugabe: 0, spritZugabe: 0, endmenge: aktuelleMenge };
+}
+
+/**
+ * Ermittelt die maximal mögliche Produktionsmenge für ein Scale-up, abgeleitet
+ * aus der knappsten verfügbaren Komponente UND der Kapazität des gewählten
+ * Ausmisch-Tanks - nicht umgekehrt vorgegeben und danach geprüft (das macht
+ * skaliereRezeptur()). Siehe docs/GFKC-VERSCHNITT-BESTANDSAUFNAHME.md Abschnitt 8:
+ * im echten Ablauf steht die Zielmenge nie von vornherein fest, sie ergibt sich
+ * aus Restmengen des Testansatz-Verhältnisses + Tankgröße.
+ */
+export interface MaxProduktionsmengeErgebnis {
+  maxMenge: number;                       // 0, falls z.B. eine Komponente gar nicht mehr vorhanden ist
+  limitierendeKomponente?: string;        // Name der knappsten Komponente, nur gesetzt, wenn NICHT der Tank limitiert
+  limitiertDurchTank: boolean;
+  tankKapazitaet: number;
+}
+
+export function berechneMaxProduktionsmenge(
+  rezeptur: Rezeptur,
+  tankKapazitaet: number,
+): MaxProduktionsmengeErgebnis {
+  let maxFaktor = Number.POSITIVE_INFINITY;
+  let limitierendeKomponente: string | undefined;
+
+  for (const k of rezeptur.komponenten) {
+    if (k.istFreieZutat || k.mengeInLiter <= 0) continue; // keine Lagerbindung bzw. nichts angefordert
+    const faktor = k.verfuegbareMenge / k.mengeInLiter;
+    if (faktor < maxFaktor) {
+      maxFaktor = faktor;
+      limitierendeKomponente = k.produktName;
+    }
+  }
+
+  const maxMengeKomponenten = Number.isFinite(maxFaktor) ? maxFaktor * rezeptur.basisMenge : Number.POSITIVE_INFINITY;
+  const limitiertDurchTank = tankKapazitaet < maxMengeKomponenten;
+  const maxMenge = Math.min(maxMengeKomponenten, tankKapazitaet);
+
+  return {
+    maxMenge: Number.isFinite(maxMenge) ? Math.max(0, maxMenge) : 0,
+    limitierendeKomponente: limitiertDurchTank ? undefined : limitierendeKomponente,
+    limitiertDurchTank,
+    tankKapazitaet,
+  };
+}
+
+/**
+ * Leitet aus einem freigegebenen Testansatz eine neue Scale-up-Rezeptur ab:
+ * gleiches Komponentenverhältnis, hochskaliert auf produktionsMenge, verknüpft
+ * über vorgaengerRezepturId (für den Sensorik-Vergleich im Editor) und startet
+ * wieder bei status 'entwurf' - die Scale-up-Charge durchläuft denselben
+ * Sensorik-/Freigabeprozess wie der Testansatz, nur in Produktionsmenge.
+ */
+export function erstelleScaleUp(
+  testansatz: Rezeptur,
+  produktionsMenge: number,
+  verfuegbareInventoryItems: StoredInventoryItem[],
+): Rezeptur {
+  const now = new Date().toISOString();
+  const variante: Rezeptur = {
+    ...testansatz,
+    id: `rez_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    variantenName: testansatz.variantenName ? `${testansatz.variantenName} – Scale-up` : 'Scale-up',
+    status: 'entwurf',
+    erstelltAm: now,
+    geaendertAm: now,
+    version: testansatz.version + 1,
+    vorgaengerRezepturId: testansatz.id,
+    sensorikBewertungen: [],
+    produktionsDaten: undefined,
+    alkoholKorrektur: undefined, // Korrektur muss für die Produktionscharge neu gemessen werden
+  };
+  return skaliereRezeptur(variante, produktionsMenge, verfuegbareInventoryItems);
 }
 
 /**

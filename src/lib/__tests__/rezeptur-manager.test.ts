@@ -5,6 +5,8 @@ import {
   skaliereRezeptur,
   berechneVerschnittMitFixUndReduzierbar,
   berechneAlkoholKorrektur,
+  berechneMaxProduktionsmenge,
+  erstelleScaleUp,
   validiereRezeptur,
   erstelleNeueRezeptur,
   fuegeKomponenteHinzu,
@@ -112,6 +114,84 @@ describe('skaliereRezeptur', () => {
 
     const skaliert = skaliereRezeptur(rezeptur, 500, []);
     expect(skaliert.komponenten[0].istVerfuegbar).toBe(true);
+  });
+});
+
+describe('berechneMaxProduktionsmenge', () => {
+  it('wird durch die knappste Komponente begrenzt, wenn der Tank groß genug ist', () => {
+    let rezeptur = erstelleNeueRezeptur('Test', 'GFKC-O');
+    rezeptur.basisMenge = 1; // Testansatz: 1L
+    rezeptur.komponenten = [
+      makeKomponente({ id: 'gfkc-alt', eingabeWert: 0.3, verfuegbareMenge: 50 }),  // erlaubt Faktor 166,67
+      makeKomponente({ id: 'mazerat', eingabeWert: 0.5, verfuegbareMenge: 40 }),   // erlaubt Faktor 80 <- knapp
+      makeKomponente({ id: 'destillat', eingabeWert: 0.2, verfuegbareMenge: 100 }), // erlaubt Faktor 500
+    ];
+    rezeptur = berechneRezeptur(rezeptur);
+
+    const result = berechneMaxProduktionsmenge(rezeptur, 10000); // Tank groß genug, nicht limitierend
+    expect(result.maxMenge).toBeCloseTo(80, 3); // 80 * 1L Basis
+    expect(result.limitierendeKomponente).toBe('Testsorte'); // makeKomponente() nutzt diesen Namen für alle
+    expect(result.limitiertDurchTank).toBe(false);
+  });
+
+  it('wird durch die Tank-Kapazität begrenzt, wenn die Komponenten mehr hergeben würden', () => {
+    let rezeptur = erstelleNeueRezeptur('Test', 'GFKC-O');
+    rezeptur.basisMenge = 1;
+    rezeptur.komponenten = [makeKomponente({ id: 'a', eingabeWert: 0.5, verfuegbareMenge: 10000 })];
+    rezeptur = berechneRezeptur(rezeptur);
+
+    const result = berechneMaxProduktionsmenge(rezeptur, 300); // Tank kleiner als rechnerisch möglich
+    expect(result.maxMenge).toBe(300);
+    expect(result.limitiertDurchTank).toBe(true);
+    expect(result.limitierendeKomponente).toBeUndefined();
+  });
+
+  it('ignoriert freie Zutaten (Wasser) bei der Begrenzung', () => {
+    let rezeptur = erstelleNeueRezeptur('Test', 'GFKC-O');
+    rezeptur = fuegeFreieZutatHinzu(rezeptur, 'Wasser', 'liter', 0.1, 0);
+    rezeptur.komponenten.push(makeKomponente({ id: 'a', eingabeWert: 0.9, verfuegbareMenge: 90 }));
+    rezeptur.basisMenge = 1;
+    rezeptur = berechneRezeptur(rezeptur);
+
+    const result = berechneMaxProduktionsmenge(rezeptur, 10000);
+    expect(result.maxMenge).toBeCloseTo(100, 3); // nur durch die 0,9L-Komponente begrenzt (Faktor 100)
+  });
+});
+
+describe('erstelleScaleUp', () => {
+  it('skaliert korrekt hoch und verknüpft mit dem Testansatz', () => {
+    let testansatz = erstelleNeueRezeptur('GFKC-O Muster 1', 'GFKC-O');
+    testansatz.basisMenge = 1;
+    testansatz.komponenten = [makeKomponente({ id: 'a', produktId: 'item-1', eingabeWert: 0.5, alkoholgehalt: 50 })];
+    testansatz = berechneRezeptur(testansatz);
+    testansatz.status = 'freigegeben';
+
+    const inventory = [makeInventoryItem({ id: 'item-1', currentQuantityLiters: 1000 })];
+    const scaleUp = erstelleScaleUp(testansatz, 80, inventory);
+
+    expect(scaleUp.id).not.toBe(testansatz.id);
+    expect(scaleUp.vorgaengerRezepturId).toBe(testansatz.id);
+    expect(scaleUp.status).toBe('entwurf'); // durchläuft den Freigabeprozess erneut, in Produktionsmenge
+    expect(scaleUp.version).toBe(testansatz.version + 1);
+    expect(scaleUp.sensorikBewertungen).toHaveLength(0); // eigene Sensorik, nicht vom Testansatz übernommen
+    expect(scaleUp.produktionsMenge).toBe(80);
+    expect(scaleUp.komponenten[0].mengeFuerProduktion).toBeCloseTo(40, 3); // 0,5L * Faktor 80
+  });
+
+  it('hält mengeFuerProduktion synchron, wenn nach dem Scale-up eine Komponente nachjustiert wird', () => {
+    let testansatz = erstelleNeueRezeptur('GFKC-O Muster 1', 'GFKC-O');
+    testansatz.basisMenge = 1;
+    testansatz.komponenten = [makeKomponente({ id: 'a', produktId: 'item-1', eingabeWert: 0.5, alkoholgehalt: 50 })];
+    testansatz = berechneRezeptur(testansatz);
+
+    const inventory = [makeInventoryItem({ id: 'item-1', currentQuantityLiters: 1000 })];
+    let scaleUp = erstelleScaleUp(testansatz, 80, inventory);
+    expect(scaleUp.komponenten[0].mengeFuerProduktion).toBeCloseTo(40, 3);
+
+    // Nachbesserung: Komponente nachträglich auf 0,6L (statt 0,5L) im Testmaßstab geändert
+    scaleUp.komponenten[0].eingabeWert = 0.6;
+    scaleUp = berechneRezeptur(scaleUp);
+    expect(scaleUp.komponenten[0].mengeFuerProduktion).toBeCloseTo(48, 3); // 0,6L * Faktor 80
   });
 });
 
