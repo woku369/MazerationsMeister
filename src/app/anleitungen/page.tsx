@@ -79,7 +79,7 @@ const overview: OverviewEntry[] = [
     id: 'rezepturen',
     icon: <Beaker className="h-5 w-5 text-pink-600" />,
     title: 'Rezepturen (GFKC)',
-    description: 'Verschnitt ausmischen, Alkoholkorrektur, Produzieren & Buchen.',
+    description: 'Testansatz ausmischen, Scale-up ableiten, Alkoholkorrektur, Produzieren & Buchen.',
     badge: 'Neu',
   },
   {
@@ -487,54 +487,56 @@ export default function AnleitungenPage() {
               </h3>
               <div className="text-pink-700 text-sm space-y-2">
                 <p>
-                  Für die GFKC-Ausmischung gibt es keine fixe Rezeptur, nur eine grobe Näherung: Komponenten aus
-                  dem Lagerbestand werden ausgemischt, mit Einzelkomponenten nachjustiert, der Alkoholgehalt am
-                  Ende auf den Zielwert eingestellt (verdünnen oder aufspriten) — <strong>erst dann</strong> wird
-                  gebucht. Der Zielwert (z.B. 53,5 %vol.) ist ein <strong>gelebter Richtwert, kein starres
-                  Gate</strong>: jede Charge durchläuft ohnehin denselben Freigabeprozess, eine Abweichung bedeutet
-                  nur, dass der Lohnabfüller die ABV-Berechnung fürs Endprodukt neu machen muss.
+                  Für die GFKC-Ausmischung gibt es keine fixe Rezeptur, nur eine grobe Näherung — jedes Jahr wird
+                  vom Ergebnis der letzten Ausmischung ausgegangen und versucht, möglichst nahe heranzukommen,
+                  da sich die sensorischen Eigenschaften der Mazerate jährlich ändern. Der Ablauf läuft deshalb
+                  in <strong>zwei Stufen</strong>: zuerst ein kleiner <strong>Testansatz</strong> im Litermaßstab
+                  zum Austüfteln von Rezept und Alkoholgehalt, danach erst das <strong>Scale-up</strong> auf
+                  Produktionsmenge im selben Verhältnis. Der Zielwert (z.B. 53,5 %vol.) ist ein{' '}
+                  <strong>gelebter Richtwert, kein starres Gate</strong>: jede Charge durchläuft ohnehin denselben
+                  Freigabeprozess, eine Abweichung bedeutet nur, dass der Lohnabfüller die ABV-Berechnung fürs
+                  Endprodukt neu machen muss.
                 </p>
               </div>
             </div>
 
             <div className="space-y-4">
-              <StepCard number={1} color="pink" title="Neue Rezeptur anlegen">
-                <Check>Unter <strong>Rezepturen (GFKC)</strong> auf „Neue Rezeptur" klicken</Check>
-                <Check>Name (z.B. „GFKC-O Muster 1") und Zielproduktbezeichnung (z.B. „GFKC-O") eingeben</Check>
-              </StepCard>
-
-              <StepCard number={2} color="blue" title="Komponenten zusammenstellen">
-                <Check>Komponente aus dem echten Lagerbestand wählen und Menge in Litern (oder %) eintragen</Check>
+              <StepCard number={1} color="pink" title="Testansatz anlegen und zusammenstellen">
+                <Check>Unter <strong>Rezepturen (GFKC)</strong> auf „Neue Rezeptur" klicken, Name und Zielproduktbezeichnung (z.B. „GFKC-O") eingeben</Check>
+                <Check>Basismenge auf den Testansatz setzen (üblich: ca. 1 Liter)</Check>
+                <Check>Komponenten aus dem echten Lagerbestand wählen und Menge in Litern (oder %) eintragen — z.B. GFKC der letzten Charge vorlegen, dann Mazerate/Destillate zugeben</Check>
                 <Check>
                   Je Komponente <strong>„fix"</strong> markieren (immer volle Menge) oder unmarkiert lassen und
                   einen <strong>Reduktionsfaktor</strong> (0–1) angeben, falls sie nur anteilig einfließt
                 </Check>
                 <Check>Freie Zutaten wie Wasser über „+ Wasser" ergänzen (werden nicht aus dem Lager abgebucht)</Check>
-                <Check>Basismenge festlegen — Ergebnis (Gesamtmenge, Durchschnitts-ABV, Gesamt-LA) wird live berechnet</Check>
               </StepCard>
 
-              <StepCard number={3} color="orange" title="Alkoholkorrektur">
-                <Check>Gemessenen ABV und Ziel-ABV eintragen (Ziel-ABV bleibt frei editierbar)</Check>
-                <Check>
-                  Sprit-Posten aus dem echten Lagerbestand für das Aufspriten auswählen — die tatsächliche
-                  Konzentration des gewählten Postens wird verwendet, nicht ein fixer Wert
-                </Check>
-                <Check>
-                  „Korrektur berechnen" zeigt an, ob Wasser (bei zu hohem ABV) oder Sprit (bei zu niedrigem ABV)
-                  zugegeben werden muss
-                </Check>
+              <StepCard number={2} color="blue" title="Testansatz: Sensorik, Alkoholkorrektur & Freigabe">
+                <Check>Sensorische Prüfung — bei Bedarf Komponenten nachjustieren und erneut prüfen</Check>
+                <Check>Gemessenen ABV und Ziel-ABV eintragen, Sprit-Posten für ein eventuelles Aufspriten aus dem echten Lagerbestand wählen (Konzentration kommt automatisch aus dem gewählten Posten), „Korrektur berechnen" klicken</Check>
+                <Check>Verkostungsbewertung erfassen, Status schrittweise auf „Test" und — wenn der Testansatz passt — auf <strong>„Freigegeben"</strong> setzen</Check>
               </StepCard>
 
-              <StepCard number={4} color="purple" title="Sensorik & Freigabe">
-                <Check>Verkostungsbewertungen (Geruch, Geschmack, Notizen) erfassen</Check>
-                <Check>Status schrittweise auf „Test" und „Freigegeben" setzen</Check>
+              <StepCard number={3} color="orange" title="Scale-up ableiten">
+                <Check>Sobald der Testansatz „Freigegeben" ist, erscheint der Button <strong>„Scale-up ableiten"</strong></Check>
+                <Check>Ausmisch-Tank wählen — die App zeigt sofort die maximal mögliche Produktionsmenge, begrenzt durch die knappste verfügbare Komponente <strong>oder</strong> die Tankkapazität (im Klartext, welcher der beiden Faktoren tatsächlich greift)</Check>
+                <Check>Produktionsmenge eintragen (Maximalmenge lässt sich per Klick übernehmen) und „Scale-up erstellen" bestätigen</Check>
+                <Check>Legt eine neue, verknüpfte Rezeptur im selben Komponentenverhältnis an und öffnet sie direkt</Check>
+              </StepCard>
+
+              <StepCard number={4} color="purple" title="Scale-up: Vergleich, Nachbesserung & Freigabe">
+                <Check>Jede Komponentenzeile zeigt jetzt zusätzlich „→ X L für Produktion" — das ist die tatsächlich zu entnehmende Menge, nicht mehr die kleine Testansatz-Menge</Check>
+                <Check>Die Karte „Vergleich mit Testansatz" zeigt Ergebnis und Sensorik-Bewertungen des Testansatzes zur direkten Gegenprobe</Check>
+                <Check>Bei Bedarf Komponenten nachjustieren — die Produktionsmenge je Komponente bleibt dabei automatisch synchron</Check>
+                <Check>Erneut Sensorik erfassen und vergleichen, dann wieder auf „Test" und „Freigegeben" setzen</Check>
               </StepCard>
 
               <StepCard number={5} color="green" title="Produzieren & Buchen" icon={<PackageCheck className="h-4 w-4 ml-1" />}>
-                <Check>Zieltank und Chargennummer angeben und „Buchen" bestätigen</Check>
+                <Check>Auf der freigegebenen Scale-up-Rezeptur: Zieltank und Chargennummer angeben und „Buchen" bestätigen</Check>
                 <Check>
-                  Bucht automatisch Abgang für jede Komponente (inkl. einer eventuellen Sprit-Korrektur) und legt
-                  den fertigen GFKC-Posten im Zieltank an
+                  Bucht automatisch Abgang für jede Komponente in Produktionsmenge (inkl. einer eventuellen
+                  Sprit-Korrektur) und legt den fertigen GFKC-Posten im Zieltank an
                 </Check>
                 <Check>
                   Zeigt danach die <strong>LA-Bilanz</strong> (eingesetzte vs. entstandene LA) sowie den{' '}
