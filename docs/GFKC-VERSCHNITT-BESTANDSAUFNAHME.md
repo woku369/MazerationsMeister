@@ -151,10 +151,41 @@ Die gesamte **Planungsseite** (Rezeptur komponieren, Verfügbarkeit prüfen, ska
 ## Nächste Schritte
 
 - [x] Nutzer bringt ergänzende Informationen aus dem separaten Claude-Desktop-GFKC-Projekt mit — `docs/GFKC-FACHKONTEXT-REZEPTUR-2026-09.md`, eingearbeitet in Abschnitt 7 oben
-- [ ] Datenmodell final festlegen (Übernahme von `rezepturSchema.ts` weitgehend wie vorhanden, plus Erweiterungen: `messmethode`, `reduktionsfaktor` je Komponente, Namenskonflikt GFKC-M/M auflösen)
-- [ ] Neue Rechenfunktion fix/reduzierbar + wachsende Gesamtmenge entwerfen (Kern-Ergänzung zu `rezeptur-manager.ts`)
-- [ ] Buchungsfunktion entwerfen und implementieren (Kernaufgabe, siehe Lücke oben)
-- [ ] UI portieren und an aktuelles Datenzugriffsmuster anpassen, `zielAlkohol` für GFKC auf 53,5 % schützen
-- [ ] Menüpunkt "GFKC-Ausmischung" final in `fresh-main` integrieren
+- [x] Buchungsfunktion entwerfen und implementieren, Menüpunkt in `fresh-main` integrieren — **umgesetzt als Aufgabe 17 (27.09.2026, "Gehen wirs an")**, siehe ROADMAP.md. Rest dieser Liste damit größtenteils historisch/überholt, nicht einzeln nachgezogen.
+- [ ] Datenmodell final festlegen (Erweiterungen: `messmethode`, `reduktionsfaktor` je Komponente, Namenskonflikt GFKC-M/M auflösen) — offen, nicht Teil von Aufgabe 17
+- [ ] Neue Rechenfunktion fix/reduzierbar + wachsende Gesamtmenge (GFKC-O-Spezialfall) — offen
+- [ ] `zielAlkohol` bleibt bewusst frei editierbar (siehe Abschnitt 7, Punkt 2 oben) — kein Schutz/Sperre vorgesehen, erledigt sich von selbst
 
-**Nicht sofort — Start geplant für die Woche ab 29.09.2026 (laut Nutzer).**
+---
+
+## 8. Echter Herstellungsablauf (Nutzer-Beschreibung 06.10.2026, erster Praxistest mit Aufgabe 17)
+
+Nach dem ersten echten Arbeiten mit dem seit Aufgabe 17 bestehenden Rezepturen(GFKC)-Modul hat der Nutzer den tatsächlichen, zweistufigen Herstellungsablauf beschrieben — das war vorher nirgends explizit festgehalten, nur implizit im Datenmodell (`basisMenge`/`produktionsMenge`, Status-Kette, `vorgaengerRezepturId`) vorweggenommen.
+
+### Stufe 1 — Testansatz (Litermaßstab, ca. 1 L, nicht bindend)
+1. GFKC der letzten Charge vorlegen (ca. 30 % der Zielmenge)
+2. Mazerate + Destillate aus dem Bestand zugeben
+3. Sensorische Prüfung
+4. Bei Bedarf: Komponenten nachjustieren, zurück zu Schritt 2 (iterativ)
+5. ABV auf Zielwert einstellen (~53,5 % — gelebter Richtwert, siehe Abschnitt 7 Punkt 2, keine harte Vorgabe)
+6. Testansatz freigeben
+
+### Stufe 2 — Scale-up
+7. **Eckdaten klären, die die maximale Produktionsmenge begrenzen:** Restmenge des alten GFKC, Restmengen der im Testansatz verwendeten Mazerate/Destillate, Kapazität des für die Ausmischung vorgesehenen Tanks
+8. Gleiches Verhältnis wie im Testansatz hochskalieren: GFKC alt vorlegen, Mazerate, Destillate, Wasser/Sprit auf End-ABV zugeben
+9. Sensorische Prüfung, Vergleich mit dem Testansatz-Ergebnis, bei Bedarf Nachbesserung
+10. Freigabe der Produktionscharge
+
+**Wiederkehrendes Prinzip, jährlich:** Keine fixen, verbindlichen Rezepturen — die sensorischen Eigenschaften der Mazerate ändern sich jährlich. Jede neue Ausmischung geht vom Ergebnis des Vorjahres aus und versucht, möglichst nahe heranzukommen. Mühsame Tüftelei, kein mechanischer Vorgang.
+
+### Konkrete Lücke zwischen Code und diesem Ablauf
+
+`skaliereRezeptur()` (`src/lib/rezeptur-manager.ts:84`) verlangt heute eine bereits feststehende `produktionsMenge` als Eingabe, skaliert alle Komponenten stur linear mit diesem Faktor hoch und prüft **danach** erst, ob jede Komponente in ausreichender Menge vorhanden ist (`fehlendeKomponenten`). Der echte Ablauf braucht es umgekehrt: Die **maximal mögliche** Produktionsmenge soll sich aus der knappsten verfügbaren Komponente **und** der Kapazität des gewählten Ausmisch-Tanks ergeben — nicht raten/vorgeben und dann scheitern. Zusätzlich fehlt jede Verknüpfung zwischen einem freigegebenen Testansatz (Stufe 1) und der daraus abgeleiteten Scale-up-Rezeptur (Stufe 2) — `skaliereRezeptur()` nimmt zwar eine bestehende Rezeptur als Ausgangspunkt, aber nichts in der UI führt den Nutzer aktuell durch „Testansatz freigeben → daraus Scale-up ableiten → gegen Testansatz-Sensorik vergleichen" als zusammenhängenden Vorgang.
+
+**Noch offen, bewusst nicht sofort umgesetzt** (Nutzer erwartet weitere Ergänzungen, sobald er tiefer mit dem Modul arbeitet):
+- Wie die Verfügbarkeits-/Kapazitätsgrenze technisch berechnet wird (kleinste Komponente vs. Tankkapazität — wer gewinnt, wenn beide unterschiedliche Obergrenzen ergeben)
+- Ob/wie `vorgaengerRezepturId` für den Jahresvergleich („vom Vorjahresergebnis ausgehen") tatsächlich genutzt werden soll, über die bisherige Varianten-Verwendung (A/B-Vergleich) hinaus
+- UI-Führung für den Übergang Testansatz → Scale-up als zusammenhängender, geführter Vorgang statt zweier unabhängiger Rezeptur-Datensätze
+- Eingabefelder für Kleinstmengen (siehe ROADMAP „GFKC: Ablauf für Kleinmengen-Testansätze" — Beispiel 0,02 L Korrekturzugabe), eng verwandt, aber eigener Teilaspekt
+
+**Nicht sofort — wächst weiter, bis der Nutzer sagt, dass der Entwurf vollständig genug zum Umsetzen ist.**
