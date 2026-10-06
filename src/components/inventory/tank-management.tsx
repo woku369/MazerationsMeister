@@ -349,12 +349,26 @@ export default function TankManagement() {
   };
 
   const deleteTank = (id: string) => {
+    const tank = tanks.find(t => t.id === id);
     const updatedTanks = tanks.filter((tank) => tank.id !== id);
     setTanks(updatedTanks);
-    
+
     // Speichere in localStorage als tankDefinitions
     if (typeof window !== 'undefined') {
       localStorage.setItem('tankDefinitions', JSON.stringify(updatedTanks));
+    }
+
+    // Leere (0 L) Lagerposten mit derselben Tanknummer ebenfalls entfernen -
+    // sonst legt syncTankDefinitionsWithInventory() beim naechsten Lauf
+    // automatisch wieder einen "Auto-erkannt"-Phantomtank dafuer an, da die
+    // tankNr noch im Inventar steht (derselbe Fehler wie beim Splitten, siehe
+    // handleSplit(), Nutzer-Meldung 06.10.2026). Posten mit echtem Restbestand
+    // bleiben bewusst unangetastet - nur die Tank-Definition verschwindet dann,
+    // die Daten selbst nicht, falls das Loeschen ein Versehen war.
+    if (tank) {
+      const updatedItems = StockService.readAll().filter(i => !(i.tankNr === tank.tankNr && i.currentQuantityLiters === 0));
+      StockService.writeAll(updatedItems);
+      setInventoryItems(updatedItems);
     }
   };
 
@@ -446,7 +460,16 @@ export default function TankManagement() {
       toast({ title: 'Split fehlgeschlagen', description: abgang.error, variant: 'destructive' });
       return;
     }
-    let items = abgang.items;
+    // Den jetzt leeren Quellposten komplett entfernen, nicht nur auf 0 L buchen
+    // (Nutzer-Meldung 06.10.2026: "Geister-Tanks" mit 0 L in der Tank-Viewer-PWA
+    // nach dem Splitten mehrerer Fässer/Flaschen). Ursache: die Tank-Definition
+    // des Quell-Gebindes wurde unten korrekt gelöscht, der 0-L-Lagerposten selbst
+    // blieb aber mit seiner alten tankNr im Inventar liegen - syncTankDefinitionsWithInventory()
+    // fand diese tankNr beim naechsten Lauf nicht mehr in den Tank-Definitionen und
+    // legte automatisch einen neuen "Auto-erkannt"-Phantomtank dafuer an. Wie im
+    // Kommentar unten bereits beabsichtigt ("nichts Physisches mehr dahinter"),
+    // aber bisher nur fuer die Tank-Definition umgesetzt, nicht fuer den Posten selbst.
+    let items = abgang.items.filter(i => i.id !== sourceItem.id);
     let txs = abgang.transactions;
     const neueTanks: Tank[] = [];
     for (const row of parsed) {
