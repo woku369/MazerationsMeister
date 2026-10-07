@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Plus, Trash2, Beaker, FlaskConical, PackageCheck, ArrowUpCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Beaker, FlaskConical, PackageCheck, ArrowUpCircle, Percent } from 'lucide-react';
 import * as StockService from '@/lib/stock-service';
 import * as RezepturService from '@/lib/rezeptur-service';
 import { getTankDefinitions, formatTankLabel } from '@/lib/tank-sync';
@@ -61,6 +61,11 @@ export default function RezepturEditor() {
   const [isScaleUpOpen, setIsScaleUpOpen] = useState(false);
   const [scaleUpTankNr, setScaleUpTankNr] = useState('');
   const [scaleUpMenge, setScaleUpMenge] = useState('');
+
+  const [isVerschnittZielOpen, setIsVerschnittZielOpen] = useState(false);
+  const [verschnittZielBasisAnteil, setVerschnittZielBasisAnteil] = useState('');
+  const [verschnittZielKomponenteId, setVerschnittZielKomponenteId] = useState('');
+  const [verschnittZielHinweis, setVerschnittZielHinweis] = useState('');
 
   useEffect(() => {
     if (!id) { setNotFound(true); return; }
@@ -229,10 +234,71 @@ export default function RezepturEditor() {
     router.push(`/rezepturen/editor?id=${scaleUp.id}`);
   }
 
+  function handleOpenVerschnittZiel() {
+    if (!rezeptur) return;
+    const bestehend = rezeptur.verschnittZiel;
+    setVerschnittZielBasisAnteil(bestehend ? formatiereRezepturWert(bestehend.basisAnteil * 100, 0) : '');
+    setVerschnittZielKomponenteId(bestehend?.zusatzKomponenteId || '');
+    setVerschnittZielHinweis(bestehend?.hinweis || '');
+    setIsVerschnittZielOpen(true);
+  }
+
+  function handleSaveVerschnittZiel() {
+    if (!rezeptur) return;
+    const prozent = parseFloat(verschnittZielBasisAnteil.replace(',', '.'));
+    if (!Number.isFinite(prozent) || prozent <= 0 || prozent >= 100) {
+      toast({ title: 'Bitte einen Basis-Anteil zwischen 0 und 100% eingeben', variant: 'destructive' });
+      return;
+    }
+    if (!verschnittZielKomponenteId) {
+      toast({ title: 'Bitte eine Zusatzkomponente wählen', variant: 'destructive' });
+      return;
+    }
+    const basisAnteil = prozent / 100;
+    persist({
+      ...rezeptur,
+      verschnittZiel: {
+        basisAnteil,
+        zusatzKomponenteId: verschnittZielKomponenteId,
+        zusatzAnteil: 1 - basisAnteil,
+        hinweis: verschnittZielHinweis.trim() || undefined,
+      },
+    });
+    setIsVerschnittZielOpen(false);
+    toast({ title: 'Verschnittziel gespeichert' });
+  }
+
+  function handleRemoveVerschnittZiel() {
+    if (!rezeptur) return;
+    persist({ ...rezeptur, verschnittZiel: undefined });
+  }
+
+  function handleUebernehmeZusatzVolumen() {
+    if (!rezeptur?.verschnittZiel || !verschnittPreview) return;
+    const zusatzItem = inventoryItems.find(i => i.id === rezeptur.verschnittZiel!.zusatzKomponenteId);
+    if (!zusatzItem) return;
+    const menge = parseFloat(verschnittPreview.zusatzVolumen.toFixed(3));
+    const bestehendeKomponente = rezeptur.komponenten.find(k => k.produktId === zusatzItem.id);
+    const updated = bestehendeKomponente
+      ? aktualisiereKomponente(rezeptur, bestehendeKomponente.id, { eingabeWert: menge })
+      : fuegeKomponenteHinzu(rezeptur, zusatzItem, 'liter', menge, true);
+    persist(updated);
+    toast({ title: 'Zusatzmenge übernommen', description: `${fmt(menge)} L ${zusatzItem.produktName}` });
+  }
+
   const freigabe = kannFreigebenWerden(rezeptur);
+  // Die Zusatzkomponente selbst zaehlt NICHT zur "Basis" - wird sie (z.B. durch
+  // einen vorherigen Klick auf "Zusatzmenge übernehmen") bereits als eigene
+  // Komponentenzeile gefuehrt, muss sie vor der Berechnung herausgefiltert
+  // werden, sonst würde sich ihre eigene Menge selbstverstärkend in die
+  // Basis-Summe einrechnen und bei jeder weiteren Berechnung eine immer
+  // größere Zusatz-Menge vorschlagen, statt bei der korrekten zu konvergieren.
+  const verschnittBasisKomponenten = rezeptur.verschnittZiel
+    ? rezeptur.komponenten.filter(k => k.produktId !== rezeptur.verschnittZiel!.zusatzKomponenteId)
+    : rezeptur.komponenten;
   const verschnittPreview = rezeptur.verschnittZiel
     ? berechneVerschnittMitFixUndReduzierbar(
-        rezeptur.komponenten,
+        verschnittBasisKomponenten,
         rezeptur.verschnittZiel.basisAnteil,
         inventoryItems.find(i => i.id === rezeptur.verschnittZiel!.zusatzKomponenteId)?.alcoholVolProzent ?? 0,
       )
@@ -341,18 +407,48 @@ export default function RezepturEditor() {
         </CardContent>
       </Card>
 
-      {/* Verschnitt fix/reduzierbar Vorschau (GFKC-O-Fall) */}
-      {verschnittPreview && (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Verschnitt-Auflösung (fix/reduzierbar)</CardTitle></CardHeader>
-          <CardContent className="text-sm space-y-1">
-            <div>Basis-Summe: {fmt(verschnittPreview.basisSumme)} L</div>
-            <div>Ziel-Gesamtmenge: {fmt(verschnittPreview.zielGesamtmenge)} L</div>
-            <div>Zusatz-Volumen: {fmt(verschnittPreview.zusatzVolumen)} L</div>
-            {verschnittPreview.warnung && <p className="text-amber-700 text-xs">{verschnittPreview.warnung}</p>}
-          </CardContent>
-        </Card>
-      )}
+      {/* Verschnittziel: fixe Basismenge + Ergänzung bis zu einem Zielverhältnis (GFKC-O-Fall, z.B. 65:35) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Verschnittziel (fix/reduzierbar)</CardTitle>
+          <CardDescription>Für Mischungen aus bereits feststehender Basismenge (z.B. vorhandenes GFKC-M) plus einer Zusatzkomponente, die bis zu einem Zielverhältnis auffüllt — statt einer von vornherein feststehenden Gesamtmenge.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!rezeptur.verschnittZiel ? (
+            !gesperrt && (
+              <Button size="sm" variant="outline" onClick={handleOpenVerschnittZiel}>
+                <Percent className="w-4 h-4 mr-1" />Verschnittziel festlegen
+              </Button>
+            )
+          ) : (
+            <>
+              <div className="text-sm">
+                Basis <strong>{fmt(rezeptur.verschnittZiel.basisAnteil * 100, 0)}%</strong> · Zusatz „{inventoryItems.find(i => i.id === rezeptur.verschnittZiel!.zusatzKomponenteId)?.produktName ?? '–'}" <strong>{fmt(rezeptur.verschnittZiel.zusatzAnteil * 100, 0)}%</strong>
+                {rezeptur.verschnittZiel.hinweis && <p className="text-xs text-muted-foreground mt-1">{rezeptur.verschnittZiel.hinweis}</p>}
+              </div>
+              {verschnittPreview && (
+                <div className="text-sm space-y-1 border rounded-lg p-3 bg-muted/50">
+                  <div>Basis-Summe: {fmt(verschnittPreview.basisSumme)} L</div>
+                  <div>Ziel-Gesamtmenge: {fmt(verschnittPreview.zielGesamtmenge)} L</div>
+                  <div>Zusatz-Volumen: {fmt(verschnittPreview.zusatzVolumen)} L</div>
+                  {verschnittPreview.warnung && <p className="text-amber-700 text-xs">{verschnittPreview.warnung}</p>}
+                  {!gesperrt && (
+                    <Button size="sm" variant="link" className="px-0 h-auto" onClick={handleUebernehmeZusatzVolumen}>
+                      Zusatzmenge in Komponente übernehmen
+                    </Button>
+                  )}
+                </div>
+              )}
+              {!gesperrt && (
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={handleOpenVerschnittZiel}>Bearbeiten</Button>
+                  <Button size="sm" variant="ghost" onClick={handleRemoveVerschnittZiel}>Entfernen</Button>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Alkoholkorrektur */}
       <Card>
@@ -564,6 +660,43 @@ export default function RezepturEditor() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsScaleUpOpen(false)}>Abbrechen</Button>
             <Button onClick={handleErstelleScaleUp}>Scale-up erstellen</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isVerschnittZielOpen} onOpenChange={setIsVerschnittZielOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verschnittziel festlegen</DialogTitle>
+            <DialogDescription>
+              Berechnet, wie viel von der gewählten Zusatzkomponente nötig ist, damit die fixen/reduzierbaren
+              Komponenten oben zusammen den angegebenen Anteil der fertigen Gesamtmenge ausmachen.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Basis-Anteil (%) — fixe/reduzierbare Komponenten zusammen</Label>
+              <Input type="text" inputMode="decimal" value={verschnittZielBasisAnteil} onChange={e => setVerschnittZielBasisAnteil(e.target.value)} placeholder="z.B. 65" />
+            </div>
+            <div>
+              <Label>Zusatzkomponente (füllt auf den Rest auf)</Label>
+              <Select value={verschnittZielKomponenteId} onValueChange={setVerschnittZielKomponenteId}>
+                <SelectTrigger><SelectValue placeholder="Komponente aus Lagerbestand wählen" /></SelectTrigger>
+                <SelectContent>
+                  {availableItems.map(i => (
+                    <SelectItem key={i.id} value={i.id}>{i.produktName} — {i.tankNr} ({fmt(i.currentQuantityLiters, 0)} L, {i.alcoholVolProzent}%)</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Hinweis (optional)</Label>
+              <Input value={verschnittZielHinweis} onChange={e => setVerschnittZielHinweis(e.target.value)} placeholder="z.B. unverifizierter Richtwert" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsVerschnittZielOpen(false)}>Abbrechen</Button>
+            <Button onClick={handleSaveVerschnittZiel}>Speichern</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
