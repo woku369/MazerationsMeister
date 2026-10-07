@@ -84,7 +84,16 @@ export async function startGoogleCalendarAuth(clientId: string, clientSecret: st
     });
   });
 
-  const redirectUri = `http://127.0.0.1:${port}`;
+  // Hostname bewusst "localhost", nicht die IP-Literal "127.0.0.1": Das von
+  // Google für den OAuth-Client-Typ "Desktop-App" registrierte
+  // redirect_uris-Feld lautet exakt "http://localhost" (ohne Port - Google
+  // akzeptiert dort jeden Port, aber den registrierten Hostnamen selbst
+  // nicht austauschbar gegen die IP-Literal). Der lokale Server lauscht
+  // trotzdem explizit auf 127.0.0.1 (s.o.) statt sich auf die
+  // Namensauflösung von "localhost" zu verlassen - fast überall identisch,
+  // aber ohne die Unsicherheit, ob "localhost" lokal zu ::1 (IPv6) statt
+  // 127.0.0.1 aufgelöst werden könnte.
+  const redirectUri = `http://localhost:${port}`;
   const authUrl = new URL(GOOGLE_AUTH_ENDPOINT);
   authUrl.searchParams.set('client_id', clientId.trim());
   authUrl.searchParams.set('redirect_uri', redirectUri);
