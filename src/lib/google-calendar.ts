@@ -107,11 +107,9 @@ async function calendarFetch(path: string, options: RequestInit = {}): Promise<R
   });
 }
 
-export async function listUpcomingEvents(days: number = 14): Promise<CalendarResult<CalendarEvent[]>> {
+async function fetchEvents(timeMin: string, timeMax: string): Promise<CalendarResult<CalendarEvent[]>> {
   try {
-    const timeMin = new Date().toISOString();
-    const timeMax = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-    const params = new URLSearchParams({ timeMin, timeMax, singleEvents: 'true', orderBy: 'startTime', maxResults: '50' });
+    const params = new URLSearchParams({ timeMin, timeMax, singleEvents: 'true', orderBy: 'startTime', maxResults: '100' });
     const res = await calendarFetch(`?${params.toString()}`);
     if (!res.ok) return { ok: false, error: `Google Calendar antwortete mit ${res.status}: ${await res.text()}` };
     const data = await res.json();
@@ -119,6 +117,17 @@ export async function listUpcomingEvents(days: number = 14): Promise<CalendarRes
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : String(error) };
   }
+}
+
+export async function listUpcomingEvents(days: number = 14): Promise<CalendarResult<CalendarEvent[]>> {
+  const timeMin = new Date().toISOString();
+  const timeMax = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+  return fetchEvents(timeMin, timeMax);
+}
+
+/** Für die Monatsansicht (Aufgabe 75): alle Termine in einem beliebigen Zeitraum, nicht nur "ab jetzt". */
+export async function listEventsInRange(timeMinIso: string, timeMaxIso: string): Promise<CalendarResult<CalendarEvent[]>> {
+  return fetchEvents(timeMinIso, timeMaxIso);
 }
 
 export async function createEvent(event: NewCalendarEvent): Promise<CalendarResult<CalendarEvent>> {

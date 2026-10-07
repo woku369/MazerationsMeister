@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -14,7 +15,7 @@ import {
 import { CalendarClock, Plus, Pencil, Trash2, ExternalLink, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
-  listUpcomingEvents, createEvent, updateEvent, deleteEvent, type CalendarEvent, type NewCalendarEvent,
+  listEventsInRange, createEvent, updateEvent, deleteEvent, type CalendarEvent, type NewCalendarEvent,
 } from '@/lib/google-calendar';
 import { isGoogleCalendarConnected, onGoogleCalendarConfigChanged } from '@/lib/google-calendar-token';
 
@@ -29,12 +30,19 @@ function combineDateTime(date: string, time: string): string {
   return new Date(`${date}T${time || '00:00'}:00`).toISOString();
 }
 function formatEventRange(ev: CalendarEvent): string {
-  const start = new Date(ev.startIso);
-  const dateStr = start.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
-  if (ev.allDay) return `${dateStr} (ganztägig)`;
-  const startTime = start.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  if (ev.allDay) return 'ganztägig';
+  const startTime = new Date(ev.startIso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   const endTime = new Date(ev.endIso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  return `${dateStr}, ${startTime}–${endTime}`;
+  return `${startTime}–${endTime}`;
+}
+function dateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+/** Google liefert bei ganztägigen Terminen ein exklusives Enddatum (1-Tages-Termin: end = start+1). */
+function eventFallsOnDay(ev: CalendarEvent, day: Date): boolean {
+  const key = dateKey(day);
+  if (ev.allDay) return key >= toLocalDateInput(ev.startIso) && key < toLocalDateInput(ev.endIso);
+  return toLocalDateInput(ev.startIso) === key;
 }
 
 const EMPTY_FORM = { summary: '', description: '', startDate: '', startTime: '09:00', endDate: '', endTime: '10:00', allDay: false };
@@ -42,6 +50,8 @@ const EMPTY_FORM = { summary: '', description: '', startDate: '', startTime: '09
 export default function CalendarWidget() {
   const { toast } = useToast();
   const [connected, setConnected] = useState(false);
+  const [displayMonth, setDisplayMonth] = useState<Date>(new Date());
+  const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,11 +60,16 @@ export default function CalendarWidget() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  const loadEvents = useCallback(async () => {
+  const loadEventsForMonth = useCallback(async (month: Date) => {
     if (!isGoogleCalendarConnected()) return;
     setLoading(true);
     setError(null);
-    const result = await listUpcomingEvents(28); // 4-Wochenansicht (Nutzer-Anfrage 07.10.2026)
+    // Eine Woche Puffer vor/nach dem eigentlichen Monat, da das Kalenderraster
+    // auch die letzten Tage des Vor- und die ersten Tage des Folgemonats
+    // anzeigt (showOutsideDays) - sonst fehlten dort die Termin-Markierungen.
+    const start = new Date(month.getFullYear(), month.getMonth(), 1 - 7);
+    const end = new Date(month.getFullYear(), month.getMonth() + 1, 1 + 7);
+    const result = await listEventsInRange(start.toISOString(), end.toISOString());
     setLoading(false);
     if (result.ok) {
       setEvents(result.data);
@@ -70,13 +85,30 @@ export default function CalendarWidget() {
   }, []);
 
   useEffect(() => {
-    if (connected) loadEvents();
-  }, [connected, loadEvents]);
+    if (connected) loadEventsForMonth(displayMonth);
+  }, [connected, displayMonth, loadEventsForMonth]);
 
-  function openNewEventDialog() {
-    const today = new Date().toISOString().slice(0, 10);
+  const eventsOnSelectedDay = useMemo(
+    () => events.filter(ev => eventFallsOnDay(ev, selectedDay)).sort((a, b) => a.startIso.localeCompare(b.startIso)),
+    [events, selectedDay],
+  );
+  const daysWithEvents = useMemo(() => {
+    const dates: Date[] = [];
+    for (const ev of events) {
+      const from = new Date(toLocalDateInput(ev.startIso));
+      const to = ev.allDay ? new Date(toLocalDateInput(ev.endIso)) : new Date(toLocalDateInput(ev.startIso) + 'T00:00:00');
+      // Bei Mehrtages-Terminen jeden betroffenen Tag einzeln markieren.
+      for (let d = new Date(from); d < (ev.allDay ? to : new Date(from.getTime() + 24 * 60 * 60 * 1000)); d.setDate(d.getDate() + 1)) {
+        dates.push(new Date(d));
+      }
+    }
+    return dates;
+  }, [events]);
+
+  function openNewEventDialog(forDate?: Date) {
+    const day = toLocalDateInput((forDate || selectedDay).toISOString());
     setEditingId(null);
-    setForm({ ...EMPTY_FORM, startDate: today, endDate: today });
+    setForm({ ...EMPTY_FORM, startDate: day, endDate: day });
     setIsDialogOpen(true);
   }
 
@@ -113,7 +145,7 @@ export default function CalendarWidget() {
     }
     toast({ title: editingId ? 'Termin geändert' : 'Termin angelegt' });
     setIsDialogOpen(false);
-    loadEvents();
+    loadEventsForMonth(displayMonth);
   }
 
   async function handleDeleteEvent(id: string) {
@@ -123,7 +155,7 @@ export default function CalendarWidget() {
       return;
     }
     toast({ title: 'Termin gelöscht' });
-    loadEvents();
+    loadEventsForMonth(displayMonth);
   }
 
   if (!connected) {
@@ -156,23 +188,38 @@ export default function CalendarWidget() {
             <CalendarClock className="h-5 w-5 text-primary" />
             <CardTitle className="text-lg">Kalender</CardTitle>
           </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={loadEvents} title="Aktualisieren">
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-            <Button size="sm" onClick={openNewEventDialog} className="flex items-center gap-1">
-              <Plus className="h-4 w-4" />Termin
-            </Button>
-          </div>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => loadEventsForMonth(displayMonth)} title="Aktualisieren">
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
-        <CardDescription>Nächste 4 Wochen</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2">
         {error && <p className="text-sm text-red-600">{error}</p>}
-        {!error && events.length === 0 && !loading && (
-          <p className="text-sm text-muted-foreground">Keine Termine in den nächsten 4 Wochen.</p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Calendar
+          mode="single"
+          month={displayMonth}
+          onMonthChange={setDisplayMonth}
+          selected={selectedDay}
+          onSelect={day => day && setSelectedDay(day)}
+          onDayClick={day => setSelectedDay(day)}
+          modifiers={{ hasEvent: daysWithEvents }}
+          modifiersClassNames={{ hasEvent: 'font-bold text-primary underline decoration-2 underline-offset-4' }}
+          className="rounded-md border w-full p-0"
+        />
+
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium">
+            {selectedDay.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}
+          </p>
+          <Button size="sm" onClick={() => openNewEventDialog()} className="flex items-center gap-1">
+            <Plus className="h-4 w-4" />Termin
+          </Button>
+        </div>
+
+        {eventsOnSelectedDay.length === 0 && !loading && (
+          <p className="text-sm text-muted-foreground">Keine Termine an diesem Tag.</p>
         )}
-        {events.map(ev => (
+        {eventsOnSelectedDay.map(ev => (
           <div key={ev.id} className="flex items-start gap-2 border rounded-lg p-2">
             <div className="flex-1 min-w-0">
               <div className="font-medium text-sm truncate">{ev.summary}</div>

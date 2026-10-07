@@ -143,6 +143,21 @@ describe('google-calendar', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('listEventsInRange nutzt genau den übergebenen Zeitraum, nicht "ab jetzt" (Monatsansicht, Aufgabe 75)', async () => {
+    const { setGoogleTokens } = await import('../google-calendar-token');
+    const { listEventsInRange } = await import('../google-calendar');
+    setGoogleTokens({ accessToken: 'tok', expiresAt: Date.now() + 60 * 60 * 1000 });
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ items: [] }) });
+
+    // Zeitraum bewusst in der Vergangenheit - fuer Monatsnavigation zurueck
+    // muss das moeglich sein, anders als bei listUpcomingEvents ("ab jetzt").
+    await listEventsInRange('2020-01-01T00:00:00.000Z', '2020-02-01T00:00:00.000Z');
+
+    const [url] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('timeMin=2020-01-01');
+    expect(String(url)).toContain('timeMax=2020-02-01');
+  });
+
   it('createEvent sendet ganztägige Termine als date, zeitgebundene als dateTime', async () => {
     const { setGoogleTokens } = await import('../google-calendar-token');
     const { createEvent } = await import('../google-calendar');
