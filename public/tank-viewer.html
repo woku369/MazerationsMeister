@@ -185,6 +185,19 @@
                 .replace(/'/g, '&#39;');
         }
 
+        // Entspricht formatTankLabel() aus src/lib/tank-sync.ts (Aufgabe 52) -
+        // dort fuer die Desktop-Dropdowns gebaut, hier auf die PWA uebertragen
+        // (Nutzer-Meldung 07.10.2026): manuell angelegte Tanks mit eigener
+        // Bezeichnung (z.B. "Edelstahl 6420l") zeigten nur noch diesen Text,
+        // die Tanknummer (sonst "Auto-erkannt: T 349") war nirgends mehr zu
+        // sehen. Ergaenzt die Tanknummer nur, wenn sie nicht schon Teil der
+        // Bezeichnung ist (z.B. bei "Auto-erkannt: T 349" selbst).
+        function formatTankLabel(t) {
+            const bezeichnung = t.bezeichnung || t.id || t.tankNr;
+            if (!t.tankNr || bezeichnung.includes(t.tankNr)) return bezeichnung;
+            return `${bezeichnung} (${t.tankNr})`;
+        }
+
         // Get parameters from URL
         const urlParams = new URLSearchParams(window.location.search);
         const tankId = urlParams.get('tank');
@@ -361,7 +374,7 @@
             console.log('📊 Berechneter Füllstand:', totalVolume, 'L von', tankVolumen, 'L =', fillPercentage, '%');
 
             // Update display
-            document.getElementById('tank-title').textContent = tank.bezeichnung || `Tank ${tank.tankNr}`;
+            document.getElementById('tank-title').textContent = formatTankLabel(tank);
             document.getElementById('tank-subtitle').textContent = `Lagertank ${tank.tankNr}`;
             document.getElementById('tank-number').textContent = tank.tankNr;
             document.getElementById('tank-capacity').textContent = `${tankVolumen} L`;
@@ -505,7 +518,7 @@
             }
 
             grid.innerHTML = tanks.map(t => {
-                const name    = escapeHtml(t.bezeichnung || t.id || t.tankNr);
+                const name    = escapeHtml(formatTankLabel(t));
                 // Fehlt das Feld (z.B. aeltere/neu synchronisierte Tanks ohne den
                 // Wert), ist "Inventar-getrieben" (true) die sichere Annahme -
                 // sonst wuerde faelschlich die Kapazitaet als Fuellstand angezeigt.
