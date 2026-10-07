@@ -54,7 +54,7 @@ export default function CalendarWidget() {
     if (!isGoogleCalendarConnected()) return;
     setLoading(true);
     setError(null);
-    const result = await listUpcomingEvents(14);
+    const result = await listUpcomingEvents(28); // 4-Wochenansicht (Nutzer-Anfrage 07.10.2026)
     setLoading(false);
     if (result.ok) {
       setEvents(result.data);
@@ -165,12 +165,12 @@ export default function CalendarWidget() {
             </Button>
           </div>
         </div>
-        <CardDescription>Nächste 14 Tage</CardDescription>
+        <CardDescription>Nächste 4 Wochen</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         {error && <p className="text-sm text-red-600">{error}</p>}
         {!error && events.length === 0 && !loading && (
-          <p className="text-sm text-muted-foreground">Keine Termine in den nächsten 14 Tagen.</p>
+          <p className="text-sm text-muted-foreground">Keine Termine in den nächsten 4 Wochen.</p>
         )}
         {events.map(ev => (
           <div key={ev.id} className="flex items-start gap-2 border rounded-lg p-2">
@@ -214,7 +214,19 @@ export default function CalendarWidget() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Start</Label>
-                <Input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
+                <Input
+                  type="date"
+                  value={form.startDate}
+                  onChange={e => {
+                    const neuesStart = e.target.value;
+                    // Enddatum folgt dem Start, solange der Nutzer es nicht bewusst
+                    // abweichend gesetzt hat (Nutzer-Meldung 07.10.2026: Start auf
+                    // nächste Woche verschoben, Ende blieb beim heutigen Tag stehen,
+                    // weil beide Felder bislang unabhängig waren). Sobald das Ende
+                    // einmal vom Start abweicht (Mehrtages-Termin), bleibt es dabei.
+                    setForm(f => ({ ...f, startDate: neuesStart, endDate: f.endDate === f.startDate ? neuesStart : f.endDate }));
+                  }}
+                />
                 {!form.allDay && (
                   <Input type="time" className="mt-1" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))} />
                 )}
