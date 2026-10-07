@@ -22,6 +22,15 @@ interface ElectronAPI {
     encoding?: 'utf-8' | 'base64',
   ) => Promise<{ ok: true; path: string } | { ok: false; error: string }>;
   openPath: (targetPath: string) => Promise<{ ok: boolean; error?: string }>;
+  googleCalendarStartAuth: (
+    clientId: string,
+    clientSecret: string,
+  ) => Promise<{ ok: true; tokens: { access_token: string; refresh_token?: string; expires_in: number } } | { ok: false; error: string }>;
+  googleCalendarRefreshToken: (
+    refreshToken: string,
+    clientId: string,
+    clientSecret: string,
+  ) => Promise<{ ok: true; tokens: { access_token: string; expires_in: number } } | { ok: false; error: string }>;
   onBeforeQuit: (callback: () => void) => void;
   notifyQuitReady: () => void;
 }
@@ -66,6 +75,40 @@ export async function openPath(targetPath: string): Promise<void> {
   const api = getElectronAPI();
   if (!api) return;
   await api.openPath(targetPath);
+}
+
+/**
+ * Startet den Google-Calendar-OAuth-Ablauf (Nutzer-Anfrage 07.10.2026) - nur
+ * im echten Electron-Programm verfügbar, siehe electron/google-calendar.ts
+ * für die Begründung (lokaler Redirect-Listener + CORS-freier Token-Tausch
+ * brauchen den Hauptprozess).
+ */
+export async function googleCalendarStartAuth(
+  clientId: string,
+  clientSecret: string,
+): Promise<{ ok: true; accessToken: string; refreshToken?: string; expiresIn: number } | { ok: false; error: string }> {
+  const api = getElectronAPI();
+  if (!api) return { ok: false, error: 'Google-Calendar-Anbindung ist nur im installierten Programm verfügbar, nicht im Browser.' };
+  const result = await api.googleCalendarStartAuth(clientId, clientSecret);
+  if (!result.ok) return result;
+  return {
+    ok: true,
+    accessToken: result.tokens.access_token,
+    refreshToken: result.tokens.refresh_token,
+    expiresIn: result.tokens.expires_in,
+  };
+}
+
+export async function googleCalendarRefreshToken(
+  refreshToken: string,
+  clientId: string,
+  clientSecret: string,
+): Promise<{ ok: true; accessToken: string; expiresIn: number } | { ok: false; error: string }> {
+  const api = getElectronAPI();
+  if (!api) return { ok: false, error: 'Google-Calendar-Anbindung ist nur im installierten Programm verfügbar, nicht im Browser.' };
+  const result = await api.googleCalendarRefreshToken(refreshToken, clientId, clientSecret);
+  if (!result.ok) return result;
+  return { ok: true, accessToken: result.tokens.access_token, expiresIn: result.tokens.expires_in };
 }
 
 /**

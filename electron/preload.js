@@ -37,6 +37,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /** Öffnet eine Datei oder einen Ordner mit der Standard-Anwendung des Betriebssystems. */
   openPath: (targetPath) => ipcRenderer.invoke('shell-open-path', targetPath),
 
+  // Google Calendar OAuth (Nutzer-Anfrage 07.10.2026) - siehe
+  // electron/google-calendar.ts für die Begründung, warum der Austausch im
+  // Hauptprozess läuft statt im Renderer.
+  googleCalendarStartAuth: (clientId, clientSecret) =>
+    ipcRenderer.invoke('google-calendar-start-auth', clientId, clientSecret),
+  googleCalendarRefreshToken: (refreshToken, clientId, clientSecret) =>
+    ipcRenderer.invoke('google-calendar-refresh-token', refreshToken, clientId, clientSecret),
+
   /**
    * Koordination für "vor dem Beenden noch synchronisieren" (Aufgabe 40):
    * Der Hauptprozess verzögert app.quit(), bis der Renderer über

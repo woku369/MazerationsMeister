@@ -10,9 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Download, Upload, Trash2, Settings, Cloud, Smartphone, Github, Clock, CheckCircle, DatabaseBackup } from "lucide-react";
+import { Download, Upload, Trash2, Settings, Cloud, Smartphone, Github, Clock, CheckCircle, DatabaseBackup, CalendarClock } from "lucide-react";
 import { getTankAutoSync } from "@/lib/tank-auto-sync";
 import { getGithubToken, getGithubEnabled, setGithubConfig } from "@/lib/github-token";
+import { getGoogleClientId, getGoogleClientSecret, isGoogleCalendarConnected, onGoogleCalendarConfigChanged } from "@/lib/google-calendar-token";
+import { connectGoogleCalendar, disconnectGoogleCalendar } from "@/lib/google-calendar";
+import { isElectron } from "@/lib/electron-bridge";
 import { useToast } from "@/hooks/use-toast";
 import * as BackupService from "@/lib/backup-service";
 import type { FullBackup } from "@/lib/backup-service";
@@ -121,7 +124,39 @@ export default function EinstellungenPage() {
       alert('Synchronisation fehlgeschlagen! Prüfen Sie Ihre GitHub-Konfiguration.');
     }
   };
-  
+
+  // Google Calendar (Nutzer-Anfrage 07.10.2026, Aufgabe 73)
+  const [googleClientId, setGoogleClientId] = useState(() => getGoogleClientId());
+  const [googleClientSecret, setGoogleClientSecret] = useState(() => getGoogleClientSecret());
+  const [googleConnected, setGoogleConnected] = useState(() => isGoogleCalendarConnected());
+  const [googleConnecting, setGoogleConnecting] = useState(false);
+
+  React.useEffect(() => {
+    return onGoogleCalendarConfigChanged(() => setGoogleConnected(isGoogleCalendarConnected()));
+  }, []);
+
+  const handleConnectGoogleCalendar = async () => {
+    if (!googleClientId.trim() || !googleClientSecret.trim()) {
+      toast({ title: 'Client-ID und Client-Secret erforderlich', variant: 'destructive' });
+      return;
+    }
+    setGoogleConnecting(true);
+    const result = await connectGoogleCalendar(googleClientId, googleClientSecret);
+    setGoogleConnecting(false);
+    if (result.ok) {
+      setGoogleConnected(true);
+      toast({ title: 'Google Calendar verbunden', description: 'Deine Termine erscheinen jetzt im Dashboard.' });
+    } else {
+      toast({ title: 'Verbindung fehlgeschlagen', description: result.error, variant: 'destructive' });
+    }
+  };
+
+  const handleDisconnectGoogleCalendar = () => {
+    disconnectGoogleCalendar();
+    setGoogleConnected(false);
+    toast({ title: 'Google Calendar getrennt' });
+  };
+
   // Kategorien als Array von Objekten mit Name und Farbe
   const [categories, setCategories] = useState<{name: string, color: string}[]>(() => {
     if (typeof window !== 'undefined') {
@@ -314,6 +349,7 @@ export default function EinstellungenPage() {
         <TabsList className="mb-6">
           <TabsTrigger value="speicher">Speicherpfade</TabsTrigger>
           <TabsTrigger value="github">GitHub Integration</TabsTrigger>
+          <TabsTrigger value="google-calendar">Google Calendar</TabsTrigger>
           <TabsTrigger value="kategorien">Kategorien</TabsTrigger>
           <TabsTrigger value="backup">Datensicherung</TabsTrigger>
         </TabsList>
@@ -465,6 +501,86 @@ export default function EinstellungenPage() {
                 <Alert>
                   <AlertDescription>
                     ✅ GitHub-Integration ist aktiv. Tank-Daten werden automatisch zu GitHub hochgeladen.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+        <TabsContent value="google-calendar">
+          <div className="max-w-2xl">
+            <h2 className="text-xl font-semibold text-primary mb-4">Google Calendar</h2>
+
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
+              <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                <CalendarClock className="h-5 w-5" />
+                Persönlicher Kalender im Dashboard
+              </h3>
+              <p className="text-sm text-blue-700">
+                Zeigt deine echten Google-Calendar-Termine im Dashboard an und erlaubt dort Anlegen,
+                Ändern und Löschen. Nur im installierten Programm verfügbar (nicht im Browser), da der
+                Verbindungsaufbau einen lokalen Server braucht.
+              </p>
+            </div>
+
+            {!isElectron() && (
+              <Alert className="mb-4">
+                <AlertDescription>
+                  Google-Calendar-Anbindung ist nur im installierten Programm verfügbar, nicht im Browser.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="google-client-id" className="text-sm font-medium text-primary">Client-ID</Label>
+                <Input
+                  id="google-client-id"
+                  value={googleClientId}
+                  onChange={e => setGoogleClientId(e.target.value)}
+                  placeholder="xxxxxxxxxxxx.apps.googleusercontent.com"
+                  className="mt-1"
+                  disabled={googleConnected}
+                />
+              </div>
+              <div>
+                <Label htmlFor="google-client-secret" className="text-sm font-medium text-primary">Client-Secret</Label>
+                <Input
+                  id="google-client-secret"
+                  type="password"
+                  value={googleClientSecret}
+                  onChange={e => setGoogleClientSecret(e.target.value)}
+                  placeholder="GOCSPX-..."
+                  className="mt-1"
+                  disabled={googleConnected}
+                />
+                <div className="text-xs text-muted-foreground mt-1">
+                  Aus der Google Cloud Console: APIs &amp; Dienste → Anmeldedaten → OAuth-Client-ID (Typ „Desktop-App")
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                {googleConnected ? (
+                  <Button variant="outline" onClick={handleDisconnectGoogleCalendar} className="flex items-center gap-2">
+                    Trennen
+                  </Button>
+                ) : (
+                  <Button onClick={handleConnectGoogleCalendar} disabled={googleConnecting || !isElectron()} className="flex items-center gap-2">
+                    <CalendarClock className="h-4 w-4" />
+                    {googleConnecting ? 'Öffne Google-Anmeldung…' : 'Verbinden'}
+                  </Button>
+                )}
+              </div>
+
+              <div className="text-xs text-muted-foreground">
+                <strong>Status:</strong><br />
+                Verbindung: <span className="font-mono">{hydrated ? (googleConnected ? 'Verbunden' : 'Nicht verbunden') : 'Lade...'}</span>
+              </div>
+
+              {googleConnected && (
+                <Alert>
+                  <AlertDescription>
+                    ✅ Google Calendar ist verbunden. Deine Termine erscheinen im Dashboard.
                   </AlertDescription>
                 </Alert>
               )}

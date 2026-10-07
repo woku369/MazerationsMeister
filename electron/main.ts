@@ -3,6 +3,7 @@ import * as path from 'path';
 import { createServer } from 'http';
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { parse } from 'url';
+import { startGoogleCalendarAuth, refreshGoogleCalendarToken } from './google-calendar';
 
 let mainWindow: BrowserWindow | null = null;
 let server: any = null;
@@ -283,6 +284,26 @@ function registerIpcHandlers() {
   ipcMain.handle('shell-open-path', async (_event, targetPath: string) => {
     const result = await shell.openPath(targetPath);
     return { ok: result === '', error: result || undefined };
+  });
+
+  // Google Calendar OAuth (Nutzer-Anfrage 07.10.2026) - siehe google-calendar.ts
+  // für die Begründung, warum das im Hauptprozess statt im Renderer läuft.
+  ipcMain.handle('google-calendar-start-auth', async (_event, clientId: string, clientSecret: string) => {
+    try {
+      const tokens = await startGoogleCalendarAuth(clientId, clientSecret);
+      return { ok: true, tokens };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcMain.handle('google-calendar-refresh-token', async (_event, refreshToken: string, clientId: string, clientSecret: string) => {
+    try {
+      const tokens = await refreshGoogleCalendarToken(refreshToken, clientId, clientSecret);
+      return { ok: true, tokens };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
   });
 
   // "Vor dem Beenden synchronisieren" (Nutzer-Anfrage 30.09.2026): app.quit()

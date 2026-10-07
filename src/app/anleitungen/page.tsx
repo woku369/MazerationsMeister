@@ -23,6 +23,7 @@ import {
   Droplets,
   Send,
   Package,
+  CalendarClock,
 } from 'lucide-react';
 
 type SectionId =
@@ -36,7 +37,8 @@ type SectionId =
   | 'versand'
   | 'qr-codes'
   | 'github'
-  | 'onedrive';
+  | 'onedrive'
+  | 'google-calendar';
 
 interface OverviewEntry {
   id: SectionId;
@@ -120,6 +122,13 @@ const overview: OverviewEntry[] = [
     icon: <Settings className="h-5 w-5 text-blue-600" />,
     title: 'OneDrive-Synchronisation',
     description: 'Manuelle Backups und Exporte in die Cloud.',
+  },
+  {
+    id: 'google-calendar',
+    icon: <CalendarClock className="h-5 w-5 text-blue-600" />,
+    title: 'Google Calendar',
+    description: 'Persönlicher Kalender im Dashboard, mit Terminen anlegen/ändern.',
+    badge: 'Neu',
   },
 ];
 
@@ -913,6 +922,48 @@ export default function AnleitungenPage() {
                   <div>📁 <strong>Ablage:</strong> Manuell in den gewünschten OneDrive-Ordner verschieben</div>
                 </CardContent>
               </Card>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Google Calendar */}
+      <Card className="mb-6">
+        <SectionHeader id="google-calendar" icon={<CalendarClock className="h-6 w-6 text-blue-600" />} title="📅 Google Calendar" badge="Neu" />
+        {expandedSection === 'google-calendar' && (
+          <CardContent className="space-y-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Überblick
+              </h3>
+              <p className="text-blue-700 text-sm">
+                Zeigt den persönlichen Google-Kalender direkt im Dashboard an und erlaubt dort Termine
+                anlegen, ändern und löschen — <strong>nur im installierten Programm</strong>, nicht im
+                Browser, da der Verbindungsaufbau einen lokalen Server braucht.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <StepCard number={1} color="blue" title="Einmalig: Google Cloud Projekt einrichten">
+                <Check><a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="underline">console.cloud.google.com</a> → neues Projekt anlegen</Check>
+                <Check>„APIs & Dienste" → „Bibliothek" → „Google Calendar API" aktivieren</Check>
+                <Check>„OAuth-Zustimmungsbildschirm": Nutzertyp „Extern", Bereich <code>https://www.googleapis.com/auth/calendar</code> hinzufügen, eigene Google-Mail-Adresse als Testnutzer eintragen</Check>
+                <Check>„Anmeldedaten" → „OAuth-Client-ID" erstellen, Anwendungstyp <strong>„Desktop-App"</strong> wählen → Client-ID und Client-Secret notieren</Check>
+              </StepCard>
+
+              <StepCard number={2} color="purple" title="In der App verbinden">
+                <Check>Einstellungen → Tab „Google Calendar"</Check>
+                <Check>Client-ID und Client-Secret eintragen, „Verbinden" klicken</Check>
+                <Check>Im sich öffnenden Browserfenster bei Google anmelden und zustimmen — das Fenster kann danach geschlossen werden</Check>
+              </StepCard>
+
+              <StepCard number={3} color="green" title="Im Dashboard nutzen" icon={<PackageCheck className="h-4 w-4 ml-1" />}>
+                <Check>Zeigt die Termine der nächsten 14 Tage</Check>
+                <Check>„Termin"-Button legt einen neuen Termin an (Titel, ganztägig oder Uhrzeit, Beschreibung)</Check>
+                <Check>Stift-Symbol ändert einen bestehenden Termin, Papierkorb löscht ihn, Pfeil-Symbol öffnet ihn direkt in Google Calendar</Check>
+                <Warn>Alle Änderungen wirken sich sofort auf den echten Google-Kalender aus.</Warn>
+              </StepCard>
             </div>
           </CardContent>
         )}

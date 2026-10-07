@@ -38,6 +38,7 @@ const path = __importStar(require("path"));
 const http_1 = require("http");
 const fs_1 = require("fs");
 const url_1 = require("url");
+const google_calendar_1 = require("./google-calendar");
 let mainWindow = null;
 let server = null;
 // Verhindert, dass der "vor dem Beenden synchronisieren"-Handler (siehe
@@ -296,6 +297,26 @@ function registerIpcHandlers() {
     electron_1.ipcMain.handle('shell-open-path', async (_event, targetPath) => {
         const result = await electron_1.shell.openPath(targetPath);
         return { ok: result === '', error: result || undefined };
+    });
+    // Google Calendar OAuth (Nutzer-Anfrage 07.10.2026) - siehe google-calendar.ts
+    // für die Begründung, warum das im Hauptprozess statt im Renderer läuft.
+    electron_1.ipcMain.handle('google-calendar-start-auth', async (_event, clientId, clientSecret) => {
+        try {
+            const tokens = await (0, google_calendar_1.startGoogleCalendarAuth)(clientId, clientSecret);
+            return { ok: true, tokens };
+        }
+        catch (error) {
+            return { ok: false, error: error instanceof Error ? error.message : String(error) };
+        }
+    });
+    electron_1.ipcMain.handle('google-calendar-refresh-token', async (_event, refreshToken, clientId, clientSecret) => {
+        try {
+            const tokens = await (0, google_calendar_1.refreshGoogleCalendarToken)(refreshToken, clientId, clientSecret);
+            return { ok: true, tokens };
+        }
+        catch (error) {
+            return { ok: false, error: error instanceof Error ? error.message : String(error) };
+        }
     });
     // "Vor dem Beenden synchronisieren" (Nutzer-Anfrage 30.09.2026): app.quit()
     // wird einmal verzögert, bis der Renderer über 'renderer-quit-ready'
