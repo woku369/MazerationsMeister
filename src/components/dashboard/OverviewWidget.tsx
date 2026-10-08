@@ -69,8 +69,8 @@ export default function OverviewWidget() {
           <Droplets className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{fmtL(gesamtLA)} L</div>
-          <p className="text-xs text-muted-foreground">Liter Absolutalkohol · {fmtL(gesamtMenge)} L Gesamtmenge</p>
+          <div className="text-2xl font-bold">{fmtL(gesamtMenge)} L</div>
+          <p className="text-xs text-muted-foreground">Gesamtmenge · {fmtL(gesamtLA)} L Absolutalkohol</p>
         </CardContent>
       </Card>
 

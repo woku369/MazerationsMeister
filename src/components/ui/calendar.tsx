@@ -18,6 +18,11 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      // Wochenstart Montag (Nutzer-Meldung 08.10.2026) - in unseren Breiten
+      // üblich, react-day-picker nimmt sonst standardmäßig Sonntag an. Vor
+      // {...props} gesetzt, damit ein Aufrufer es bei Bedarf weiterhin
+      // explizit überschreiben kann.
+      weekStartsOn={1}
       className={cn("p-3", className)}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",

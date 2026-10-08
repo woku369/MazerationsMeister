@@ -224,37 +224,46 @@ export default function TaskWidget() {
     // Aufgaben
     doc.setFont("helvetica", "normal");
     sortTasks(tasks, sortBy).forEach((task, idx) => {
+      // Name/Beschreibung/Bemerkungen können alle mehrzeilig sein - vorher
+      // berechnen, damit Zeilenrahmen und Statusfeld die tatsächlich
+      // benötigte Höhe bekommen (Nutzer-Meldung 08.10.2026: bei längeren
+      // Texten, z.B. den Geister-Gebinde-Aufräum-Aufgaben aus Aufgabe 69,
+      // lief der Text sonst in die nächste Zeile hinein - die Zeilenhöhe war
+      // fest auf 14pt codiert, unabhängig von der tatsächlichen Zeilenzahl.
+      // "Name" wurde zusätzlich gar nicht umgebrochen und lief bei langen
+      // Namen horizontal in die Beschreibungs-Spalte hinein).
+      const nameLines = doc.splitTextToSize(task.name || "-", 24);
+      const descLines = doc.splitTextToSize(task.description || "-", 35);
+      const notesLines = doc.splitTextToSize(task.notes || "-", 35);
+      const maxLines = Math.max(nameLines.length, descLines.length, notesLines.length);
+      const rowHeight = 14 + (maxLines - 1) * 4;
+
       // Zeilenrahmen
       doc.setDrawColor(220, 220, 220);
-      doc.rect(20, y - 2, 170, 14, "S");
-      
+      doc.rect(20, y - 2, 170, rowHeight, "S");
+
       // Statusfeld mit Farbe
       let statusFill = [255, 255, 255];
       if (task.status === "offen") statusFill = [255, 234, 234];
       if (task.status === "inBearbeitung") statusFill = [255, 251, 229];
       if (task.status === "erledigt") statusFill = [234, 255, 234];
-      
+
       doc.setFillColor(statusFill[0], statusFill[1], statusFill[2]);
-      doc.rect(138, y, 28, 8, "F");
-      
-      // Beschreibung/Bemerkungen mehrzeilig
-      const descLines = doc.splitTextToSize(task.description || "-", 35);
-      const notesLines = doc.splitTextToSize(task.notes || "-", 35);
-      let maxLines = Math.max(descLines.length, notesLines.length);
-      
+      doc.rect(138, y, 28, rowHeight - 2, "F");
+
       for (let i = 0; i < maxLines; i++) {
+        doc.text(nameLines[i] || "", 34, y + 6 + i * 4);
         doc.text(descLines[i] || "", 60, y + 6 + i * 4);
         doc.text(notesLines[i] || "", 100, y + 6 + i * 4);
       }
-      
+
       // Restliche Felder
       doc.text(`${idx + 1}`, 24, y + 6);
-      doc.text(task.name || "-", 34, y + 6);
       doc.text(STATUS_OPTIONS.find(opt => opt.value === task.status)?.label || task.status, 140, y + 6);
       doc.text(task.date || "-", 170, y + 6);
-      
-      y += 14 + (maxLines - 1) * 4;
-      
+
+      y += rowHeight;
+
       if (y > 270) {
         doc.addPage();
         y = 30;
