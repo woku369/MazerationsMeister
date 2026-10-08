@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, PencilIcon, Trash2Icon, SaveIcon, XIcon, DownloadIcon, FileTextIcon } from "lucide-react";
+import { CalendarIcon, PencilIcon, Trash2Icon, SaveIcon, XIcon, DownloadIcon, FileTextIcon, SearchIcon, ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -60,6 +60,8 @@ export default function TaskWidget() {
   const [editDate, setEditDate] = useState("");
   const [date, setDate] = useState("");
   const [sortBy, setSortBy] = useState("dateAsc");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showDone, setShowDone] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -135,6 +137,14 @@ export default function TaskWidget() {
   const handleCancelEdit = () => {
     setEditId(null);
   };
+
+  function matchesSearch(task: DashboardTask, term: string) {
+    if (!term.trim()) return true;
+    const needle = term.trim().toLowerCase();
+    return task.name.toLowerCase().includes(needle)
+      || task.description.toLowerCase().includes(needle)
+      || task.notes.toLowerCase().includes(needle);
+  }
 
   function sortTasks(tasks: DashboardTask[], sortBy: string) {
     if (sortBy === "dateAsc") {
@@ -275,6 +285,103 @@ export default function TaskWidget() {
     doc.save(`MazerationsMeister_Aufgaben_${today}.pdf`);
   };
 
+  /**
+   * Gemeinsame Zeilen-Darstellung für offene und erledigte Aufgaben
+   * (Nutzer-Anfrage 08.10.2026: erledigte Aufgaben sollen nicht mehr
+   * dauerhaft in der Hauptansicht stehen, sondern in einen aufklappbaren
+   * Bereich wandern) - identischer View-/Bearbeiten-Modus für beide,
+   * deshalb als eine Funktion statt zweimal denselben JSX-Block zu pflegen.
+   */
+  function renderTaskItem(task: DashboardTask) {
+    return (
+      <li key={task.id} className="border rounded p-3 flex flex-col md:flex-row md:items-center md:gap-4 bg-muted/50">
+        {editId === task.id ? (
+          <>
+            <div className="flex-1">
+              <Input
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                className="mb-2"
+              />
+              <Input
+                value={editDescription}
+                onChange={e => setEditDescription(e.target.value)}
+                className="mb-2"
+              />
+              <Textarea
+                value={editNotes}
+                onChange={e => setEditNotes(e.target.value)}
+                className="mb-2"
+              />
+              <Input
+                type="date"
+                value={editDate}
+                onChange={e => setEditDate(e.target.value)}
+                className="mb-2"
+              />
+            </div>
+            <div className={`flex flex-col items-end gap-2 mt-2 md:mt-0 ${getStatusBgColor(editStatus)} p-2 rounded`}>
+              <Select value={editStatus} onValueChange={setEditStatus}>
+                <SelectTrigger className="w-40 min-w-[160px] text-base">
+                  <SelectValue className="truncate" />
+                </SelectTrigger>
+                <SelectContent className="text-base">
+                  {STATUS_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value} className="text-base whitespace-normal">{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex gap-2 mt-2">
+                <Button size="icon" variant="default" onClick={handleSaveEdit} title="Speichern">
+                  <SaveIcon size={18} />
+                </Button>
+                <Button size="icon" variant="outline" onClick={handleCancelEdit} title="Abbrechen">
+                  <XIcon size={18} />
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex-1">
+              <div className="font-bold text-primary">{task.name}</div>
+              <div className="text-sm text-muted-foreground">{task.description}</div>
+              <div className="text-xs text-muted-foreground mt-1">{task.notes}</div>
+              <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                <CalendarIcon size={14} /> {task.date}
+              </div>
+            </div>
+            <div className={`flex flex-col items-end gap-2 mt-2 md:mt-0 ${getStatusBgColor(task.status)} p-2 rounded`}>
+              <Select value={task.status} onValueChange={val => handleStatusChange(task.id, val)}>
+                <SelectTrigger className="w-40 min-w-[160px] text-base">
+                  <SelectValue className="truncate" />
+                </SelectTrigger>
+                <SelectContent className="text-base">
+                  {STATUS_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value} className="text-base whitespace-normal">{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-xs">Status: {STATUS_OPTIONS.find(opt => opt.value === task.status)?.label}</span>
+              <div className="flex gap-2 mt-2">
+                <Button size="icon" variant="outline" onClick={() => handleEditTask(task)} title="Bearbeiten">
+                  <PencilIcon size={18} />
+                </Button>
+                <Button size="icon" variant="outline" onClick={() => handleDeleteTask(task.id)} title="Löschen">
+                  <Trash2Icon size={18} />
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </li>
+    );
+  }
+
+  const visibleTasks = sortTasks(tasks, sortBy).filter(t => matchesSearch(t, searchTerm));
+  const openTasks = visibleTasks.filter(t => t.status !== "erledigt");
+  const doneTasks = visibleTasks.filter(t => t.status === "erledigt");
+
   return (
     <Card className="mb-6">
       <CardHeader>
@@ -305,7 +412,7 @@ export default function TaskWidget() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center mb-4 gap-4">
+        <div className="flex items-center mb-4 gap-4 flex-wrap">
           <label className="font-medium">Sortierung:</label>
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-48">
@@ -317,8 +424,17 @@ export default function TaskWidget() {
               ))}
             </SelectContent>
           </Select>
+          <div className="relative flex-1 min-w-[200px]">
+            <SearchIcon size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Suche nach Stichwort..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
+          </div>
         </div>
-        
+
         <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             placeholder="Taskname"
@@ -359,93 +475,31 @@ export default function TaskWidget() {
         <div className="mt-6">
           <h3 className="font-semibold mb-2">Aufgaben / Projekte</h3>
           <ul className="space-y-2">
-            {sortTasks(tasks, sortBy).length === 0 && (
-              <li className="text-muted-foreground">Keine Aufgaben vorhanden.</li>
-            )}
-            {sortTasks(tasks, sortBy).map(task => (
-              <li key={task.id} className="border rounded p-3 flex flex-col md:flex-row md:items-center md:gap-4 bg-muted/50">
-                {editId === task.id ? (
-                  <>
-                    <div className="flex-1">
-                      <Input
-                        value={editName}
-                        onChange={e => setEditName(e.target.value)}
-                        className="mb-2"
-                      />
-                      <Input
-                        value={editDescription}
-                        onChange={e => setEditDescription(e.target.value)}
-                        className="mb-2"
-                      />
-                      <Textarea
-                        value={editNotes}
-                        onChange={e => setEditNotes(e.target.value)}
-                        className="mb-2"
-                      />
-                      <Input
-                        type="date"
-                        value={editDate}
-                        onChange={e => setEditDate(e.target.value)}
-                        className="mb-2"
-                      />
-                    </div>
-                    <div className={`flex flex-col items-end gap-2 mt-2 md:mt-0 ${getStatusBgColor(editStatus)} p-2 rounded`}>
-                      <Select value={editStatus} onValueChange={setEditStatus}>
-                        <SelectTrigger className="w-40 min-w-[160px] text-base">
-                          <SelectValue className="truncate" />
-                        </SelectTrigger>
-                        <SelectContent className="text-base">
-                          {STATUS_OPTIONS.map(opt => (
-                            <SelectItem key={opt.value} value={opt.value} className="text-base whitespace-normal">{opt.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <div className="flex gap-2 mt-2">
-                        <Button size="icon" variant="default" onClick={handleSaveEdit} title="Speichern">
-                          <SaveIcon size={18} />
-                        </Button>
-                        <Button size="icon" variant="outline" onClick={handleCancelEdit} title="Abbrechen">
-                          <XIcon size={18} />
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex-1">
-                      <div className="font-bold text-primary">{task.name}</div>
-                      <div className="text-sm text-muted-foreground">{task.description}</div>
-                      <div className="text-xs text-muted-foreground mt-1">{task.notes}</div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                        <CalendarIcon size={14} /> {task.date}
-                      </div>
-                    </div>
-                    <div className={`flex flex-col items-end gap-2 mt-2 md:mt-0 ${getStatusBgColor(task.status)} p-2 rounded`}>
-                      <Select value={task.status} onValueChange={val => handleStatusChange(task.id, val)}>
-                        <SelectTrigger className="w-40 min-w-[160px] text-base">
-                          <SelectValue className="truncate" />
-                        </SelectTrigger>
-                        <SelectContent className="text-base">
-                          {STATUS_OPTIONS.map(opt => (
-                            <SelectItem key={opt.value} value={opt.value} className="text-base whitespace-normal">{opt.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <span className="text-xs">Status: {STATUS_OPTIONS.find(opt => opt.value === task.status)?.label}</span>
-                      <div className="flex gap-2 mt-2">
-                        <Button size="icon" variant="outline" onClick={() => handleEditTask(task)} title="Bearbeiten">
-                          <PencilIcon size={18} />
-                        </Button>
-                        <Button size="icon" variant="outline" onClick={() => handleDeleteTask(task.id)} title="Löschen">
-                          <Trash2Icon size={18} />
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                )}
+            {openTasks.length === 0 && (
+              <li className="text-muted-foreground">
+                {tasks.length === 0 ? "Keine Aufgaben vorhanden." : "Keine offenen Aufgaben."}
               </li>
-            ))}
+            )}
+            {openTasks.map(renderTaskItem)}
           </ul>
+
+          {doneTasks.length > 0 && (
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setShowDone(v => !v)}
+                className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                {showDone ? <ChevronDownIcon size={16} /> : <ChevronRightIcon size={16} />}
+                Erledigt ({doneTasks.length})
+              </button>
+              {showDone && (
+                <ul className="space-y-2 mt-2">
+                  {doneTasks.map(renderTaskItem)}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

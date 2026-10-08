@@ -7,6 +7,7 @@ import * as StockService from "@/lib/stock-service";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -46,6 +47,26 @@ import {
 } from "lucide-react";
 
 type Tank = TankDefinition;
+
+const TANK_SORT_OPTIONS = [
+  { value: "tankNr", label: "Tanknummer" },
+  { value: "bezeichnung", label: "Bezeichnung (Name)" },
+  { value: "sorte", label: "Sorte / Inhalt" },
+  { value: "kapazitaet", label: "Kapazität" },
+] as const;
+
+/**
+ * "Auto-erkannt: T 349" ist der automatisch vergebene Platzhalter-Text für
+ * Tanks/Gebinde, die nur aus dem Inventar abgeleitet wurden (siehe
+ * tank-sync.ts) - kein echter Freitext, sondern nur eine Wiederholung der
+ * Tanknummer. Für die Anzeige ohne Informationswert (Nutzer-Anfrage
+ * 08.10.2026: "stört", "hat keinen informativen Wert") - ergibt null, wenn
+ * nach Abzug des Präfixes nichts Eigenes übrig bleibt.
+ */
+function tankFreitext(tank: Tank): string | null {
+  const stripped = tank.bezeichnung.replace(/^Auto-erkannt:\s*/i, "").trim();
+  return stripped && stripped !== tank.tankNr ? stripped : null;
+}
 
 const useLocalStorage = <T,>(key: string, initialValue: T) => {
   const [storedValue, setStoredValue] = useState<T>(() => {
@@ -227,6 +248,8 @@ export default function TankManagement() {
   const [allSelected, setAllSelected] = useState(false);
   const [splittingTank, setSplittingTank] = useState<Tank | null>(null);
   const [splitRows, setSplitRows] = useState<SplitRow[]>([]);
+  const [sortBy, setSortBy] = useState<typeof TANK_SORT_OPTIONS[number]["value"]>("tankNr");
+  const [onlyEmpty, setOnlyEmpty] = useState(false);
   
   // GitHub Integration State - Von Einstellungen laden
   const [githubEnabled, setGithubEnabled] = useState(() => getGithubEnabled());
@@ -567,6 +590,27 @@ export default function TankManagement() {
     }
   };
 
+  const tanksWithInfo = tanks.map(tank => {
+    const fillInfo = getTankFillLevel(tank.tankNr);
+    const fillPercentage = tank.volumenLiter > 0 ? Math.round((fillInfo.totalVolume / tank.volumenLiter) * 100) : 0;
+    return { tank, fillInfo, fillPercentage };
+  });
+  const emptyTankCount = tanksWithInfo.filter(t => t.fillInfo.totalVolume === 0).length;
+  const visibleTanks = tanksWithInfo
+    .filter(({ fillInfo }) => !onlyEmpty || fillInfo.totalVolume === 0)
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "bezeichnung":
+          return (tankFreitext(a.tank) ?? a.tank.tankNr).localeCompare(tankFreitext(b.tank) ?? b.tank.tankNr, "de", { numeric: true });
+        case "sorte":
+          return a.fillInfo.contents.localeCompare(b.fillInfo.contents, "de");
+        case "kapazitaet":
+          return a.tank.volumenLiter - b.tank.volumenLiter;
+        default:
+          return a.tank.tankNr.localeCompare(b.tank.tankNr, "de", { numeric: true });
+      }
+    });
+
   return (
     <div className="space-y-6">
       <Card>
@@ -759,34 +803,66 @@ export default function TankManagement() {
             </DialogContent>
           </Dialog>
 
+          {/* Sortierung & Leer-Filter (Nutzer-Anfrage 08.10.2026: Sortierfunktion nach
+              Name/Sorte/Kapazität sowie eine einfache Möglichkeit, leere Tanks/Gebinde
+              aufzufinden) */}
+          {tanks.length > 0 && (
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Sortierung:</label>
+                <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+                  <SelectTrigger className="w-56">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TANK_SORT_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox id="onlyEmptyTanks" checked={onlyEmpty} onCheckedChange={(v) => setOnlyEmpty(!!v)} />
+                <label htmlFor="onlyEmptyTanks" className="text-sm cursor-pointer">
+                  Nur leere Tanks/Gebinde anzeigen{emptyTankCount > 0 ? ` (${emptyTankCount})` : ""}
+                </label>
+              </div>
+            </div>
+          )}
+
           {/* Tanks Liste */}
           <div className="space-y-4">
             {tanks.length === 0 ? (
               <Card>
                 <CardContent className="pt-6 text-center">
                   <p className="text-muted-foreground">
-                    Keine Tanks gefunden. Tanks werden automatisch aus der Lagerverwaltung synchronisiert, 
+                    Keine Tanks gefunden. Tanks werden automatisch aus der Lagerverwaltung synchronisiert,
                     oder Sie können manuell neue Tanks hinzufügen.
                   </p>
                 </CardContent>
               </Card>
+            ) : visibleTanks.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <p className="text-muted-foreground">Keine Tanks/Gebinde entsprechen dem aktuellen Filter.</p>
+                </CardContent>
+              </Card>
             ) : (
-              tanks.map((tank) => {
-                const fillInfo = getTankFillLevel(tank.tankNr);
-                const fillPercentage = tank.volumenLiter > 0 ? Math.round((fillInfo.totalVolume / tank.volumenLiter) * 100) : 0;
-                
+              visibleTanks.map(({ tank, fillInfo, fillPercentage }) => {
                 return (
                   <Card key={tank.id}>
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-4 mb-3">
-                            <h3 className="font-semibold text-lg">{tank.bezeichnung}</h3>
-                            <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          <div className="flex items-center gap-3 mb-3">
+                            <span className="text-lg font-bold bg-blue-100 text-blue-800 px-3 py-1 rounded">
                               {tank.tankNr}
                             </span>
+                            {tankFreitext(tank) && (
+                              <h3 className="font-medium text-base text-muted-foreground">{tankFreitext(tank)}</h3>
+                            )}
                           </div>
-                          
+
                           <div className="grid grid-cols-2 gap-4 text-sm mb-3">
                             <div>
                               <span className="text-muted-foreground">Kapazität:</span>
@@ -807,7 +883,7 @@ export default function TankManagement() {
                           {fillInfo.contents !== 'Leer' && (
                             <div className="text-sm">
                               <span className="text-muted-foreground">Inhalt:</span>
-                              <div className="mt-1 p-2 bg-gray-50 rounded text-xs">
+                              <div className="mt-1 p-2 bg-blue-50 border-l-4 border-blue-300 rounded text-sm font-semibold">
                                 {fillInfo.contents}
                               </div>
                             </div>
@@ -859,7 +935,7 @@ export default function TankManagement() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Sind Sie sicher?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Möchten Sie den Tank/das Gebinde „{tank.bezeichnung}" ({tank.tankNr}) wirklich unwiderruflich löschen?
+                                  Möchten Sie den Tank/das Gebinde {tank.tankNr}{tankFreitext(tank) ? ` („${tankFreitext(tank)}")` : ''} wirklich unwiderruflich löschen?
                                   {fillInfo.totalVolume > 0 && (
                                     <> <strong className="text-destructive">Achtung:</strong> Dieses Gebinde enthält noch {fillInfo.totalVolume.toLocaleString('de-DE')} L Lagerbestand — der Lagerposten selbst bleibt zwar erhalten, verliert aber die Zuordnung zu einem gültigen Tank.</>
                                   )}
@@ -886,7 +962,7 @@ export default function TankManagement() {
           <Dialog open={!!qrCodeTank} onOpenChange={() => setQrCodeTank(null)}>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>QR-Code für {qrCodeTank?.bezeichnung}</DialogTitle>
+                <DialogTitle>QR-Code für {qrCodeTank?.tankNr}{qrCodeTank && tankFreitext(qrCodeTank) ? ` (${tankFreitext(qrCodeTank)})` : ''}</DialogTitle>
               </DialogHeader>
               <div className="flex flex-col items-center space-y-4">
                 {qrCodeDataUrl && (
