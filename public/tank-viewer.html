@@ -77,9 +77,14 @@
                 <h1 class="text-white text-xl font-bold">🏭 Alle Lagertanks</h1>
                 <button onclick="refreshData()" class="bg-white bg-opacity-20 text-white px-3 py-1.5 rounded-lg text-sm font-medium">🔄</button>
             </div>
-            <div class="flex gap-2 mb-4">
+            <div class="flex flex-wrap gap-2 mb-2">
                 <button id="sort-size" onclick="setSort('size')" class="sort-btn active flex-1 bg-white bg-opacity-20 text-white px-3 py-1.5 rounded-lg text-xs font-medium">↕ Grösse</button>
                 <button id="sort-article" onclick="setSort('article')" class="sort-btn flex-1 bg-white bg-opacity-10 text-white px-3 py-1.5 rounded-lg text-xs font-medium">↕ Artikel</button>
+                <button id="sort-tankNr" onclick="setSort('tankNr')" class="sort-btn flex-1 bg-white bg-opacity-10 text-white px-3 py-1.5 rounded-lg text-xs font-medium">↕ Tank-Nr.</button>
+                <button id="sort-name" onclick="setSort('name')" class="sort-btn flex-1 bg-white bg-opacity-10 text-white px-3 py-1.5 rounded-lg text-xs font-medium">↕ Name</button>
+            </div>
+            <div class="flex justify-end mb-4">
+                <button id="filter-empty" onclick="toggleEmptyFilter()" class="bg-white bg-opacity-10 text-white px-3 py-1.5 rounded-lg text-xs font-medium">☐ Nur leere anzeigen</button>
             </div>
             <div id="all-tanks-grid" class="space-y-3"></div>
             <p class="text-white text-opacity-60 text-xs text-center mt-4" id="all-tanks-updated"></p>
@@ -192,10 +197,35 @@
         // die Tanknummer (sonst "Auto-erkannt: T 349") war nirgends mehr zu
         // sehen. Ergaenzt die Tanknummer nur, wenn sie nicht schon Teil der
         // Bezeichnung ist (z.B. bei "Auto-erkannt: T 349" selbst).
+        //
+        // "Auto-erkannt: "-Praefix wird vor der Anzeige entfernt (Nutzer-Anfrage
+        // 08.10.2026, analog zu tankFreitext() aus tank-management.tsx): reine
+        // Wiederholung der Tanknummer ohne eigenen Informationswert.
+        function stripAutoErkannt(bezeichnung) {
+            return String(bezeichnung || '').replace(/^Auto-erkannt:\s*/i, '').trim();
+        }
+
         function formatTankLabel(t) {
-            const bezeichnung = t.bezeichnung || t.id || t.tankNr;
+            const bezeichnung = stripAutoErkannt(t.bezeichnung) || t.id || t.tankNr;
             if (!t.tankNr || bezeichnung.includes(t.tankNr)) return bezeichnung;
             return `${bezeichnung} (${t.tankNr})`;
+        }
+
+        /** Tanknummer + optionaler Freitext getrennt, fuer die Kartenansicht in displayAllTanks() - macht die Tanknummer prominent statt sie in einem Kombi-String zu verstecken. */
+        function tankNrAndFreitext(t) {
+            const tankNr = t.tankNr || t.id || '';
+            const stripped = stripAutoErkannt(t.bezeichnung || t.id || '');
+            const freitext = stripped && stripped !== tankNr ? stripped : null;
+            return { tankNr, freitext };
+        }
+
+        /** Für die "Nur leere anzeigen"-Filterung und den Zähler daneben. */
+        function isTankEmpty(t, inventory) {
+            if (t.hasUniqueNumber !== false) {
+                const fill = inventory.filter(i => i.tankNr === t.tankNr).reduce((s, i) => s + (i.currentQuantityLiters || 0), 0);
+                return fill <= 0;
+            }
+            return t.status === 'empty' || !t.currentContent;
         }
 
         // Get parameters from URL
@@ -391,7 +421,10 @@
                 const contents = tankInventory.map(item =>
                     `${escapeHtml(item.produktName)} [${escapeHtml(item.category || '–')}] (${item.currentQuantityLiters}L, ${item.alcoholVolProzent}%)${formatKomponentenHtml(item)}`
                 ).join('<br>');
-                document.getElementById('tank-content').innerHTML = contents;
+                // Groesser/fetter + blau hervorgehoben statt der bisherigen
+                // unauffaelligen Standardschrift (Nutzer-Anfrage 08.10.2026,
+                // analog zur Desktop-Tankverwaltung: "nicht unwichtig").
+                document.getElementById('tank-content').innerHTML = `<span class="text-base font-semibold text-blue-700">${contents}</span>`;
             } else {
                 document.getElementById('tank-content').textContent = 'Leer';
             }
@@ -447,6 +480,7 @@
         // ── Sortierung ──────────────────────────────────────────────
         let _allTanksData = null;
         let _currentSort  = 'size';
+        let _onlyEmpty    = false;
 
         function setSort(mode) {
             _currentSort = mode;
@@ -455,6 +489,12 @@
                 b.classList.toggle('bg-opacity-20', b.id === 'sort-' + mode);
                 b.classList.toggle('bg-opacity-10', b.id !== 'sort-' + mode);
             });
+            if (_allTanksData) displayAllTanks(_allTanksData);
+        }
+
+        /** "Nur leere Tanks/Gebinde anzeigen" (Nutzer-Anfrage 08.10.2026, analog zur Desktop-Tankverwaltung). */
+        function toggleEmptyFilter() {
+            _onlyEmpty = !_onlyEmpty;
             if (_allTanksData) displayAllTanks(_allTanksData);
         }
 
@@ -499,9 +539,31 @@
             _allTanksData = data;
             const inventory  = data.inventory || [];
 
+            // Zähler für den Filter-Button basiert bewusst auf der vollen, noch
+            // ungefilterten Liste - bleibt dadurch stabil, egal ob der Filter
+            // selbst gerade an oder aus ist (Nutzer-Anfrage 08.10.2026, analog
+            // zur Desktop-Tankverwaltung).
+            const emptyCount = (data.tanks || []).filter(t => isTankEmpty(t, inventory)).length;
+            const filterBtn = document.getElementById('filter-empty');
+            if (filterBtn) {
+                filterBtn.textContent = `${_onlyEmpty ? '☑' : '☐'} Nur leere anzeigen${emptyCount ? ' (' + emptyCount + ')' : ''}`;
+                filterBtn.classList.toggle('bg-opacity-30', _onlyEmpty);
+                filterBtn.classList.toggle('bg-opacity-10', !_onlyEmpty);
+            }
+
             let tanks = [...(data.tanks || [])];
+            if (_onlyEmpty) tanks = tanks.filter(t => isTankEmpty(t, inventory));
+
             if (_currentSort === 'size') {
                 tanks.sort((a, b) => (b.volumenLiter || 0) - (a.volumenLiter || 0));
+            } else if (_currentSort === 'tankNr') {
+                tanks.sort((a, b) => String(a.tankNr || a.id || '').localeCompare(String(b.tankNr || b.id || ''), 'de', { numeric: true }));
+            } else if (_currentSort === 'name') {
+                tanks.sort((a, b) => {
+                    const an = tankNrAndFreitext(a).freitext || a.tankNr || a.id || '';
+                    const bn = tankNrAndFreitext(b).freitext || b.tankNr || b.id || '';
+                    return an.localeCompare(bn, 'de', { numeric: true });
+                });
             } else {
                 tanks.sort((a, b) => getContentLabel(a, inventory).localeCompare(getContentLabel(b, inventory), 'de'));
             }
@@ -513,12 +575,18 @@
 
             const grid = document.getElementById('all-tanks-grid');
             if (!tanks.length) {
-                grid.innerHTML = '<div class="tank-card p-6 text-center text-gray-500">Keine Tanks gefunden</div>';
+                grid.innerHTML = `<div class="tank-card p-6 text-center text-gray-500">${_onlyEmpty ? 'Keine leeren Tanks gefunden' : 'Keine Tanks gefunden'}</div>`;
                 return;
             }
 
             grid.innerHTML = tanks.map(t => {
-                const name    = escapeHtml(formatTankLabel(t));
+                // Tanknummer prominent und zuerst, Freitext (falls vorhanden)
+                // kleiner dahinter - analog zur Desktop-Tankverwaltung
+                // (Nutzer-Anfrage 08.10.2026), statt beides in einem
+                // Kombi-String zu verstecken.
+                const { tankNr, freitext } = tankNrAndFreitext(t);
+                const nameHtml = `<span class="text-sm font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded">${escapeHtml(tankNr)}</span>`
+                    + (freitext ? ` <span class="font-medium text-gray-700 text-sm">${escapeHtml(freitext)}</span>` : '');
                 // Fehlt das Feld (z.B. aeltere/neu synchronisierte Tanks ohne den
                 // Wert), ist "Inventar-getrieben" (true) die sichere Annahme -
                 // sonst wuerde faelschlich die Kapazitaet als Fuellstand angezeigt.
@@ -534,8 +602,8 @@
                     color = pct >= 80 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#6b7280';
                     // Kategorie (z.B. Mazerat/Destillat) mit anzeigen, siehe Aufgabe 54 (Desktop)
                     inhalt = items.length
-                        ? items.map(i => `${escapeHtml(i.produktName || '–')} [${escapeHtml(i.category || '–')}] (${(i.currentQuantityLiters||0).toFixed(0)} L, ${escapeHtml(String(i.alcoholVolProzent||'–'))}%)${formatKomponentenHtml(i)}`).join('<br>')
-                        : '<span class="text-gray-400">Leer</span>';
+                        ? `<span class="font-semibold text-blue-700">${items.map(i => `${escapeHtml(i.produktName || '–')} [${escapeHtml(i.category || '–')}] (${(i.currentQuantityLiters||0).toFixed(0)} L, ${escapeHtml(String(i.alcoholVolProzent||'–'))}%)${formatKomponentenHtml(i)}`).join('<br>')}</span>`
+                        : '<span class="text-gray-400 text-xs">Leer</span>';
                     barHtml = `
                     <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
                         <div class="h-2 rounded-full" style="width:${pct}%;background:${color};transition:width .3s"></div>
@@ -550,8 +618,8 @@
                     color = t.status === 'empty' ? '#6b7280' : '#10b981';
                     const alcText = t.alcoholVolProzent ? `, ${escapeHtml(String(t.alcoholVolProzent))}%` : '';
                     inhalt = t.currentContent
-                        ? `${escapeHtml(t.currentContent)} (${fill.toFixed(1)} L${alcText})`
-                        : '<span class="text-gray-400">Leer</span>';
+                        ? `<span class="font-semibold text-blue-700">${escapeHtml(t.currentContent)} (${fill.toFixed(1)} L${alcText})</span>`
+                        : '<span class="text-gray-400 text-xs">Leer</span>';
                     pct = t.status === 'filled' ? 100 : (t.status === 'empty' ? 0 : 50);
                     barHtml = `
                     <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
@@ -566,12 +634,12 @@
                 const badge = isUniq ? `${pct}%` : (t.status === 'filled' ? 'Voll' : 'Leer');
 
                 return `<div class="tank-card p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="font-bold text-gray-800">${name}</span>
-                        <span class="text-sm font-semibold" style="color:${color}">${badge}</span>
+                    <div class="flex items-center justify-between mb-2 gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">${nameHtml}</div>
+                        <span class="text-sm font-semibold shrink-0" style="color:${color}">${badge}</span>
                     </div>
                     ${barHtml}
-                    <div class="text-xs text-gray-600">${inhalt}</div>
+                    <div class="text-sm">${inhalt}</div>
                 </div>`;
             }).join('');
         }
