@@ -17,6 +17,17 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import QRCode from "qrcode";
 import { getTankAutoSync } from "@/lib/tank-auto-sync";
@@ -838,13 +849,30 @@ export default function TankManagement() {
                               Splitten
                             </Button>
                           )}
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => deleteTank(tank.id)}
-                          >
-                            Löschen
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="destructive" size="sm">
+                                Löschen
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Sind Sie sicher?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Möchten Sie den Tank/das Gebinde „{tank.bezeichnung}" ({tank.tankNr}) wirklich unwiderruflich löschen?
+                                  {fillInfo.totalVolume > 0 && (
+                                    <> <strong className="text-destructive">Achtung:</strong> Dieses Gebinde enthält noch {fillInfo.totalVolume.toLocaleString('de-DE')} L Lagerbestand — der Lagerposten selbst bleibt zwar erhalten, verliert aber die Zuordnung zu einem gültigen Tank.</>
+                                  )}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteTank(tank.id)} className="bg-destructive hover:bg-destructive/90">
+                                  Löschen
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                     </CardContent>
