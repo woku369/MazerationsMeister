@@ -332,7 +332,12 @@ function registerIpcHandlers() {
             allowQuit = true;
             electron_1.app.quit();
         };
-        const safetyTimeout = setTimeout(finishQuit, 5000);
+        // 8s statt zuvor 5s (Nutzer-Anfrage 08.10.2026, Sichtbarkeit des
+        // Quit-Sync-Ergebnisses): der Renderer zeigt das Sync-Ergebnis jetzt per
+        // Toast an und wartet danach selbst noch kurz, damit er überhaupt zu
+        // sehen ist (siehe full-data-sync.ts' pushOnly()) - Upload-Zeit plus
+        // diese Anzeige-Pause muss hier noch hineinpassen.
+        const safetyTimeout = setTimeout(finishQuit, 8000);
         electron_1.ipcMain.once('renderer-quit-ready', finishQuit);
         mainWindow.webContents.send('app-before-quit');
     });

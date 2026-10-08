@@ -165,4 +165,41 @@ describe('FullDataSync', () => {
     await sync.reconcileNow();
     expect(toastMock).toHaveBeenCalledTimes(1); // kein zweiter Toast für denselben andauernden Fehler
   });
+
+  describe('pushOnly() (Push beim Beenden der App)', () => {
+    it('zeigt einen Erfolgs-Toast nach erfolgreichem Push', async () => {
+      seedLocal([{ id: 'neu' }]);
+      uploadBackupMock.mockResolvedValue({ ok: true });
+      sync = new FullDataSync();
+
+      await (sync as any).pushOnly();
+
+      expect(uploadBackupMock).toHaveBeenCalledTimes(1);
+      expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Vor dem Beenden gesichert' }));
+    });
+
+    it('zeigt einen Fehler-Toast, wenn der Push beim Beenden fehlschlägt - vorher blieb das komplett unbemerkt', async () => {
+      seedLocal([{ id: 'neu' }]);
+      uploadBackupMock.mockResolvedValue({ ok: false, error: 'Netzwerkfehler' });
+      sync = new FullDataSync();
+
+      await (sync as any).pushOnly();
+
+      expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Sichern vor dem Beenden fehlgeschlagen', variant: 'destructive' }));
+    });
+
+    it('zeigt keinen Toast, wenn seit dem letzten Abgleich nichts Neues vorliegt', async () => {
+      seedLocal([{ id: 'stand-1' }]);
+      const stand = collectFullBackup();
+      fetchBackupMock.mockResolvedValue({ ok: true, backup: stand });
+      sync = new FullDataSync();
+      await sync.reconcileNow(); // etabliert den Referenzpunkt (identisch zu Remote)
+      toastMock.mockClear();
+
+      await (sync as any).pushOnly();
+
+      expect(uploadBackupMock).not.toHaveBeenCalled();
+      expect(toastMock).not.toHaveBeenCalled();
+    });
+  });
 });

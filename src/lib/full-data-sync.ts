@@ -39,6 +39,8 @@ export interface FullDataSyncConfig {
   interval: number; // Minuten
 }
 
+const QUIT_TOAST_DISPLAY_MS = 1200;
+
 const CONFIG_KEY = 'fullDataAutoSyncConfig';
 const LAST_SYNCED_SNAPSHOT_KEY = 'fullDataLastSyncedSnapshot';
 const PENDING_CONFLICT_KEY = 'fullDataPendingConflict';
@@ -137,14 +139,35 @@ export class FullDataSync {
     return { enabled: this.config.enabled, interval: this.config.interval, hasPendingConflict: getPendingConflict() !== null };
   }
 
-  /** Nur hochladen, ohne den vollen Drei-Wege-Abgleich - für den Beenden-Hook, wo Zeit knapp ist. */
+  /**
+   * Nur hochladen, ohne den vollen Drei-Wege-Abgleich - für den Beenden-Hook,
+   * wo Zeit knapp ist. Zeigt das Ergebnis per Toast an (Nutzer-Anfrage
+   * 08.10.2026: "wird beim Schließen der App der Datenstand gepusht? wenn
+   * ja, wäre eine Anzeige hilfreich") - vorher lief der Push zwar bereits
+   * (Aufgabe 40), aber komplett unsichtbar, inklusive eines Fehlschlags, der
+   * bis dahin gar nicht gemeldet wurde. Die kurze Pause danach gibt dem
+   * Toast überhaupt eine Chance, sichtbar zu werden, bevor das Fenster
+   * (sobald 'renderer-quit-ready' meldet) tatsächlich verschwindet - bleibt
+   * deutlich unter dem 5s-Sicherheitsnetz in electron/main.ts.
+   */
   private async pushOnly(): Promise<void> {
     if (!getGithubToken()) return;
     const local = collectFullBackup();
     const localSnap = snapshotOf(local);
     if (localSnap === localStorage.getItem(LAST_SYNCED_SNAPSHOT_KEY)) return; // nichts Neues
+
     const result = await uploadBackupToGithub();
-    if (result.ok) localStorage.setItem(LAST_SYNCED_SNAPSHOT_KEY, localSnap);
+    if (result.ok) {
+      localStorage.setItem(LAST_SYNCED_SNAPSHOT_KEY, localSnap);
+      toast({ title: 'Vor dem Beenden gesichert', description: 'Der aktuelle Datenstand wurde auf GitHub hochgeladen.' });
+    } else {
+      toast({
+        title: 'Sichern vor dem Beenden fehlgeschlagen',
+        description: `${result.error} Die Änderungen seit dem letzten Abgleich sind nur lokal auf diesem Rechner vorhanden, bis der nächste Sync gelingt.`,
+        variant: 'destructive',
+      });
+    }
+    await new Promise(resolve => setTimeout(resolve, QUIT_TOAST_DISPLAY_MS));
   }
 
   async reconcileNow(): Promise<void> {
