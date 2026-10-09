@@ -254,13 +254,13 @@ export function generateBlankMazerationProtocolPdf(): void {
   }
 
   /** Eine Zeile aus mehreren Feldern nebeneinander - jedes entweder mit Ausfülllinie oder (fixedValue gesetzt) als fertig gedruckter Wert. */
-  function fieldRow(fields: BlankField[], rowHeight = 9) {
+  function fieldRow(fields: BlankField[], rowHeight = 9, labelFontSize = 7.2) {
     let x = MARGIN;
     fields.forEach(f => {
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.2);
+      doc.setFontSize(labelFontSize);
       doc.setTextColor(100, 100, 100);
-      doc.text(umlaut(f.label), x, y + 3);
+      doc.text(umlaut(f.label), x, y + 3.5);
       if (f.fixedValue) {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(8.5);
@@ -286,16 +286,12 @@ export function generateBlankMazerationProtocolPdf(): void {
   doc.setFontSize(16);
   doc.setTextColor(20, 20, 20);
   doc.text('Mazerationsprotokoll', MARGIN, y + 5);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(110, 110, 110);
-  doc.text(umlaut('Schummelzettel zum handschriftlichen Ausfüllen während der Arbeit'), MARGIN, y + 10.5);
-  y += 16;
+  y += 11;
   fieldRow([
     { label: 'Name der Mazeration', width: 90 },
     { label: 'Chargennummer', width: 40 },
     { label: 'Datum', width: 44 },
-  ]);
+  ], 13, 9);
   sectionGap();
 
   // ── Pflanze ───────────────────────────────────────────────────────────
