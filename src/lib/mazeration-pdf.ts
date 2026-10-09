@@ -14,6 +14,15 @@ import {
 import type { MazerationFormData } from '@/schemas/mazerationSchema';
 import type { useCalculatedFormValues } from '@/hooks/use-calculated-form-values';
 
+type BlankField = {
+  /** Kurzlabel über der Ausfülllinie. */
+  label: string;
+  /** Breite in mm. */
+  width: number;
+  /** Statischer, bereits bekannter Wert (z.B. die fixe Tara/Kiste) - wird statt einer Ausfülllinie direkt gedruckt. */
+  fixedValue?: string;
+};
+
 export function generatePdf(
   data: MazerationFormData | null,
   calculatedValues: ReturnType<typeof useCalculatedFormValues>["calculatedValues"],
@@ -206,3 +215,213 @@ export function generatePdf(
   const fileName = isEmptyForm ? 'leeres_mazerations-protokoll.pdf' : `mazerations-protokoll_${data!.batchNumber}_${data!.macerationName.replace(/\s+/g, '_')}.pdf`;
   doc.save(fileName);
 };
+
+/**
+ * Eigenständiges, kompaktes "Schummelzettel"-Layout für das leere
+ * Mazerationsprotokoll zum handschriftlichen Ausfüllen während der
+ * eigentlichen Arbeit (Nutzer-Anfrage 09.10.2026: "alle Infos sollen auf
+ * einer DIN A4 Seite Platz finden, aber genug Platz haben um handschriftlich
+ * ausfüllbar zu sein" + optisch ansprechender/übersichtlicher).
+ *
+ * Bewusst eine komplett eigene Funktion statt generatePdf(..., isEmptyForm:
+ * true) weiterzuverwenden: Die bisherige Zeilen-für-Zeile-Darstellung
+ * ("Label: ___") ist für die ausgefüllte Übersicht gut geeignet, lässt aber
+ * kaum Platz zum Schreiben und wird mit allen Feldern mehrseitig. Hier
+ * stattdessen ein Formular aus mehrspaltigen Zeilen mit echten
+ * Ausfülllinien, bewusst inklusive der neueren Felder (Paletten-Tara,
+ * Steigrohr-Anfangs-/Endstand, Spindel-Methode für die Ausbeute), die im
+ * bisherigen PDF (weder leer noch ausgefüllt) noch gar nicht auftauchten.
+ */
+export function generateBlankMazerationProtocolPdf(): void {
+  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+  const MARGIN = 12;
+  const PAGE_W = doc.internal.pageSize.width;
+  const CONTENT_W = PAGE_W - MARGIN * 2;
+  const GAP = 4;
+  let y = MARGIN;
+
+  const umlaut = (s: string) => s.replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue').replace(/ß/g, 'ss');
+
+  function sectionHeader(title: string) {
+    doc.setFillColor(37, 99, 235); // blue-600
+    doc.rect(MARGIN, y, CONTENT_W, 6, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.text(umlaut(title), MARGIN + 2, y + 4.3);
+    doc.setTextColor(20, 20, 20);
+    y += 9;
+  }
+
+  /** Eine Zeile aus mehreren Feldern nebeneinander - jedes entweder mit Ausfülllinie oder (fixedValue gesetzt) als fertig gedruckter Wert. */
+  function fieldRow(fields: BlankField[], rowHeight = 9) {
+    let x = MARGIN;
+    fields.forEach(f => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.2);
+      doc.setTextColor(100, 100, 100);
+      doc.text(umlaut(f.label), x, y + 3);
+      if (f.fixedValue) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(20, 20, 20);
+        doc.text(umlaut(f.fixedValue), x, y + rowHeight - 2);
+      } else {
+        doc.setDrawColor(150, 150, 150);
+        doc.setLineWidth(0.2);
+        doc.line(x, y + rowHeight - 1.5, x + f.width, y + rowHeight - 1.5);
+      }
+      x += f.width + GAP;
+    });
+    doc.setTextColor(20, 20, 20);
+    y += rowHeight;
+  }
+
+  function sectionGap() {
+    y += 3;
+  }
+
+  // ── Kopf ──────────────────────────────────────────────────────────────
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(20, 20, 20);
+  doc.text('Mazerationsprotokoll', MARGIN, y + 5);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(110, 110, 110);
+  doc.text(umlaut('Schummelzettel zum handschriftlichen Ausfüllen während der Arbeit'), MARGIN, y + 10.5);
+  y += 16;
+  fieldRow([
+    { label: 'Name der Mazeration', width: 90 },
+    { label: 'Chargennummer', width: 40 },
+    { label: 'Datum', width: 44 },
+  ]);
+  sectionGap();
+
+  // ── Pflanze ───────────────────────────────────────────────────────────
+  sectionHeader('Pflanze');
+  fieldRow([
+    { label: 'Pflanze', width: 70 },
+    { label: 'Pflanzenteil', width: 55 },
+    { label: 'Erntedatum', width: 53 },
+  ]);
+  fieldRow([{ label: 'Beschreibung', width: CONTENT_W }]);
+  fieldRow([{ label: 'Qualitaetsbeurteilung bei Anlieferung', width: CONTENT_W }]);
+  fieldRow([
+    { label: 'Methode Kisten: Anzahl', width: 55 },
+    { label: 'Bruttogewicht (kg)', width: 55 },
+    { label: 'Tara/Kiste', width: 68, fixedValue: `${formatNumberWithComma(TARE_PER_CRATE_KG_FIXED, 2)} kg (fix)` },
+  ]);
+  fieldRow([
+    { label: 'Methode Paletten: Anzahl', width: 55 },
+    { label: 'Bruttogewicht (kg)', width: 55 },
+    { label: 'Tara/Palette (kg)', width: 68 },
+  ]);
+  fieldRow([
+    { label: 'Direkt (ohne Kisten/Paletten) - Einwaage (g / kg)', width: 100 },
+    { label: 'Nettogewicht Pflanze, berechnet (kg)', width: 78 },
+  ]);
+  sectionGap();
+
+  // ── Alkohol ───────────────────────────────────────────────────────────
+  sectionHeader('Alkohol');
+  fieldRow([
+    { label: 'Alkoholtyp', width: 54 },
+    { label: 'Konzentration (%vol.)', width: 40 },
+    { label: 'Einwaage Alkohol (ml / l)', width: 54 },
+  ]);
+  fieldRow([
+    { label: 'Steigrohr Anfangsstand (L), optional', width: 90 },
+    { label: 'Steigrohr Endstand (L), optional', width: 90 },
+  ], 8);
+  fieldRow([{ label: 'Verhaeltnis Pflanze : Alkohol (1 : ___), berechnet', width: 70 }], 8);
+  sectionGap();
+
+  // ── Mazerationszeitraum ───────────────────────────────────────────────
+  sectionHeader('Mazerationszeitraum');
+  fieldRow([
+    { label: 'Beginn (Datum / Uhrzeit)', width: 55 },
+    { label: 'Ende (Datum / Uhrzeit)', width: 55 },
+    { label: 'Dauer (Tage / Std.), berechnet', width: 32 },
+    { label: 'Raumtemperatur (°C)', width: 32 },
+  ]);
+  sectionGap();
+
+  // ── Ergebnis ──────────────────────────────────────────────────────────
+  sectionHeader('Ergebnis');
+  fieldRow([
+    { label: 'Ausbeute Menge (ml / l)', width: 42 },
+    { label: 'Verlust absolut (ml / l)', width: 42 },
+    { label: 'Verlust (%)', width: 38 },
+    { label: 'Endkonzentration (%vol.)', width: 42 },
+  ]);
+  fieldRow([{ label: 'Zieltank (fuer Lagereinbuchung)', width: 70 }], 8);
+  fieldRow([
+    { label: 'Spindel-Methode: Masse Mazerat (kg)', width: 45 },
+    { label: 'Dichte bei Spindeltemp. (g/cm³)', width: 50 },
+    { label: 'Spindeltemperatur (°C)', width: 45 },
+  ], 8);
+  fieldRow([
+    { label: 'Eingesetzte LA (L), berechnet', width: 55 },
+    { label: 'Ausbeute LA (L), berechnet', width: 55 },
+    { label: 'Verlust LA (L), berechnet', width: 55 },
+  ], 8);
+  fieldRow([{ label: 'Bemerkungen', width: CONTENT_W }]);
+  fieldRow([{ label: '', width: CONTENT_W }], 8);
+  sectionGap();
+
+  // ── Zeitaufzeichnung ──────────────────────────────────────────────────
+  sectionHeader('Zeitaufzeichnung');
+  const taskCol = { taetigkeit: 50, datum: 34, von: 30, bis: 30, stunden: CONTENT_W - 50 - 34 - 30 - 30 };
+  const tableTop = y;
+  const headerRowH = 6;
+  const taskRowH = 7;
+  const tasks = ['Vorbereitung', 'Verarbeitung Kraeuter', 'Verarbeitung Mazerat', 'Reinigung', 'Sonstiges'];
+  const tableRows = tasks.length + 1; // + Summe-Zeile
+  const tableHeight = headerRowH + tableRows * taskRowH;
+
+  /** Zeichnet die 4 inneren Spaltentrennlinien (Taetigkeit|Datum|Von|Bis|Stunden) für eine Tabellenzeile. */
+  function drawColSeparators(rowTop: number, rowH: number) {
+    let sepX = MARGIN;
+    [taskCol.taetigkeit, taskCol.datum, taskCol.von, taskCol.bis].forEach(w => {
+      sepX += w;
+      doc.line(sepX, rowTop, sepX, rowTop + rowH);
+    });
+  }
+
+  doc.setDrawColor(150, 150, 150);
+  doc.setLineWidth(0.2);
+  doc.setFillColor(243, 244, 246); // gray-100
+  doc.rect(MARGIN, tableTop, CONTENT_W, headerRowH, 'FD');
+  drawColSeparators(tableTop, headerRowH);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(60, 60, 60);
+  let colX = MARGIN;
+  [['Taetigkeit', taskCol.taetigkeit], ['Datum', taskCol.datum], ['Von', taskCol.von], ['Bis', taskCol.bis], ['Stunden', taskCol.stunden]].forEach(([label, w]) => {
+    doc.text(umlaut(label as string), colX + 2, tableTop + 4.2);
+    colX += w as number;
+  });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(20, 20, 20);
+  let rowY = tableTop + headerRowH;
+  [...tasks, 'Summe Stunden'].forEach((label, idx) => {
+    const isSum = idx === tasks.length;
+    doc.rect(MARGIN, rowY, CONTENT_W, taskRowH, 'D');
+    doc.setFont('helvetica', isSum ? 'bold' : 'normal');
+    doc.setFontSize(7.8);
+    doc.text(umlaut(label), MARGIN + 2, rowY + 4.8);
+    if (!isSum) drawColSeparators(rowY, taskRowH);
+    rowY += taskRowH;
+  });
+  y = tableTop + tableHeight + 3;
+
+  // ── Fuss ──────────────────────────────────────────────────────────────
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(150, 150, 150);
+  doc.text(umlaut('MazerationsMeister · Gurktaler AG'), MARGIN, doc.internal.pageSize.height - 8);
+
+  doc.save('leeres_mazerations-protokoll.pdf');
+}

@@ -19,7 +19,7 @@ import {
   buildCalculatedValuesForImportedProtocol,
 } from '@/lib/mazeration-form-helpers';
 import { useCalculatedFormValues } from '@/hooks/use-calculated-form-values';
-import { generatePdf } from '@/lib/mazeration-pdf';
+import { generatePdf, generateBlankMazerationProtocolPdf } from '@/lib/mazeration-pdf';
 import { generateDocx } from '@/lib/mazeration-docx';
 import { generateSingleProtocolXlsx, generateCumulativeXlsx } from '@/lib/mazeration-xlsx';
 import { useForm } from 'react-hook-form';
@@ -350,7 +350,7 @@ export default function MazerationForm() {
         summeZeitaufzeichnungStunden: null,
     };
 
-    generatePdf(emptyData, emptyCalculatedValues, true);
+    generateBlankMazerationProtocolPdf();
     generateSingleProtocolXlsx(emptyData, emptyCalculatedValues, true);
     await generateDocx(emptyData, emptyCalculatedValues, true);
     toast({
