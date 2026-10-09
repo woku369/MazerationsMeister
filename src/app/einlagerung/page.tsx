@@ -6,13 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Droplets, Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { Droplets, Plus, Trash2, AlertTriangle, BookHeart } from 'lucide-react';
 import * as StockService from '@/lib/stock-service';
 import { findAehnlichenWert } from '@/lib/stock-service';
 import { calcLA } from '@/lib/mazeration-calc';
 import { getTankDefinitions, formatTankLabel } from '@/lib/tank-sync';
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 import type { TankDefinition } from '@/schemas/tankSchema';
+import type { ArtikelDefinition } from '@/schemas/artikelDefinitionSchema';
 
 type ZielTankZeile = { tankNr: string; mengeLiter: string };
 
@@ -28,10 +29,13 @@ export default function EinlagerungPage() {
   const [inventoryItems, setInventoryItems] = useState<StoredInventoryItem[]>([]);
   const [tanks, setTanks] = useState<TankDefinition[]>([]);
   const [categories, setCategories] = useState<{ name: string; color: string }[]>([]);
+  const [artikelDefinitionen, setArtikelDefinitionen] = useState<ArtikelDefinition[]>([]);
 
+  const [selectedDefinitionId, setSelectedDefinitionId] = useState<string>('');
   const [produktName, setProduktName] = useState('');
   const [chargenNummer, setChargenNummer] = useState('');
   const [category, setCategory] = useState('');
+  const [dichte20C, setDichte20C] = useState<number | undefined>(undefined);
   const [alkoholVolProzent, setAlkoholVolProzent] = useState('');
   const [gesamtMenge, setGesamtMenge] = useState('');
   const [zielTanks, setZielTanks] = useState<ZielTankZeile[]>([{ tankNr: '', mengeLiter: '' }]);
@@ -43,13 +47,34 @@ export default function EinlagerungPage() {
       const stored = localStorage.getItem('inventoryCategories');
       if (stored) setCategories(JSON.parse(stored));
     } catch {}
+    try {
+      const stored = localStorage.getItem('artikelDefinitionen');
+      if (stored) setArtikelDefinitionen(JSON.parse(stored));
+    } catch {}
   };
   useEffect(() => { loadAll(); }, []);
 
+  // Artikel aus dem Stamm wählen füllt Produktname/Kategorie/Dichte vor -
+  // bleibt aber änderbar (Nutzer-Meldung 09.10.2026: ohne dieses Dropdown
+  // fehlte die Verbindung zum Artikelstamm komplett, man hätte beim freien
+  // Eintippen eines Produktnamens leicht denselben Artikel doppelt angelegt,
+  // statt den bereits bestehenden Stammdatensatz zu verwenden).
+  function handleDefinitionSelect(definitionId: string) {
+    setSelectedDefinitionId(definitionId);
+    const def = artikelDefinitionen.find(d => d.id === definitionId);
+    if (def) {
+      setProduktName(def.produktName);
+      setCategory(def.category);
+      setDichte20C(def.dichte20C);
+    }
+  }
+
   function resetForm() {
+    setSelectedDefinitionId('');
     setProduktName('');
     setChargenNummer('');
     setCategory('');
+    setDichte20C(undefined);
     setAlkoholVolProzent('');
     setGesamtMenge('');
     setZielTanks([{ tankNr: '', mengeLiter: '' }]);
@@ -95,6 +120,20 @@ export default function EinlagerungPage() {
       toast({ title: 'Produktname fehlt', variant: 'destructive' });
       return;
     }
+    if (!category) {
+      // Vorher stillschweigend auf 'M' gefallen, wenn keine Kategorie gewählt
+      // war (Nutzer-Meldung 09.10.2026: Primasprit - ein Destillat - wäre so
+      // unbemerkt als Mazerat gebucht worden, wenn "Dest" nicht aktiv
+      // ausgewählt wird). Echtdaten-Fehlbuchungen hier sind besonders
+      // unangenehm zu korrigieren, siehe Roadmap Aufgabe 80 "Rückgängigmachung
+      // von Buchungen" - deshalb lieber hart blockieren als defaulten.
+      toast({
+        title: 'Kategorie fehlt',
+        description: 'Bitte eine Kategorie auswählen (z.B. "M" für Mazerat, "Dest" für Destillat). Falls die Liste leer ist: Einstellungen → Kategorien.',
+        variant: 'destructive',
+      });
+      return;
+    }
     if (!Number.isFinite(abv) || abv < 0) {
       toast({ title: 'Ungültiger Alkoholgehalt', variant: 'destructive' });
       return;
@@ -122,9 +161,10 @@ export default function EinlagerungPage() {
       const result = StockService.persistPoolIntoTank(row.tankNr, {
         produktName: produktName.trim(),
         chargenNummer: chargenNummer.trim() || undefined,
-        category: category || 'M',
+        category,
         alkoholVolProzent: abv,
         mengeLiter: row.menge,
+        dichte20C,
       }, {
         notes: `Einlagerung ${produktName.trim()}${chargenNummer.trim() ? ` (${chargenNummer.trim()})` : ''}`,
       });
@@ -164,10 +204,28 @@ export default function EinlagerungPage() {
           <CardDescription>Was wird eingelagert?</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div>
+            <Label className="flex items-center gap-1"><BookHeart className="w-4 h-4 text-muted-foreground" />Artikel aus Stammdaten (optional)</Label>
+            <Select value={selectedDefinitionId} onValueChange={handleDefinitionSelect}>
+              <SelectTrigger><SelectValue placeholder="Artikel wählen, um Produktname/Kategorie vorab auszufüllen..." /></SelectTrigger>
+              <SelectContent>
+                {artikelDefinitionen.length === 0 && <SelectItem value="no-def" disabled>Keine Artikel im Stamm definiert - siehe Lagerverwaltung → Artikeldefinitionen.</SelectItem>}
+                {artikelDefinitionen.map(def => (
+                  <SelectItem key={def.id} value={def.id}>
+                    {def.produktName} ({def.category}){def.artikelNummer ? ` – ${def.artikelNummer}` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Produktname</Label>
-              <Input value={produktName} onChange={e => setProduktName(e.target.value)} placeholder="z.B. Zitronenmelisse-Mazerat" />
+              <Input
+                value={produktName}
+                onChange={e => { setProduktName(e.target.value); setSelectedDefinitionId(''); setDichte20C(undefined); }}
+                placeholder="z.B. Zitronenmelisse-Mazerat"
+              />
             </div>
             <div>
               <Label>Chargennummer (optional)</Label>
