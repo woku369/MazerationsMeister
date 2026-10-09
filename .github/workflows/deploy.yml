@@ -17,25 +17,38 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+
+      # Der Next.js-Export in out/ ändert sich nur, wenn sich der App-Code
+      # ändert - nicht bei den alle 15 Minuten laufenden Tank-Daten-Syncs.
+      # Cache-Treffer sparen dort den teuren npm-ci/next-build-Schritt.
+      - name: Cache Next.js export
+        id: cache-out
+        uses: actions/cache@v4
+        with:
+          path: out
+          key: nextjs-export-${{ hashFiles('src/**', 'package-lock.json', 'next.config.ts', 'tsconfig.json') }}
+
       - name: Setup Node.js
+        if: steps.cache-out.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          
+
       - name: Install dependencies
+        if: steps.cache-out.outputs.cache-hit != 'true'
         run: npm ci
-        
+
       - name: Build Next.js App
+        if: steps.cache-out.outputs.cache-hit != 'true'
         run: npm run build
         env:
           NODE_ENV: production
-          
+
       - name: Copy static files to out
         run: |
           # Kopiere alle HTML-Dateien aus public/ nach out/
