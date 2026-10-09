@@ -6,6 +6,27 @@ import { getFullDataSync } from '@/lib/full-data-sync';
 import { getTankAutoSync } from '@/lib/tank-auto-sync';
 
 /**
+ * Legt die beiden vom Nutzer tatsächlich benutzten Kategorien (M für Mazerat,
+ * Dest für Destillat) einmalig an, falls "inventoryCategories" noch NIE
+ * gesetzt wurde (Nutzer-Entscheidung 09.10.2026, nach einem Echtdaten-Test
+ * der Seite "Einlagern": ohne jede Kategorie war die Seite seit dem
+ * gleichzeitig eingeführten harten Kategorie-Pflichtfeld blockiert, und ein
+ * eigenes Kategoriemanagement für nur 2 feste Kategorien hält der Nutzer für
+ * unnötigen Mehraufwand). Bewusst `=== null` statt nur falsy geprüft: löscht
+ * der Nutzer später beide Kategorien wieder (bewusst leere Liste), soll das
+ * nicht erneut überschrieben werden.
+ */
+export function ensureDefaultCategories() {
+  if (typeof window === 'undefined') return;
+  if (localStorage.getItem('inventoryCategories') === null) {
+    localStorage.setItem('inventoryCategories', JSON.stringify([
+      { name: 'M', color: '#3b82f6' },
+      { name: 'Dest', color: '#8b5cf6' },
+    ]));
+  }
+}
+
+/**
  * 🚀 APP-DATEN-INITIALIZER
  * Lädt alle persistenten Echtdaten beim App-Start
  * Zeigt Loading-Status und Debug-Info
@@ -55,6 +76,7 @@ export default function AppDataInitializer({ children }: { children: React.React
     // veraltete mobile Tankansicht (01.10.2026).
     getFullDataSync();
     getTankAutoSync();
+    ensureDefaultCategories();
   }, []);
 
   // Loading Screen
