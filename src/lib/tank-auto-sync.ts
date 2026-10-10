@@ -8,6 +8,7 @@ import { getGithubToken } from './github-token';
 import { getTankDefinitions } from './tank-sync';
 import * as StockService from './stock-service';
 import { toast } from '@/hooks/use-toast';
+import { logSyncEvent } from './sync-log';
 
 export interface AutoSyncConfig {
   enabled: boolean;
@@ -172,12 +173,17 @@ export class TankAutoSync {
         }
         console.log(`✅ Tank-Daten erfolgreich synchronisiert: ${this.lastSync.toLocaleString()}`);
         // Nur melden, wenn zuvor ein Fehler bestand - sonst bei jedem
-        // normalen Erfolg ein überflüssiger Toast alle paar Minuten.
+        // normalen Erfolg ein überflüssiger Toast alle paar Minuten. Dasselbe
+        // gilt fürs Sync-Protokoll (Nutzer-Anfrage 10.10.2026): bei einem z.B.
+        // 1-Minuten-Intervall würde sonst praktisch nur dieser eine
+        // Ereignistyp das Protokoll füllen - hier zählt vor allem der
+        // Zustandswechsel, nicht jeder einzelne erfolgreiche Tick.
         if (this.lastSyncOk === false) {
           toast({
             title: 'GitHub-Synchronisierung wiederhergestellt',
             description: 'Tank-Daten werden wieder erfolgreich zu GitHub Pages hochgeladen.',
           });
+          logSyncEvent('tank-auto-sync', 'ok', 'Tank-Daten-Sync wiederhergestellt (lief zuvor fehlerhaft).');
         }
         this.lastSyncOk = true;
       } else {
@@ -193,6 +199,7 @@ export class TankAutoSync {
             variant: 'destructive',
           });
         }
+        logSyncEvent('tank-auto-sync', 'error', 'Tank-Daten-Upload fehlgeschlagen (GitHub-Upload nicht erfolgreich).');
         this.lastSyncOk = false;
       }
 
@@ -207,6 +214,7 @@ export class TankAutoSync {
           variant: 'destructive',
         });
       }
+      logSyncEvent('tank-auto-sync', 'error', `Unerwarteter Fehler: ${error instanceof Error ? error.message : String(error)}`);
       this.lastSyncOk = false;
       return false;
     } finally {

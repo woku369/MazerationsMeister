@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import * as BackupService from "@/lib/backup-service";
 import type { FullBackup } from "@/lib/backup-service";
 import { getFullDataSync, getPendingConflict, clearPendingConflict, markResolved } from "@/lib/full-data-sync";
+import { readSyncLog, clearSyncLog, type SyncLogEntry } from "@/lib/sync-log";
 import buildInfo from "@/build-info.json";
 
 
@@ -211,6 +212,28 @@ export default function EinstellungenPage() {
   const restoreFileInputRef = React.useRef<HTMLInputElement>(null);
   const [pendingRestore, setPendingRestore] = useState<{ backup: FullBackup; quelle: string } | null>(null);
   const [githubBackupBusy, setGithubBackupBusy] = useState(false);
+
+  // Sync-Verlauf (Nutzer-Anfrage 10.10.2026, nach einem ungeklärten Fall mit
+  // scheinbar leerem Buchungsjournal direkt nach einer Produktion): ein
+  // mitlaufendes Protokoll aller Sync-Vorgänge, damit sich so ein Fall im
+  // Nachhinein nachvollziehen lässt statt nur noch einzelne, längst wieder
+  // verschwundene Toasts in Erinnerung zu haben.
+  const [syncLog, setSyncLog] = useState<SyncLogEntry[]>([]);
+  const refreshSyncLog = () => setSyncLog(readSyncLog());
+  React.useEffect(() => { refreshSyncLog(); }, []);
+  const handleClearSyncLog = () => {
+    clearSyncLog();
+    refreshSyncLog();
+  };
+  const SYNC_LOG_OUTCOME_LABELS: Record<SyncLogEntry['outcome'], string> = {
+    ok: 'OK', error: 'Fehler', conflict: 'Konflikt', skipped: 'Übersprungen',
+  };
+  const SYNC_LOG_OUTCOME_COLORS: Record<SyncLogEntry['outcome'], string> = {
+    ok: 'text-green-700', error: 'text-destructive', conflict: 'text-amber-700', skipped: 'text-muted-foreground',
+  };
+  const SYNC_LOG_SOURCE_LABELS: Record<SyncLogEntry['source'], string> = {
+    'full-data-sync': 'Vollständiger Abgleich', 'tank-auto-sync': 'Tank-Daten (PWA)',
+  };
 
   const handleLocalBackup = async () => {
     const filePath = await BackupService.saveBackupToFile();
@@ -719,6 +742,50 @@ export default function EinstellungenPage() {
                 </CardContent>
               </Card>
             )}
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-lg flex items-center gap-2"><Clock className="h-5 w-5" /> Sync-Verlauf</CardTitle>
+                    <CardDescription>
+                      Protokoll aller Sync-Vorgänge auf diesem Rechner (bleibt über App-Neustarts erhalten, bis zu
+                      1000 Einträge) - hilfreich, um einen unklaren Fall im Nachhinein nachzuvollziehen.
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button size="sm" variant="outline" onClick={refreshSyncLog}>Aktualisieren</Button>
+                    {syncLog.length > 0 && (
+                      <Button size="sm" variant="ghost" onClick={handleClearSyncLog}>Leeren</Button>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {syncLog.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Noch keine Sync-Vorgänge protokolliert.</p>
+                ) : (
+                  <ul className="text-sm space-y-1 max-h-80 overflow-auto border rounded p-2">
+                    {syncLog.map(entry => (
+                      <li key={entry.id} className="flex flex-col gap-0.5 border-b last:border-b-0 pb-1.5 pt-0.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {new Date(entry.timestamp).toLocaleString('de-DE')}
+                          </span>
+                          <span className="flex items-center gap-2 text-xs">
+                            <span className="text-muted-foreground">{SYNC_LOG_SOURCE_LABELS[entry.source]}</span>
+                            <span className={`font-medium ${SYNC_LOG_OUTCOME_COLORS[entry.outcome]}`}>
+                              {SYNC_LOG_OUTCOME_LABELS[entry.outcome]}
+                            </span>
+                          </span>
+                        </div>
+                        <span>{entry.message}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Wiederherstellen-Bestätigung - überschreibt den lokalen Datenstand,

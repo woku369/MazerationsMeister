@@ -33,6 +33,7 @@ import {
 import { getGithubToken } from './github-token';
 import { registerBeforeQuit } from './electron-bridge';
 import { toast } from '@/hooks/use-toast';
+import { logSyncEvent } from './sync-log';
 
 export interface FullDataSyncConfig {
   enabled: boolean;
@@ -160,12 +161,14 @@ export class FullDataSync {
     if (result.ok) {
       localStorage.setItem(LAST_SYNCED_SNAPSHOT_KEY, localSnap);
       toast({ title: 'Vor dem Beenden gesichert', description: 'Der aktuelle Datenstand wurde auf GitHub hochgeladen.' });
+      logSyncEvent('full-data-sync', 'ok', 'Push beim Beenden: lokale Änderungen hochgeladen.');
     } else {
       toast({
         title: 'Sichern vor dem Beenden fehlgeschlagen',
         description: `${result.error} Die Änderungen seit dem letzten Abgleich sind nur lokal auf diesem Rechner vorhanden, bis der nächste Sync gelingt.`,
         variant: 'destructive',
       });
+      logSyncEvent('full-data-sync', 'error', `Push beim Beenden fehlgeschlagen: ${result.error}`);
     }
     await new Promise(resolve => setTimeout(resolve, QUIT_TOAST_DISPLAY_MS));
   }
@@ -187,9 +190,13 @@ export class FullDataSync {
           if (upload.ok) {
             localStorage.setItem(LAST_SYNCED_SNAPSHOT_KEY, localSnap);
             this.reportOk();
+            logSyncEvent('full-data-sync', 'ok', 'Push: lokale Änderungen hochgeladen (kein Remote-Stand abrufbar, z.B. erster Sync oder Netzwerkfehler beim Lesen).');
           } else {
             this.reportFailure(upload.error);
+            logSyncEvent('full-data-sync', 'error', `Push fehlgeschlagen: ${upload.error}`);
           }
+        } else {
+          logSyncEvent('full-data-sync', 'error', `Remote-Stand nicht abrufbar: ${remoteResult.error}`);
         }
         return;
       }
@@ -203,6 +210,7 @@ export class FullDataSync {
         // Bereits identisch (z.B. ganz erster Abgleich, beide leer) - nur den Referenzpunkt setzen.
         localStorage.setItem(LAST_SYNCED_SNAPSHOT_KEY, localSnap);
         this.reportOk();
+        logSyncEvent('full-data-sync', 'skipped', 'Lokal und Remote bereits identisch - nichts zu tun.');
         return;
       }
 
@@ -214,6 +222,7 @@ export class FullDataSync {
           applyFullBackup(remoteResult.backup);
           localStorage.setItem(LAST_SYNCED_SNAPSHOT_KEY, remoteSnap);
           toast({ title: 'Datenstand geladen', description: 'Der auf GitHub gesicherte Datenstand wurde automatisch übernommen.' });
+          logSyncEvent('full-data-sync', 'ok', 'Erster Abgleich: lokal leer, Remote-Stand automatisch übernommen (Pull).');
           setTimeout(() => window.location.reload(), 1500);
           return;
         }
@@ -221,6 +230,7 @@ export class FullDataSync {
         // hat einen abweichenden Stand - kann nicht automatisch entschieden
         // werden, ohne möglicherweise echte Arbeit zu verlieren.
         this.flagConflict(remoteResult.backup);
+        logSyncEvent('full-data-sync', 'conflict', 'Erster Abgleich: lokal UND Remote haben bereits Daten, kein gemeinsamer Referenzpunkt - Konflikt, nichts automatisch überschrieben.');
         return;
       }
 
@@ -228,6 +238,7 @@ export class FullDataSync {
         applyFullBackup(remoteResult.backup);
         localStorage.setItem(LAST_SYNCED_SNAPSHOT_KEY, remoteSnap);
         toast({ title: 'Datenstand aktualisiert', description: 'Ein neuerer Stand vom anderen Rechner wurde automatisch geladen.' });
+        logSyncEvent('full-data-sync', 'ok', 'Remote-Stand automatisch übernommen (Pull) - lokal seit dem letzten Abgleich unverändert.');
         setTimeout(() => window.location.reload(), 1500);
         return;
       }
@@ -237,16 +248,21 @@ export class FullDataSync {
         if (upload.ok) {
           localStorage.setItem(LAST_SYNCED_SNAPSHOT_KEY, localSnap);
           this.reportOk();
+          logSyncEvent('full-data-sync', 'ok', 'Lokale Änderungen hochgeladen (Push) - Remote seit dem letzten Abgleich unverändert.');
         } else {
           this.reportFailure(upload.error);
+          logSyncEvent('full-data-sync', 'error', `Push fehlgeschlagen: ${upload.error}`);
         }
         return;
       }
 
       // Beide verändert - echter Konflikt, nicht automatisch auflösbar.
       this.flagConflict(remoteResult.backup);
+      logSyncEvent('full-data-sync', 'conflict', 'Lokal UND Remote seit dem letzten Abgleich verändert - Konflikt, nichts automatisch überschrieben.');
     } catch (error) {
-      this.reportFailure(error instanceof Error ? error.message : 'Unbekannter Fehler beim Datenabgleich.');
+      const message = error instanceof Error ? error.message : 'Unbekannter Fehler beim Datenabgleich.';
+      this.reportFailure(message);
+      logSyncEvent('full-data-sync', 'error', `Unerwarteter Fehler: ${message}`);
     } finally {
       this.isBusy = false;
     }
