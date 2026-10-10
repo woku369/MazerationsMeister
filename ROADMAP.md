@@ -759,9 +759,11 @@ Nutzer-Einschätzung: „Das ist Arbeit genug, vermutlich sind noch einige Bugs 
 
 ### Phase 4: Cloud & Production-Ready 🚀
 
-#### App-Größe reduzieren
-- Aktuell: ~6GB portable EXE – Ziel: <500MB
-- Problem: node_modules vollständig gepackt
+#### App-Größe reduzieren — Zahlen aktualisiert (Nutzer-Anfrage 10.10.2026: „der dist-Ordner hat 900MB, kann man den etwas abspecken?")
+- **Die alte „~6GB"-Angabe war veraltet.** Tatsächlicher Stand heute: `dist/` insgesamt ~878MB, aber die eigentliche Distributions-Datei `MazerationsMeister-Portable-1.0.0.exe` ist nur **127MB** — das ist bereits deutlich unter dem alten <500MB-Ziel.
+- **Die „900MB" sind fast komplett `dist/win-unpacked/`** (752MB) — ein lokaler Build-Zwischenstand von electron-builder (ungepackter Ordner, aus dem die eigentliche portable EXE erst erzeugt wird), der nach dem Build einfach liegen bleibt. Betrifft nur den Festplattenplatz auf dem Entwicklungsrechner, NICHT die Größe der an den Bürorechner weitergegebenen Datei.
+- **Noch offen, falls das angegangen werden soll:** Ob/wie `dist/win-unpacked/` nach einem erfolgreichen Build automatisch aufgeräumt werden kann (z.B. electron-builder-Option oder ein Zusatzschritt in `generate-build-info.js`/dem npm-Skript), ohne den eigentlichen Build-Vorgang zu stören. Größter Einzelposten innerhalb von `win-unpacked/resources/` (464MB von 752MB) noch nicht im Detail aufgeschlüsselt (app.asar vs. native Module vs. sonstiges) - bewusst nicht während eines laufenden Builds weiter untersucht.
+- **Bewusst noch nicht umgesetzt** — vom Nutzer ausdrücklich als „eine weitere zukünftige Aufgabe" markiert, kein akuter Handlungsbedarf.
 
 #### Mobile Optimierungen
 - Progressive Web App (PWA) für gesamte Desktop-App
