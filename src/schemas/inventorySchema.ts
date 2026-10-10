@@ -118,7 +118,19 @@ export const inventoryTransactionSchema = z.object({
   // Bei 'Korrektur' die Mengendifferenz (kann 0 sein, wenn nur der ABV korrigiert wurde,
   // z.B. gespindelter Wert weicht vom rechnerischen Misch-ABV ab) - sonst wie bisher positiv.
   quantityLiters: z.number().min(0, "Menge darf nicht negativ sein"),
+  // Das Datum, an dem der Vorgang TATSÄCHLICH stattgefunden hat (z.B. Tag der
+  // Wareneinlieferung) - vom Nutzer frei wählbar, nicht zwingend "heute".
   transactionDate: z.date(),
+  // NEU (Nutzer-Anfrage 10.10.2026, beim Nachbuchen des vergangenen
+  // Wirtschaftsjahrs): wann die Buchung tatsächlich im System ERFASST wurde -
+  // immer automatisch "jetzt" zum Zeitpunkt des Speicherns, nie vom Nutzer
+  // änderbar. Ergänzt transactionDate, ersetzt es nicht: „Primasprit am
+  // 15.7.2026 eingelagert" (transactionDate) kann z.B. erst am 10.10.2026
+  // (erfasstAm) tatsächlich ins System eingetragen worden sein - beide
+  // Zeitpunkte sind für sich genommen wichtig und dürfen nicht verwechselt
+  // werden. Optional, da ältere, vor dieser Änderung gebuchte Einträge dieses
+  // Feld nicht haben.
+  erfasstAm: z.date().optional(),
   notes: z.string(), // Use empty string if not applicable
 });
 

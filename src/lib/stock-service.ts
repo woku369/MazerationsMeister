@@ -105,7 +105,12 @@ function makeTransactionEntry(
     alcoholVolProzent: item.alcoholVolProzent ?? 0,
     type,
     quantityLiters: qty,
+    // transactionDate = wann der Vorgang tatsächlich stattfand (frei wählbar
+    // über opts.date, z.B. beim Nachbuchen vergangener Vorgänge). erfasstAm =
+    // wann die Buchung im System erfasst wurde - immer "jetzt", nicht aus
+    // opts ableitbar (Nutzer-Anfrage 10.10.2026, siehe inventorySchema.ts).
     transactionDate: opts.date ?? new Date(),
+    erfasstAm: new Date(),
     notes: opts.notes || '',
   };
 }

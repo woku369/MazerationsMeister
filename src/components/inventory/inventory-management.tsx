@@ -527,11 +527,12 @@ export default function InventoryManagement() {
     const wb = XLSX.utils.book_new();
     const sheetData: (string | number | undefined | null)[][] = [];
     sheetData.push([
-      "Datum", "Artikel-Nr.", "Produktname", "Charge", "Tank-Nr.", "Typ", "Menge (L)", "Alkohol (%vol)", "Liter Absolutalkohol (LA)", "Bemerkungen"
+      "Datum", "Erfasst am", "Artikel-Nr.", "Produktname", "Charge", "Tank-Nr.", "Typ", "Menge (L)", "Alkohol (%vol)", "Liter Absolutalkohol (LA)", "Bemerkungen"
     ]);
     transactionsToExport.forEach(transaction => {
       sheetData.push([
         format(transaction.transactionDate, 'dd.MM.yyyy HH:mm'),
+        transaction.erfasstAm ? format(transaction.erfasstAm, 'dd.MM.yyyy HH:mm') : '',
         transaction.artikelNummer,
         transaction.produktName,
         transaction.chargenNummer || 'N/A',

@@ -57,6 +57,11 @@ export default function RezepturEditor() {
   const [isProduceOpen, setIsProduceOpen] = useState(false);
   const [zielTankNr, setZielTankNr] = useState('');
   const [chargenNummer, setChargenNummer] = useState('');
+  // Datum des tatsächlichen Produktionsvorgangs (Nutzer-Anfrage 10.10.2026:
+  // beim Nachbuchen vergangener Mazerationen/Ausmischungen braucht es ein vom
+  // heutigen Tag abweichendes Datum) - persistProduziereRezeptur() nahm das
+  // Feld bereits entgegen, nur die Editor-UI hatte dafür bisher kein Eingabefeld.
+  const [produktionsdatum, setProduktionsdatum] = useState(() => new Date().toISOString().slice(0, 10));
 
   const [isScaleUpOpen, setIsScaleUpOpen] = useState(false);
   const [scaleUpTankNr, setScaleUpTankNr] = useState('');
@@ -209,6 +214,7 @@ export default function RezepturEditor() {
     const result = RezepturService.persistProduziereRezeptur(rezeptur.id, {
       zielTankNr: zielTankNr.trim(),
       chargenNummer: chargenNummer.trim() || undefined,
+      produktionsdatum,
     });
     if (!result.ok) {
       toast({ title: 'Buchung fehlgeschlagen', description: result.error, variant: 'destructive' });
@@ -617,7 +623,7 @@ export default function RezepturEditor() {
                   <ArrowUpCircle className="w-4 h-4 mr-1" />Scale-up ableiten
                 </Button>
               )}
-              <Button onClick={() => { setZielTankNr(''); setChargenNummer(''); setIsProduceOpen(true); }} disabled={!freigabe.kannFreigeben}>
+              <Button onClick={() => { setZielTankNr(''); setChargenNummer(''); setProduktionsdatum(new Date().toISOString().slice(0, 10)); setIsProduceOpen(true); }} disabled={!freigabe.kannFreigeben}>
                 <PackageCheck className="w-4 h-4 mr-1" />Produzieren &amp; Buchen
               </Button>
             </div>
@@ -644,6 +650,11 @@ export default function RezepturEditor() {
             <div>
               <Label>Chargennummer</Label>
               <Input value={chargenNummer} onChange={e => setChargenNummer(e.target.value)} placeholder={rezeptur.name} />
+            </div>
+            <div>
+              <Label>Datum der Produktion</Label>
+              <Input type="date" value={produktionsdatum} onChange={e => setProduktionsdatum(e.target.value)} />
+              <p className="text-xs text-muted-foreground mt-1">Das tatsächliche Datum des Vorgangs — beim Nachbuchen zurückliegender Ausmischungen hier das echte Datum eintragen.</p>
             </div>
           </div>
           <DialogFooter>

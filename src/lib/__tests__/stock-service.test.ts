@@ -117,6 +117,18 @@ describe('stock-service: Buchungsjournal (recordTransaction/recordNewEntry)', ()
     const { transactions } = expectOk(recordTransaction([posten], [], 'item-3', 'Abgang', 200, { notes: 'Versand LF-2026-002' }));
     expect(transactions[0]).toMatchObject({ tankNr: 'T341', alcoholVolProzent: 53.5 });
   });
+
+  it('transactionDate (frei wählbares Vorgangsdatum) und erfasstAm (immer "jetzt") sind unabhängig voneinander (Nutzer-Anfrage 10.10.2026, Nachbuchen vergangener Vorgänge)', () => {
+    const posten = makeItem({ id: 'item-4' });
+    const historischesDatum = new Date('2026-07-15T00:00:00.000Z');
+    const vorJetzt = new Date();
+    const { transactions } = expectOk(recordTransaction([posten], [], 'item-4', 'Zugang', 100, { date: historischesDatum }));
+    expect(transactions[0].transactionDate).toEqual(historischesDatum);
+    expect(transactions[0].erfasstAm).toBeInstanceOf(Date);
+    expect(transactions[0].erfasstAm!.getTime()).toBeGreaterThanOrEqual(vorJetzt.getTime());
+    // erfasstAm darf sich NICHT ueber opts.date faelschen lassen - sonst waere es nur ein zweiter Name fuer dasselbe Feld.
+    expect(transactions[0].erfasstAm!.getTime()).not.toBe(historischesDatum.getTime());
+  });
 });
 
 describe('poolIntoTank: Einlagern mit Misch-ABV-Berechnung (Grundsatzfrage Tank-Pooling)', () => {

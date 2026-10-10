@@ -28,7 +28,7 @@ type InventoryTransactionTableProps = {
   transactions: InventoryTransaction[];
 };
 
-type SortableKeys = keyof Pick<InventoryTransaction, 'transactionDate' | 'artikelNummer' | 'produktName' | 'chargenNummer' | 'tankNr' | 'type' | 'quantityLiters'>;
+type SortableKeys = keyof Pick<InventoryTransaction, 'transactionDate' | 'erfasstAm' | 'artikelNummer' | 'produktName' | 'chargenNummer' | 'tankNr' | 'type' | 'quantityLiters'>;
 
 const formatNumber = (num: number | undefined | null, precision: number = 2) => {
   if (num === undefined || num === null || isNaN(num)) return 'N/A';
@@ -219,6 +219,11 @@ export default function InventoryTransactionTable({ transactions }: InventoryTra
                     Datum {getSortIcon('transactionDate')}
                   </Button>
                 </TableHead>
+                <TableHead className="min-w-[120px]">
+                  <Button variant="ghost" onClick={() => requestSort('erfasstAm')} className="px-1 py-0 h-auto hover:bg-transparent" title="Wann die Buchung im System erfasst wurde, unabhängig vom Datum des Vorgangs selbst">
+                    Erfasst am {getSortIcon('erfasstAm')}
+                  </Button>
+                </TableHead>
                 <TableHead className="min-w-[100px]">
                   <Button variant="ghost" onClick={() => requestSort('artikelNummer')} className="px-1 py-0 h-auto hover:bg-transparent">
                     Artikel-Nr. {getSortIcon('artikelNummer')}
@@ -255,7 +260,7 @@ export default function InventoryTransactionTable({ transactions }: InventoryTra
             <TableBody>
               {sortedAndFilteredTransactions.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8 h-48">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8 h-48">
                     {!hasActiveFilters ? "Noch keine Transaktionen erfasst." : "Keine Transaktionen für die gewählten Filter gefunden."}
                   </TableCell>
                 </TableRow>
@@ -263,6 +268,9 @@ export default function InventoryTransactionTable({ transactions }: InventoryTra
               {sortedAndFilteredTransactions.map((transaction) => (
                 <TableRow key={transaction.id}>
                   <TableCell>{format(transaction.transactionDate, 'dd.MM.yyyy HH:mm')}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    {transaction.erfasstAm ? format(transaction.erfasstAm, 'dd.MM.yyyy HH:mm') : '–'}
+                  </TableCell>
                   <TableCell className="font-medium">{transaction.artikelNummer}</TableCell>
                   <TableCell>{transaction.produktName}</TableCell>
                   <TableCell>{transaction.chargenNummer || 'N/A'}</TableCell>

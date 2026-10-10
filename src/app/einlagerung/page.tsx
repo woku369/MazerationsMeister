@@ -39,6 +39,12 @@ export default function EinlagerungPage() {
   const [alkoholVolProzent, setAlkoholVolProzent] = useState('');
   const [gesamtMenge, setGesamtMenge] = useState('');
   const [zielTanks, setZielTanks] = useState<ZielTankZeile[]>([{ tankNr: '', mengeLiter: '' }]);
+  // Datum des tatsächlichen Vorgangs (Nutzer-Anfrage 10.10.2026: beim
+  // Nachbuchen des vergangenen Wirtschaftsjahrs fehlte bisher jede
+  // Möglichkeit, ein anderes Datum als "heute" anzugeben - z.B. Primasprit,
+  // tatsächlich am 15.7.2026 eingelagert, aber erst Monate später im System
+  // erfasst). Default "heute", frei änderbar.
+  const [einlagerungsDatum, setEinlagerungsDatum] = useState(() => new Date().toISOString().slice(0, 10));
 
   const loadAll = () => {
     setInventoryItems(StockService.readAll());
@@ -78,6 +84,7 @@ export default function EinlagerungPage() {
     setAlkoholVolProzent('');
     setGesamtMenge('');
     setZielTanks([{ tankNr: '', mengeLiter: '' }]);
+    setEinlagerungsDatum(new Date().toISOString().slice(0, 10));
   }
 
   function addZielTankRow() {
@@ -167,6 +174,7 @@ export default function EinlagerungPage() {
         dichte20C,
       }, {
         notes: `Einlagerung ${produktName.trim()}${chargenNummer.trim() ? ` (${chargenNummer.trim()})` : ''}`,
+        date: new Date(einlagerungsDatum),
       });
       if (!result.ok) {
         ok = false;
@@ -259,6 +267,13 @@ export default function EinlagerungPage() {
               <Label>Gesamtmenge (L)</Label>
               <Input type="text" inputMode="decimal" value={gesamtMenge} onChange={e => setGesamtMenge(e.target.value)} placeholder="z.B. 1500" />
             </div>
+          </div>
+          <div>
+            <Label>Datum der Einlagerung</Label>
+            <Input type="date" value={einlagerungsDatum} onChange={e => setEinlagerungsDatum(e.target.value)} className="max-w-xs" />
+            <p className="text-xs text-muted-foreground mt-1">
+              Das tatsächliche Datum des Vorgangs — beim Nachbuchen zurückliegender Einlagerungen hier das echte Datum eintragen, nicht das heutige.
+            </p>
           </div>
         </CardContent>
       </Card>
