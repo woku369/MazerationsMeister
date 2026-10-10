@@ -1457,7 +1457,47 @@
       "bemerkungen": "",
       "kennzeichen": "",
       "literAbsolutalkohol": 1.55
+    },
+    {
+      "id": "3f5dfbe7-15cf-4755-b962-26da09574e31",
+      "artikelNummer": "Ethanol Prima 60%",
+      "produktName": "Ethanol Prima 60%",
+      "chargenNummer": "AAAH-5000-0024-080726",
+      "category": "Dest",
+      "tankNr": "T 350",
+      "currentQuantityLiters": 6000,
+      "alcoholVolProzent": 59.9,
+      "lastInventoryDate": "2026-10-10T06:47:52.727Z",
+      "bemerkungen": "",
+      "kennzeichen": "S",
+      "komponenten": [
+        {
+          "chargenNummer": "AAAH-5000-0024-080726",
+          "mengeLiter": 6000
+        }
+      ],
+      "literAbsolutalkohol": 3594
+    },
+    {
+      "id": "245ace12-319b-4091-b7cc-a44644a2c4b6",
+      "artikelNummer": "Ethanol Prima 60%",
+      "produktName": "Ethanol Prima 60%",
+      "chargenNummer": "AAAH-5000-0024-080726",
+      "category": "Dest",
+      "tankNr": "T 341",
+      "currentQuantityLiters": 4019.17,
+      "alcoholVolProzent": 59.9,
+      "lastInventoryDate": "2026-10-10T06:47:52.728Z",
+      "bemerkungen": "",
+      "kennzeichen": "S",
+      "komponenten": [
+        {
+          "chargenNummer": "AAAH-5000-0024-080726",
+          "mengeLiter": 4019.17
+        }
+      ],
+      "literAbsolutalkohol": 2407.48
     }
   ],
-  "lastUpdated": "2026-10-10T06:45:31.420Z"
+  "lastUpdated": "2026-10-10T06:48:09.799Z"
 }
