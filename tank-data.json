@@ -151,64 +151,102 @@
       "id": "B-1701"
     },
     {
+      "id": "Fass-2023",
+      "tankNr": "Fass-2023",
+      "bezeichnung": "Auto-erkannt: Fass-2023",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "T1564",
       "tankNr": "T1564",
       "bezeichnung": "Auto-erkannt: T1564",
-      "volumenLiter": 1000,
-      "id": "T1564"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "Fass-2500",
       "tankNr": "Fass-2500",
       "bezeichnung": "Auto-erkannt: Fass-2500",
-      "volumenLiter": 200,
-      "id": "Fass-2500"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "B-1701-2",
       "tankNr": "B-1701-2",
       "bezeichnung": "Auto-erkannt: B-1701-2",
-      "volumenLiter": 32,
-      "id": "B-1701-2"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "Fl-1301-3",
+      "tankNr": "Fl-1301-3",
+      "bezeichnung": "Auto-erkannt: Fl-1301-3",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "Fass-2014",
       "tankNr": "Fass-2014",
       "bezeichnung": "Auto-erkannt: Fass-2014",
-      "volumenLiter": 100,
-      "id": "Fass-2014"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "Fass-1400",
       "tankNr": "Fass-1400",
       "bezeichnung": "Auto-erkannt: Fass-1400",
-      "volumenLiter": 100,
-      "id": "Fass-1400"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "Fl-1304",
+      "tankNr": "Fl-1304",
+      "bezeichnung": "Auto-erkannt: Fl-1304",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "Fl-1301-4",
+      "tankNr": "Fl-1301-4",
+      "bezeichnung": "Auto-erkannt: Fl-1301-4",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "B-1400",
       "tankNr": "B-1400",
       "bezeichnung": "Auto-erkannt: B-1400",
-      "volumenLiter": 32,
-      "id": "B-1400"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "K-1301",
       "tankNr": "K-1301",
       "bezeichnung": "Auto-erkannt: K-1301",
-      "volumenLiter": 50,
-      "id": "K-1301"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "B-2015-3",
       "tankNr": "B-2015-3",
       "bezeichnung": "Auto-erkannt: B-2015-3",
-      "volumenLiter": 32,
-      "id": "B-2015-3"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "Cont-GFKC-K",
       "tankNr": "Cont-GFKC-K",
       "bezeichnung": "Auto-erkannt: Cont-GFKC-K",
-      "volumenLiter": 1000,
-      "id": "Cont-GFKC-K"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "K-2012",
       "tankNr": "K-2012",
       "bezeichnung": "Auto-erkannt: K-2012",
-      "volumenLiter": 10,
-      "id": "K-2012"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
       "id": "K-2012-2",
@@ -218,52 +256,60 @@
       "hasUniqueNumber": true
     },
     {
+      "id": "B-2012",
       "tankNr": "B-2012",
       "bezeichnung": "Auto-erkannt: B-2012",
-      "volumenLiter": 32,
-      "id": "B-2012"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "B-2012-2",
       "tankNr": "B-2012-2",
       "bezeichnung": "Auto-erkannt: B-2012-2",
-      "volumenLiter": 32,
-      "id": "B-2012-2"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "B-2012-3",
       "tankNr": "B-2012-3",
       "bezeichnung": "Auto-erkannt: B-2012-3",
-      "volumenLiter": 32,
-      "id": "B-2012-3"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "B-S3 2013",
       "tankNr": "B-S3 2013",
       "bezeichnung": "Auto-erkannt: B-S3 2013",
-      "volumenLiter": 32,
-      "id": "B-S3 2013"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "B-CS 2015-1",
       "tankNr": "B-CS 2015-1",
       "bezeichnung": "Auto-erkannt: B-CS 2015-1",
-      "volumenLiter": 32,
-      "id": "B-CS 2015-1"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "B-CS 2015-1-2",
       "tankNr": "B-CS 2015-1-2",
       "bezeichnung": "Auto-erkannt: B-CS 2015-1-2",
-      "volumenLiter": 32,
-      "id": "B-CS 2015-1-2"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "B-X-2016",
       "tankNr": "B-X-2016",
       "bezeichnung": "Auto-erkannt: B-X-2016",
-      "volumenLiter": 32,
-      "id": "B-X-2016"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
+      "id": "B-S1 2013",
       "tankNr": "B-S1 2013",
       "bezeichnung": "Auto-erkannt: B-S1 2013",
-      "volumenLiter": 32,
-      "id": "B-S1 2013"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
       "id": "IBC-GFKC-M-A",
@@ -284,6 +330,13 @@
       "tankNr": "IBC-GFKC-M-C",
       "bezeichnung": "IBC-GFKC-M-C",
       "volumenLiter": 1000,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "IBC-GFKC-M",
+      "tankNr": "IBC-GFKC-M",
+      "bezeichnung": "Auto-erkannt: IBC-GFKC-M",
+      "volumenLiter": 5000,
       "hasUniqueNumber": true
     },
     {
@@ -308,6 +361,13 @@
       "hasUniqueNumber": true
     },
     {
+      "id": "Fl-1301",
+      "tankNr": "Fl-1301",
+      "bezeichnung": "Auto-erkannt: Fl-1301",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
       "id": "Fass-2301-A",
       "tankNr": "Fass-2301-A",
       "bezeichnung": "Fass-2301-A",
@@ -322,6 +382,13 @@
       "hasUniqueNumber": true
     },
     {
+      "id": "Fass-2301",
+      "tankNr": "Fass-2301",
+      "bezeichnung": "Auto-erkannt: Fass-2301",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
+    },
+    {
       "id": "Fass-2201-A",
       "tankNr": "Fass-2201-A",
       "bezeichnung": "Fass-2201-A",
@@ -333,6 +400,13 @@
       "tankNr": "Fass-2201-B",
       "bezeichnung": "Fass-2201-B",
       "volumenLiter": 200,
+      "hasUniqueNumber": true
+    },
+    {
+      "id": "Fass-2201",
+      "tankNr": "Fass-2201",
+      "bezeichnung": "Auto-erkannt: Fass-2201",
+      "volumenLiter": 5000,
       "hasUniqueNumber": true
     },
     {
@@ -357,101 +431,10 @@
       "hasUniqueNumber": true
     },
     {
-      "id": "Fass-2023-A",
-      "tankNr": "Fass-2023-A",
-      "bezeichnung": "Fass-2023-A",
-      "volumenLiter": 200,
-      "hasUniqueNumber": true
-    },
-    {
-      "id": "Fass-2023-B",
-      "tankNr": "Fass-2023-B",
-      "bezeichnung": "Fass-2023-B",
-      "volumenLiter": 200,
-      "hasUniqueNumber": true
-    },
-    {
-      "id": "Fl-1301-3-A",
-      "tankNr": "Fl-1301-3-A",
-      "bezeichnung": "Fl-1301-3-A",
-      "volumenLiter": 3,
-      "hasUniqueNumber": true
-    },
-    {
-      "id": "Fl-1301-3-B",
-      "tankNr": "Fl-1301-3-B",
-      "bezeichnung": "Fl-1301-3-B",
-      "volumenLiter": 3,
-      "hasUniqueNumber": true
-    },
-    {
-      "id": "Fl-1301-3-C",
-      "tankNr": "Fl-1301-3-C",
-      "bezeichnung": "Fl-1301-3-C",
-      "volumenLiter": 0.75,
-      "hasUniqueNumber": true
-    },
-    {
-      "id": "Fl-1304-A",
-      "tankNr": "Fl-1304-A",
-      "bezeichnung": "Fl-1304-A",
-      "volumenLiter": 3,
-      "hasUniqueNumber": true
-    },
-    {
-      "id": "Fl-1304-B",
-      "tankNr": "Fl-1304-B",
-      "bezeichnung": "Fl-1304-B",
-      "volumenLiter": 3,
-      "hasUniqueNumber": true
-    },
-    {
-      "id": "Fl-1304-C",
-      "tankNr": "Fl-1304-C",
-      "bezeichnung": "Fl-1304-C",
-      "volumenLiter": 0.75,
-      "hasUniqueNumber": true
-    },
-    {
-      "id": "Fl-1301-4-A",
-      "tankNr": "Fl-1301-4-A",
-      "bezeichnung": "Fl-1301-4-A",
-      "volumenLiter": 3,
-      "hasUniqueNumber": true
-    },
-    {
-      "id": "Fl-1301-4-B",
-      "tankNr": "Fl-1301-4-B",
-      "bezeichnung": "Fl-1301-4-B",
-      "volumenLiter": 3,
-      "hasUniqueNumber": true
-    },
-    {
-      "tankNr": "T 350",
-      "bezeichnung": "Edelstahl 6420l",
-      "volumenLiter": 6420,
-      "id": "T 350",
-      "hasUniqueNumber": true
-    },
-    {
-      "tankNr": "T 341",
-      "bezeichnung": "Edelstahl 5350l",
-      "volumenLiter": 5350,
-      "id": "T 341",
-      "hasUniqueNumber": true
-    },
-    {
-      "tankNr": "T 344",
-      "bezeichnung": "Edelstahl 5000l",
+      "id": "Fl-1301-2",
+      "tankNr": "Fl-1301-2",
+      "bezeichnung": "Auto-erkannt: Fl-1301-2",
       "volumenLiter": 5000,
-      "id": "T 344",
-      "hasUniqueNumber": true
-    },
-    {
-      "tankNr": "T 347",
-      "bezeichnung": "Edelstahl 5500l",
-      "volumenLiter": 5500,
-      "id": "T 347",
       "hasUniqueNumber": true
     }
   ],
@@ -487,6 +470,21 @@
       "bemerkungen": ""
     },
     {
+      "id": "d13a317f-6bc4-4824-9145-fb9aa329bf07",
+      "artikelNummer": "",
+      "kennzeichen": "",
+      "chargenNummer": "GFKC-M",
+      "produktName": "GFKC-M",
+      "category": "M",
+      "tankNr": "IBC-GFKC-M",
+      "currentQuantityLiters": 0,
+      "alcoholVolProzent": 53.5,
+      "dichte20C": 0.9257,
+      "literAbsolutalkohol": 0,
+      "lastInventoryDate": "2026-10-06T17:05:02.366Z",
+      "bemerkungen": ""
+    },
+    {
       "id": "d597ed50-cbf2-45c0-a517-78d702bd52a5",
       "artikelNummer": "",
       "kennzeichen": "",
@@ -514,6 +512,21 @@
       "dichte20C": 0.8873,
       "literAbsolutalkohol": 68.98,
       "lastInventoryDate": "2025-12-30T23:00:00.000Z",
+      "bemerkungen": ""
+    },
+    {
+      "id": "c091ed0c-ea89-4b02-bcd3-800dd169f2c6",
+      "artikelNummer": "",
+      "kennzeichen": "",
+      "chargenNummer": "1301",
+      "produktName": "Koenigskerze",
+      "category": "M",
+      "tankNr": "Fl-1301",
+      "currentQuantityLiters": 0,
+      "alcoholVolProzent": 54.3,
+      "dichte20C": 0.9231,
+      "literAbsolutalkohol": 0,
+      "lastInventoryDate": "2026-10-06T17:07:24.318Z",
       "bemerkungen": ""
     },
     {
@@ -648,6 +661,21 @@
       "dichte20C": 0.9301,
       "literAbsolutalkohol": 2111.4,
       "lastInventoryDate": "2025-12-30T23:00:00.000Z",
+      "bemerkungen": ""
+    },
+    {
+      "id": "0d99f9f1-12b9-42d4-898b-4f64725588c1",
+      "artikelNummer": "",
+      "kennzeichen": "",
+      "chargenNummer": "2301",
+      "produktName": "Zitronenmelisse",
+      "category": "Dest",
+      "tankNr": "Fass-2301",
+      "currentQuantityLiters": 0,
+      "alcoholVolProzent": 80.1,
+      "dichte20C": 0.8602,
+      "literAbsolutalkohol": 0,
+      "lastInventoryDate": "2026-10-06T17:11:15.216Z",
       "bemerkungen": ""
     },
     {
@@ -786,6 +814,21 @@
       "bemerkungen": ""
     },
     {
+      "id": "86c4bf1e-2cc9-4297-978a-a01af286cf52",
+      "artikelNummer": "",
+      "kennzeichen": "",
+      "chargenNummer": "2201",
+      "produktName": "Salbei",
+      "category": "Dest",
+      "tankNr": "Fass-2201",
+      "currentQuantityLiters": 0,
+      "alcoholVolProzent": 77.7,
+      "dichte20C": 0.8671,
+      "literAbsolutalkohol": 0,
+      "lastInventoryDate": "2026-10-06T17:13:39.319Z",
+      "bemerkungen": ""
+    },
+    {
       "id": "d1b25ad4-dbf7-4f68-9924-88ecec311a72",
       "artikelNummer": "",
       "kennzeichen": "",
@@ -827,6 +870,36 @@
       "alcoholVolProzent": 76.5,
       "dichte20C": 0.8703,
       "literAbsolutalkohol": 19.12,
+      "lastInventoryDate": "2025-12-30T23:00:00.000Z",
+      "bemerkungen": ""
+    },
+    {
+      "id": "ec06f379-6cd1-4ab2-a48e-1bacaee4f7a7",
+      "artikelNummer": "",
+      "kennzeichen": "",
+      "chargenNummer": "1301",
+      "produktName": "Mariendistel",
+      "category": "M",
+      "tankNr": "Fl-1301-2",
+      "currentQuantityLiters": 0,
+      "alcoholVolProzent": 54.2,
+      "dichte20C": 0.9233,
+      "literAbsolutalkohol": 0,
+      "lastInventoryDate": "2026-10-06T17:15:10.706Z",
+      "bemerkungen": ""
+    },
+    {
+      "id": "84b4707f-43ad-4790-90d6-d1b542f538fe",
+      "artikelNummer": "",
+      "kennzeichen": "",
+      "chargenNummer": "2023",
+      "produktName": "Mariendistel",
+      "category": "Dest",
+      "tankNr": "Fass-2023",
+      "currentQuantityLiters": 154.6,
+      "alcoholVolProzent": 77.9,
+      "dichte20C": 0.8661,
+      "literAbsolutalkohol": 120.43,
       "lastInventoryDate": "2025-12-30T23:00:00.000Z",
       "bemerkungen": ""
     },
@@ -874,6 +947,21 @@
       "bemerkungen": ""
     },
     {
+      "id": "1e1f83b9-b580-4c8a-96ab-12733affbcc0",
+      "artikelNummer": "",
+      "kennzeichen": "",
+      "chargenNummer": "1301",
+      "produktName": "Benedikten",
+      "category": "M",
+      "tankNr": "Fl-1301-3",
+      "currentQuantityLiters": 6.75,
+      "alcoholVolProzent": 54.2,
+      "dichte20C": 0.9233,
+      "literAbsolutalkohol": 3.64,
+      "lastInventoryDate": "2025-12-30T23:00:00.000Z",
+      "bemerkungen": ""
+    },
+    {
       "id": "a59e449f-4d01-4dd1-8014-82e78d53d0ba",
       "artikelNummer": "",
       "kennzeichen": "",
@@ -900,6 +988,36 @@
       "alcoholVolProzent": 47.1,
       "dichte20C": 0.9373,
       "literAbsolutalkohol": 38.15,
+      "lastInventoryDate": "2025-12-30T23:00:00.000Z",
+      "bemerkungen": ""
+    },
+    {
+      "id": "edb1a4f1-bb61-43f1-b753-ab33d4d6f865",
+      "artikelNummer": "",
+      "kennzeichen": "",
+      "chargenNummer": "1304",
+      "produktName": "Baldrian",
+      "category": "M",
+      "tankNr": "Fl-1304",
+      "currentQuantityLiters": 6.75,
+      "alcoholVolProzent": 51,
+      "dichte20C": 0.9298,
+      "literAbsolutalkohol": 3.44,
+      "lastInventoryDate": "2025-12-30T23:00:00.000Z",
+      "bemerkungen": ""
+    },
+    {
+      "id": "27b1428b-fb87-456f-bc1a-788a653e42da",
+      "artikelNummer": "",
+      "kennzeichen": "",
+      "chargenNummer": "1301",
+      "produktName": "Zirbe",
+      "category": "M",
+      "tankNr": "Fl-1301-4",
+      "currentQuantityLiters": 6,
+      "alcoholVolProzent": 51.6,
+      "dichte20C": 0.9286,
+      "literAbsolutalkohol": 3.08,
       "lastInventoryDate": "2025-12-30T23:00:00.000Z",
       "bemerkungen": ""
     },
@@ -1307,197 +1425,7 @@
       "bemerkungen": "",
       "kennzeichen": "",
       "literAbsolutalkohol": 0.41
-    },
-    {
-      "id": "84a50567-b376-4d39-8cc9-049adc1c524f",
-      "artikelNummer": "",
-      "produktName": "Mariendistel",
-      "chargenNummer": "2023",
-      "category": "Dest",
-      "tankNr": "Fass-2023-A",
-      "currentQuantityLiters": 100,
-      "alcoholVolProzent": 77.9,
-      "dichte20C": 0.8661,
-      "lastInventoryDate": "2026-10-06T17:16:13.373Z",
-      "bemerkungen": "",
-      "kennzeichen": "",
-      "literAbsolutalkohol": 77.9
-    },
-    {
-      "id": "9abb1162-9189-4016-a23a-88f55b3aad1b",
-      "artikelNummer": "",
-      "produktName": "Mariendistel",
-      "chargenNummer": "2023",
-      "category": "Dest",
-      "tankNr": "Fass-2023-B",
-      "currentQuantityLiters": 54.6,
-      "alcoholVolProzent": 77.9,
-      "dichte20C": 0.8661,
-      "lastInventoryDate": "2026-10-06T17:16:13.373Z",
-      "bemerkungen": "",
-      "kennzeichen": "",
-      "literAbsolutalkohol": 42.53
-    },
-    {
-      "id": "49e76421-5fa2-482a-a54d-5eea9c3fd1f1",
-      "artikelNummer": "",
-      "produktName": "Benedikten",
-      "chargenNummer": "1301",
-      "category": "M",
-      "tankNr": "Fl-1301-3-A",
-      "currentQuantityLiters": 3,
-      "alcoholVolProzent": 54.2,
-      "dichte20C": 0.9233,
-      "lastInventoryDate": "2026-10-06T17:17:42.843Z",
-      "bemerkungen": "",
-      "kennzeichen": "",
-      "literAbsolutalkohol": 1.63
-    },
-    {
-      "id": "5a73cc5c-29c0-4b37-aa0d-6042ae772920",
-      "artikelNummer": "",
-      "produktName": "Benedikten",
-      "chargenNummer": "1301",
-      "category": "M",
-      "tankNr": "Fl-1301-3-B",
-      "currentQuantityLiters": 3,
-      "alcoholVolProzent": 54.2,
-      "dichte20C": 0.9233,
-      "lastInventoryDate": "2026-10-06T17:17:42.843Z",
-      "bemerkungen": "",
-      "kennzeichen": "",
-      "literAbsolutalkohol": 1.63
-    },
-    {
-      "id": "f3c0ad60-3168-4025-9848-85bf3505a1c1",
-      "artikelNummer": "",
-      "produktName": "Benedikten",
-      "chargenNummer": "1301",
-      "category": "M",
-      "tankNr": "Fl-1301-3-C",
-      "currentQuantityLiters": 0.75,
-      "alcoholVolProzent": 54.2,
-      "dichte20C": 0.9233,
-      "lastInventoryDate": "2026-10-06T17:17:42.843Z",
-      "bemerkungen": "",
-      "kennzeichen": "",
-      "literAbsolutalkohol": 0.41
-    },
-    {
-      "id": "01a0d012-8367-46fe-9974-dd70e51226a9",
-      "artikelNummer": "",
-      "produktName": "Baldrian",
-      "chargenNummer": "1304",
-      "category": "M",
-      "tankNr": "Fl-1304-A",
-      "currentQuantityLiters": 3,
-      "alcoholVolProzent": 51,
-      "dichte20C": 0.9298,
-      "lastInventoryDate": "2026-10-06T17:18:55.993Z",
-      "bemerkungen": "",
-      "kennzeichen": "",
-      "literAbsolutalkohol": 1.53
-    },
-    {
-      "id": "1ed123f5-99cf-47b6-8ae6-9b9ed48b4e98",
-      "artikelNummer": "",
-      "produktName": "Baldrian",
-      "chargenNummer": "1304",
-      "category": "M",
-      "tankNr": "Fl-1304-B",
-      "currentQuantityLiters": 3,
-      "alcoholVolProzent": 51,
-      "dichte20C": 0.9298,
-      "lastInventoryDate": "2026-10-06T17:18:55.993Z",
-      "bemerkungen": "",
-      "kennzeichen": "",
-      "literAbsolutalkohol": 1.53
-    },
-    {
-      "id": "75e5786e-968a-46f9-9ead-283c4463ca09",
-      "artikelNummer": "",
-      "produktName": "Baldrian",
-      "chargenNummer": "1304",
-      "category": "M",
-      "tankNr": "Fl-1304-C",
-      "currentQuantityLiters": 0.75,
-      "alcoholVolProzent": 51,
-      "dichte20C": 0.9298,
-      "lastInventoryDate": "2026-10-06T17:18:55.993Z",
-      "bemerkungen": "",
-      "kennzeichen": "",
-      "literAbsolutalkohol": 0.38
-    },
-    {
-      "id": "5f5cd27b-790d-428a-b96f-a8a7dfd1186b",
-      "artikelNummer": "",
-      "produktName": "Zirbe",
-      "chargenNummer": "1301",
-      "category": "M",
-      "tankNr": "Fl-1301-4-A",
-      "currentQuantityLiters": 3,
-      "alcoholVolProzent": 51.6,
-      "dichte20C": 0.9286,
-      "lastInventoryDate": "2026-10-06T17:19:16.645Z",
-      "bemerkungen": "",
-      "kennzeichen": "",
-      "literAbsolutalkohol": 1.55
-    },
-    {
-      "id": "d6ae683c-c504-4687-a7c9-e1691b328669",
-      "artikelNummer": "",
-      "produktName": "Zirbe",
-      "chargenNummer": "1301",
-      "category": "M",
-      "tankNr": "Fl-1301-4-B",
-      "currentQuantityLiters": 3,
-      "alcoholVolProzent": 51.6,
-      "dichte20C": 0.9286,
-      "lastInventoryDate": "2026-10-06T17:19:16.645Z",
-      "bemerkungen": "",
-      "kennzeichen": "",
-      "literAbsolutalkohol": 1.55
-    },
-    {
-      "id": "3f5dfbe7-15cf-4755-b962-26da09574e31",
-      "artikelNummer": "Ethanol Prima 60%",
-      "produktName": "Ethanol Prima 60%",
-      "chargenNummer": "AAAH-5000-0024-080726",
-      "category": "Dest",
-      "tankNr": "T 350",
-      "currentQuantityLiters": 6000,
-      "alcoholVolProzent": 59.9,
-      "lastInventoryDate": "2026-10-10T06:47:52.727Z",
-      "bemerkungen": "",
-      "kennzeichen": "S",
-      "komponenten": [
-        {
-          "chargenNummer": "AAAH-5000-0024-080726",
-          "mengeLiter": 6000
-        }
-      ],
-      "literAbsolutalkohol": 3594
-    },
-    {
-      "id": "245ace12-319b-4091-b7cc-a44644a2c4b6",
-      "artikelNummer": "Ethanol Prima 60%",
-      "produktName": "Ethanol Prima 60%",
-      "chargenNummer": "AAAH-5000-0024-080726",
-      "category": "Dest",
-      "tankNr": "T 341",
-      "currentQuantityLiters": 4019.17,
-      "alcoholVolProzent": 59.9,
-      "lastInventoryDate": "2026-10-10T06:47:52.728Z",
-      "bemerkungen": "",
-      "kennzeichen": "S",
-      "komponenten": [
-        {
-          "chargenNummer": "AAAH-5000-0024-080726",
-          "mengeLiter": 4019.17
-        }
-      ],
-      "literAbsolutalkohol": 2407.48
     }
   ],
-  "lastUpdated": "2026-10-10T07:30:09.477Z"
+  "lastUpdated": "2026-10-10T13:23:52.064Z"
 }
