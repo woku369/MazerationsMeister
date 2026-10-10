@@ -22,6 +22,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { filterTransactionsByDateRange } from '@/lib/transaction-filter';
 
 type InventoryTransactionTableProps = {
   transactions: InventoryTransaction[];
@@ -125,16 +126,10 @@ export default function InventoryTransactionTable({ transactions }: InventoryTra
       );
     }
 
-    if (dateFrom) {
-      const von = new Date(dateFrom);
-      filteredItems = filteredItems.filter(item => item.transactionDate >= von);
-    }
-    if (dateTo) {
-      // Ende des Tages, damit der "bis"-Tag selbst noch eingeschlossen ist
-      const bis = new Date(dateTo);
-      bis.setHours(23, 59, 59, 999);
-      filteredItems = filteredItems.filter(item => item.transactionDate <= bis);
-    }
+    // Siehe transaction-filter.ts für den Hintergrund: war inline hier bis vor
+    // kurzem durch einen String/Date-Vergleichsfehler komplett kaputt (blendete
+    // IMMER alles aus, sobald "Von"/"Bis" gesetzt war).
+    filteredItems = filterTransactionsByDateRange(filteredItems, dateFrom, dateTo);
 
     if (sortConfig.key !== null) {
       filteredItems.sort((a, b) => {
