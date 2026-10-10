@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ListChecks, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,11 +34,44 @@ const formatNumber = (num: number | undefined | null, precision: number = 2) => 
   return num.toLocaleString('de-DE', { minimumFractionDigits: precision, maximumFractionDigits: precision });
 };
 
+const FILTER_STORAGE_KEY = 'inventoryTransactionTableFilters';
+
+// Vorbelegtes "Von"-Datum (Nutzer-Anfrage 10.10.2026): alle Buchungen vor dem
+// tatsächlichen Produktivstart waren reine Korrekturen beim Einrichten der
+// Tankverwaltung, keine echten Lagerbewegungen - "kann ich nicht manuell
+// löschen (macht ja auch Sinn), aber alles vor 10.10. hätte ich gerne
+// draussen". Bewusst nur ein Anzeige-Filter statt einer Löschung - das
+// Journal bleibt lückenlos erhalten, nur die Default-Ansicht blendet den
+// Einrichtungs-Zeitraum aus. Als Default, nicht hart codierter Cutoff: in
+// localStorage gespeichert, sobald der Nutzer das Datum selbst ändert oder
+// "Filter zurücksetzen" klickt, bleibt diese Wahl erhalten.
+const DEFAULT_DATE_FROM = '2026-10-10';
+
+type StoredFilters = { transactionTypeFilter: string; searchText: string; dateFrom: string; dateTo: string };
+
+function loadStoredFilters(): StoredFilters {
+  const fallback: StoredFilters = { transactionTypeFilter: 'all', searchText: '', dateFrom: DEFAULT_DATE_FROM, dateTo: '' };
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = localStorage.getItem(FILTER_STORAGE_KEY);
+    if (raw) return { ...fallback, ...JSON.parse(raw) };
+  } catch {
+    // Ungültiger/fehlender gespeicherter Zustand - Fallback greift.
+  }
+  return fallback;
+}
+
 export default function InventoryTransactionTable({ transactions }: InventoryTransactionTableProps) {
-  const [transactionTypeFilter, setTransactionTypeFilter] = useState<string>('all');
-  const [searchText, setSearchText] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [initialFilters] = useState(loadStoredFilters);
+  const [transactionTypeFilter, setTransactionTypeFilter] = useState<string>(initialFilters.transactionTypeFilter);
+  const [searchText, setSearchText] = useState(initialFilters.searchText);
+  const [dateFrom, setDateFrom] = useState(initialFilters.dateFrom);
+  const [dateTo, setDateTo] = useState(initialFilters.dateTo);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({ transactionTypeFilter, searchText, dateFrom, dateTo }));
+  }, [transactionTypeFilter, searchText, dateFrom, dateTo]);
   const [sortConfig, setSortConfig] = useState<{ key: SortableKeys | null; direction: 'ascending' | 'descending' }>({
     key: 'transactionDate', // Default sort by date
     direction: 'descending',  // Default sort descending
@@ -169,6 +202,11 @@ export default function InventoryTransactionTable({ transactions }: InventoryTra
               </Button>
             )}
           </div>
+          {dateFrom === DEFAULT_DATE_FROM && !searchText && transactionTypeFilter === 'all' && !dateTo && (
+            <p className="text-xs text-muted-foreground">
+              Standardmäßig ab 10.10.2026 gefiltert (Produktivstart) — ältere Buchungen waren reine Korrekturen beim Einrichten der Tankverwaltung. „Filter zurücksetzen" zeigt auch diese wieder.
+            </p>
+          )}
         </div>
       </CardHeader>
       <CardContent>
