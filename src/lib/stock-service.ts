@@ -179,6 +179,29 @@ export function recordCorrection(
   return { items: updatedItems, transactions: [...transactions, entry] };
 }
 
+/**
+ * Wie removeEntry (Lagerposten vollständig entfernen), aber schreibt
+ * zusätzlich einen "Abgang"-Journal-Eintrag über die komplette entfernte
+ * Menge. Ohne das verschwindet ein gelöschter Posten spurlos aus dem
+ * Buchungsjournal (Nutzer-Meldung 10.10.2026: nach einer manuellen
+ * GFKC-Verschnitt-Korrektur in der Lagerverwaltung waren die Lagerstände
+ * richtig, aber im Journal stand nichts - addEntry()/removeEntry() werden
+ * dort direkt verwendet und schreiben, anders als recordNewEntry()/
+ * recordCorrection(), gar keinen Journal-Eintrag).
+ */
+export function recordRemoveEntry(
+  items: StoredInventoryItem[],
+  transactions: InventoryTransaction[],
+  id: string,
+  opts: { notes?: string; date?: Date } = {},
+): { items: StoredInventoryItem[]; transactions: InventoryTransaction[] } {
+  const item = items.find(i => i.id === id);
+  const updatedItems = removeEntry(items, id);
+  if (!item) return { items: updatedItems, transactions };
+  const entry = makeTransactionEntry(item, 'Abgang', item.currentQuantityLiters ?? 0, opts);
+  return { items: updatedItems, transactions: [...transactions, entry] };
+}
+
 export type NeueMenge = {
   produktName: string;
   chargenNummer?: string;

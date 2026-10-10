@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { addEntry, updateEntry, applyTransaction, recordTransaction, recordNewEntry, poolIntoTank, recordPoolIntoTank, recordCorrection, findAehnlichenWert } from '../stock-service';
+import { addEntry, updateEntry, applyTransaction, recordTransaction, recordNewEntry, recordRemoveEntry, poolIntoTank, recordPoolIntoTank, recordCorrection, findAehnlichenWert } from '../stock-service';
 import { calcLA } from '../mazeration-calc';
 import type { StoredInventoryItem, InventoryTransaction } from '@/schemas/inventorySchema';
 
@@ -291,6 +291,26 @@ describe('recordCorrection: Inventur-Korrektur (gespindelter ABV / Steigrohr-Dif
   it('ist ein No-Op fuer das Journal, wenn der Posten unbekannt ist (aber aendert trotzdem den Bestand ueber updateEntry-Fallback)', () => {
     const fremderPosten = makeItem({ id: 'unbekannt' });
     const result = recordCorrection([], [], fremderPosten);
+    expect(result.transactions).toEqual([]);
+  });
+});
+
+describe('recordRemoveEntry: Lagerposten löschen UND einen Abgang-Journal-Eintrag schreiben (Nutzer-Meldung 10.10.2026 - manuelle Lagerverwaltungs-Korrektur hinterließ bisher keine Spur im Journal)', () => {
+  it('entfernt den Posten UND schreibt einen Abgang über die volle vorhandene Menge', () => {
+    const posten = makeItem({ id: 'item-9', produktName: 'GFKC-N', currentQuantityLiters: 460, tankNr: 'T342' });
+    const result = recordRemoveEntry([posten], [], 'item-9', { notes: 'Lagerposten in der Lagerverwaltung gelöscht' });
+    expect(result.items).toEqual([]);
+    expect(result.transactions).toHaveLength(1);
+    expect(result.transactions[0]).toMatchObject({
+      itemId: 'item-9', produktName: 'GFKC-N', tankNr: 'T342', type: 'Abgang', quantityLiters: 460,
+      notes: 'Lagerposten in der Lagerverwaltung gelöscht',
+    });
+  });
+
+  it('ist ein No-Op fuer das Journal, wenn der Posten unbekannt ist (aber entfernt trotzdem nichts Falsches aus dem Bestand)', () => {
+    const posten = makeItem({ id: 'item-9' });
+    const result = recordRemoveEntry([posten], [], 'unbekannt');
+    expect(result.items).toEqual([posten]);
     expect(result.transactions).toEqual([]);
   });
 });

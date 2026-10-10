@@ -415,7 +415,14 @@ export default function InventoryManagement() {
     setIsAddEditDialogOpen(true);
   };
   const handleDeleteItem = (itemId: string) => {
-    setInventoryItems(prev => StockService.removeEntry(prev, itemId));
+    // Ueber recordRemoveEntry statt removeEntry, damit die geloeschte Menge als
+    // "Abgang" im Buchungsjournal landet statt spurlos zu verschwinden (Nutzer-
+    // Meldung 10.10.2026, gleicher Luckentyp wie beim Neuanlegen oben).
+    const abgang = StockService.recordRemoveEntry(inventoryItems, inventoryTransactions, itemId, {
+      notes: 'Lagerposten in der Lagerverwaltung gelöscht',
+    });
+    setInventoryItems(abgang.items);
+    setInventoryTransactions(abgang.transactions);
     toast({
       title: 'Artikelcharge gelöscht',
       description: `Die Artikelcharge wurde aus dem Lagerbestand entfernt. Zugehörige Transaktionen bleiben im Protokoll.`,
@@ -676,7 +683,16 @@ export default function InventoryManagement() {
           return def ? def.kennzeichen : '';
         })(),
       };
-      setInventoryItems(prev => StockService.addEntry(prev, newItem));
+      // Ueber recordNewEntry statt addEntry, damit ein neu angelegter Posten
+      // mit einem "Zugang"-Eintrag im Buchungsjournal landet statt spurlos zu
+      // erscheinen (Nutzer-Meldung 10.10.2026: genau diese Luecke fuehrte
+      // dazu, dass eine manuelle GFKC-Verschnitt-Korrektur die Lagerstaende
+      // richtig zeigte, aber im Journal nichts verzeichnet war).
+      const zugang = StockService.recordNewEntry(inventoryItems, inventoryTransactions, newItem, {
+        notes: itemData.bemerkungen?.trim() || undefined,
+      });
+      setInventoryItems(zugang.items);
+      setInventoryTransactions(zugang.transactions);
       toast({
         title: 'Artikelcharge hinzugefügt',
         description: `${newItem.produktName} (${newItem.artikelNummer} / ${newItem.chargenNummer || 'N/A'}) wurde zum Lagerbestand hinzugefügt.`,

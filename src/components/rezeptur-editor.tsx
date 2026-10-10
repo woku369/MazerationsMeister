@@ -95,8 +95,17 @@ export default function RezepturEditor() {
   );
 
   const scaleUpTank = tanks.find(t => t.tankNr === scaleUpTankNr);
+  // Freie Kapazitaet statt Brutto-Tankgroesse (Nutzer-Meldung 10.10.2026: ein
+  // Zieltank wie T 349 mit bereits 3190 L Vorlage hatte hier faelschlich die
+  // volle Nenngroesse als Obergrenze vorgeschlagen, ohne den vorhandenen
+  // Inhalt abzuziehen - echte Ueberfuellungsgefahr bei genau dem Verschnitt-
+  // in-einen-bereits-befuellten-Tank-Fall, der heute vorlag).
+  const scaleUpTankBelegt = scaleUpTank
+    ? inventoryItems.filter(i => i.tankNr === scaleUpTank.tankNr).reduce((s, i) => s + (i.currentQuantityLiters || 0), 0)
+    : 0;
+  const scaleUpTankFrei = scaleUpTank ? Math.max(0, (scaleUpTank.volumenLiter ?? 0) - scaleUpTankBelegt) : 0;
   const maxProduktion = rezeptur && scaleUpTank
-    ? berechneMaxProduktionsmenge(rezeptur, scaleUpTank.volumenLiter ?? 0)
+    ? berechneMaxProduktionsmenge(rezeptur, scaleUpTankFrei)
     : null;
 
   if (notFound) {
@@ -231,6 +240,13 @@ export default function RezepturEditor() {
     const alle = [...RezepturService.readAll(), scaleUp];
     RezepturService.writeAll(alle);
     toast({ title: 'Scale-up angelegt', description: `${fmt(menge)} L, Verhältnis vom Testansatz übernommen.` });
+    // Dialog schliessen, BEVOR navigiert wird - fehlte bisher (Nutzer-Meldung
+    // 10.10.2026: "Scale-up war etwas hakelig"). Da die Editor-Seite beim
+    // Navigieren zur neuen Rezeptur-ID dieselbe Komponenteninstanz wiederver-
+    // wendet, blieb der Scale-up-Dialog danach weiterhin sichtbar ueber der
+    // frisch geladenen Rezeptur - wirkte wie "nichts passiert", ein zweiter
+    // Versuch half nur zufaellig, weil inzwischen die Werte gueltig waren.
+    setIsScaleUpOpen(false);
     router.push(`/rezepturen/editor?id=${scaleUp.id}`);
   }
 
@@ -637,10 +653,15 @@ export default function RezepturEditor() {
             </div>
             {maxProduktion && (
               <div className="text-sm border rounded-lg p-3 bg-muted/50 space-y-1">
+                {scaleUpTankBelegt > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Tank bereits mit {fmt(scaleUpTankBelegt, 0)} L befüllt — freie Kapazität: {fmt(scaleUpTankFrei, 0)} L.
+                  </p>
+                )}
                 <p>Maximal möglich: <strong>{fmt(maxProduktion.maxMenge)} L</strong></p>
                 <p className="text-xs text-muted-foreground">
                   {maxProduktion.limitiertDurchTank
-                    ? `Begrenzt durch die Tank-Kapazität (${fmt(maxProduktion.tankKapazitaet, 0)} L).`
+                    ? `Begrenzt durch die freie Tank-Kapazität (${fmt(maxProduktion.tankKapazitaet, 0)} L).`
                     : maxProduktion.limitierendeKomponente
                       ? `Begrenzt durch die verfügbare Menge von „${maxProduktion.limitierendeKomponente}".`
                       : 'Keine Lagerbindung in den Komponenten gefunden.'}
@@ -659,7 +680,7 @@ export default function RezepturEditor() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsScaleUpOpen(false)}>Abbrechen</Button>
-            <Button onClick={handleErstelleScaleUp}>Scale-up erstellen</Button>
+            <Button onClick={handleErstelleScaleUp} disabled={!(parseFloat(scaleUpMenge.replace(',', '.')) > 0)}>Scale-up erstellen</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
