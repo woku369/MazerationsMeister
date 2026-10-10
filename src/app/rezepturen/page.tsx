@@ -1,19 +1,32 @@
 "use client";
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Beaker, Search } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Plus, Beaker, Search, Trash2 } from 'lucide-react';
 import * as RezepturService from '@/lib/rezeptur-service';
 import { erstelleNeueRezeptur } from '@/lib/rezeptur-manager';
 import { REZEPTUR_STATUS_LABELS, REZEPTUR_STATUS_COLORS, type Rezeptur } from '@/schemas/rezepturSchema';
 
 export default function RezepturenPage() {
+  const router = useRouter();
   const [rezepturen, setRezepturen] = useState<Rezeptur[]>([]);
   const [suchbegriff, setSuchbegriff] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('alle');
@@ -29,20 +42,34 @@ export default function RezepturenPage() {
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [neuName, setNeuName] = useState('');
   const [neuZielProdukt, setNeuZielProdukt] = useState('GFKC-O');
+  const [neuDirektverschnitt, setNeuDirektverschnitt] = useState(false);
 
   function openNeueRezeptur() {
     setNeuName('');
     setNeuZielProdukt('GFKC-O');
+    setNeuDirektverschnitt(false);
     setIsNewOpen(true);
   }
 
   function handleNeueRezeptur() {
     if (!neuName.trim()) return;
-    const neu = erstelleNeueRezeptur(neuName.trim(), (neuZielProdukt.trim() || 'GFKC'));
+    const neu = erstelleNeueRezeptur(neuName.trim(), (neuZielProdukt.trim() || 'GFKC'), neuDirektverschnitt);
     const alle = [...rezepturen, neu];
     RezepturService.writeAll(alle);
     setRezepturen(alle);
     window.location.href = `/rezepturen/editor?id=${neu.id}`;
+  }
+
+  // Keine Loeschfunktion gab es bisher gar nicht (Nutzer-Anfrage 10.10.2026,
+  // im Zuge eines gefundenen fehlerhaften Scale-up-Versuchs mit verwaisten,
+  // kaputten Rezeptur-Werten - ohne diese Funktion liess sich die Dublette
+  // nicht entfernen). Betrifft nur den Rezeptur-Datensatz selbst, NICHT die
+  // bereits gebuchten Lagerbewegungen/Journal-Eintraege einer produzierten
+  // Rezeptur - die bleiben unabhaengig davon erhalten.
+  function handleDeleteRezeptur(id: string) {
+    const alle = rezepturen.filter(r => r.id !== id);
+    RezepturService.writeAll(alle);
+    setRezepturen(alle);
   }
 
   const gefiltert = rezepturen
@@ -81,31 +108,60 @@ export default function RezepturenPage() {
           <p className="text-sm text-muted-foreground text-center py-12">Keine Rezepturen gefunden.</p>
         )}
         {gefiltert.map(r => (
-          <Link key={r.id} href={`/rezepturen/editor?id=${r.id}`}>
-            <Card className="hover:bg-accent/30 transition-colors cursor-pointer">
-              <CardHeader className="py-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      {r.name}
-                      {r.variantenName && <span className="text-muted-foreground font-normal">– {r.variantenName}</span>}
-                    </CardTitle>
-                    <CardDescription>
-                      {r.zielProduktName} · v{r.version} · Basis {r.basisMenge} L
-                      {r.produktionsMenge ? ` · Produktion ${r.produktionsMenge} L` : ''}
-                    </CardDescription>
-                  </div>
-                  <Badge className={REZEPTUR_STATUS_COLORS[r.status]}>{REZEPTUR_STATUS_LABELS[r.status]}</Badge>
+          <Card
+            key={r.id}
+            className="hover:bg-accent/30 transition-colors cursor-pointer"
+            onClick={() => router.push(`/rezepturen/editor?id=${r.id}`)}
+          >
+            <CardHeader className="py-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    {r.name}
+                    {r.variantenName && <span className="text-muted-foreground font-normal">– {r.variantenName}</span>}
+                    {r.istDirektverschnitt && <Badge variant="outline" className="font-normal">Direktverschnitt</Badge>}
+                  </CardTitle>
+                  <CardDescription>
+                    {r.zielProduktName} · v{r.version} · Basis {r.basisMenge} L
+                    {r.produktionsMenge ? ` · Produktion ${r.produktionsMenge} L` : ''}
+                  </CardDescription>
                 </div>
-              </CardHeader>
-              {r.ergebnis && (
-                <CardContent className="py-0 pb-4 text-sm text-muted-foreground">
-                  {r.ergebnis.gesamtMengeLiter.toFixed(1)} L bei {r.ergebnis.durchschnittAlkohol.toFixed(1)}% vol
-                  {r.produktionsDaten && ` · gebucht in ${r.produktionsDaten.zielTankNr}`}
-                </CardContent>
-              )}
-            </Card>
-          </Link>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge className={REZEPTUR_STATUS_COLORS[r.status]}>{REZEPTUR_STATUS_LABELS[r.status]}</Badge>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={e => e.stopPropagation()}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent onClick={e => e.stopPropagation()}>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Sind Sie sicher?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Möchten Sie die Rezeptur „{r.name}{r.variantenName ? ` – ${r.variantenName}` : ''}" wirklich unwiderruflich löschen?
+                          {r.status === 'produziert' && (
+                            <> <strong className="text-destructive">Hinweis:</strong> Diese Rezeptur wurde bereits produziert/gebucht — die zugehörigen Lagerbewegungen und Journal-Einträge bleiben davon unberührt, nur die Rezeptur-Dokumentation selbst wird entfernt.</>
+                          )}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteRezeptur(r.id)} className="bg-destructive hover:bg-destructive/90">
+                          Löschen
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            </CardHeader>
+            {r.ergebnis && (
+              <CardContent className="py-0 pb-4 text-sm text-muted-foreground">
+                {r.ergebnis.gesamtMengeLiter.toFixed(1)} L bei {r.ergebnis.durchschnittAlkohol.toFixed(1)}% vol
+                {r.produktionsDaten && ` · gebucht in ${r.produktionsDaten.zielTankNr}`}
+              </CardContent>
+            )}
+          </Card>
         ))}
       </div>
 
@@ -124,6 +180,14 @@ export default function RezepturenPage() {
               <Label>Zielprodukt-/Chargenbezeichnung</Label>
               <Input value={neuZielProdukt} onChange={e => setNeuZielProdukt(e.target.value)} placeholder='z.B. "GFKC-O"' />
             </div>
+            <label className="flex items-start gap-2 text-sm border rounded-lg p-3 cursor-pointer">
+              <Checkbox checked={neuDirektverschnitt} onCheckedChange={c => setNeuDirektverschnitt(!!c)} className="mt-0.5" />
+              <span>
+                <span className="font-medium">Direktverschnitt bereits gelagerter Mengen</span>
+                <br />
+                <span className="text-muted-foreground">Für reines Verschneiden bekannter, bereits gelagerter Mengen ohne neuen Testansatz — kein Testansatz, keine Sensorik-Pflicht, kein Scale-up. Für eine echte neue Rezeptur (erst klein testen, dann hochskalieren) nicht ankreuzen.</span>
+              </span>
+            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsNewOpen(false)}>Abbrechen</Button>

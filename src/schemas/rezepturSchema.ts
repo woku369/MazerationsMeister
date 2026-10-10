@@ -85,8 +85,18 @@ export const RezepturSchema = z.object({
   zielProduktName: z.string(),          // z.B. "GFKC-O" (Chargen-/Serienbezeichnung, siehe Namenskonvention oben)
   variantenName: z.string().optional(), // z.B. "Muster 1"
 
+  // Direktverschnitt bereits gelagerter Mengen statt Testansatz→Scale-up
+  // (Nutzer-Anfrage 10.10.2026, nach einem GFKC-Verschnitt aus drei bereits
+  // bekannten, bereits gelagerten Mengen ohne echten Skalierungsbedarf): bei
+  // true wird die Basismenge automatisch mit der Summe der Komponenten
+  // synchron gehalten (siehe berechneRezeptur()) statt ein separates
+  // 1L-Testverhältnis zu pflegen, und kannFreigebenWerden() verlangt keine
+  // Sensorik-Freigabe/Status-Fortschritt. Für echte neue Rezepturen (erst
+  // klein testen, dann hochskalieren) bleibt false der richtige Default.
+  istDirektverschnitt: z.boolean().default(false).optional(),
+
   // Mengen
-  basisMenge: z.number().min(0).default(1.0), // Testmenge, z.B. 1L
+  basisMenge: z.number().min(0).default(1.0), // Testmenge, z.B. 1L (bei istDirektverschnitt: die reale Gesamtmenge)
   produktionsMenge: z.number().min(0).optional(), // z.B. 500L
 
   // Komponenten

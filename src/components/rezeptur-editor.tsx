@@ -335,12 +335,24 @@ export default function RezepturEditor() {
 
       {/* Basisdaten */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Basisdaten</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            Basisdaten
+            {rezeptur.istDirektverschnitt && <Badge variant="outline" className="font-normal">Direktverschnitt</Badge>}
+          </CardTitle>
+          {rezeptur.istDirektverschnitt && (
+            <CardDescription>Direktverschnitt bereits gelagerter Mengen — keine Sensorik-Freigabe und kein Scale-up nötig, direkt „Produzieren &amp; Buchen" sobald alle Komponenten eingetragen sind.</CardDescription>
+          )}
+        </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4">
           <div>
-            <Label>Basismenge (L, Testansatz)</Label>
-            <Input type="text" inputMode="decimal" defaultValue={rezeptur.basisMenge} disabled={gesperrt}
-              onBlur={e => handleBasisMenge(e.target.value)} />
+            <Label>{rezeptur.istDirektverschnitt ? 'Gesamtmenge (L, aus Komponenten berechnet)' : 'Basismenge (L, Testansatz)'}</Label>
+            {rezeptur.istDirektverschnitt ? (
+              <div className="text-sm border rounded-md px-3 py-2 bg-muted/50">{fmt(rezeptur.basisMenge, 2)} L</div>
+            ) : (
+              <Input type="text" inputMode="decimal" defaultValue={rezeptur.basisMenge} disabled={gesperrt}
+                onBlur={e => handleBasisMenge(e.target.value)} />
+            )}
           </div>
           <div>
             <Label>Ergebnis (Basismenge)</Label>
@@ -508,7 +520,10 @@ export default function RezepturEditor() {
         </CardContent>
       </Card>
 
-      {/* Sensorik */}
+      {/* Sensorik - entfällt beim Direktverschnitt (Nutzer-Anfrage 10.10.2026): bereits
+          gelagerte, bereits in Vorperioden sensorisch beurteilte Mengen brauchen keine
+          erneute Testansatz-Bewertung. */}
+      {!rezeptur.istDirektverschnitt && (
       <Card>
         <CardHeader><CardTitle className="text-base">Sensorik-Bewertungen ({rezeptur.sensorikBewertungen.length})</CardTitle></CardHeader>
         <CardContent className="space-y-3">
@@ -537,6 +552,7 @@ export default function RezepturEditor() {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Vergleich mit dem Testansatz, aus dem diese Rezeptur per Scale-up entstand */}
       {vorgaenger && (
@@ -567,17 +583,22 @@ export default function RezepturEditor() {
         </Card>
       )}
 
-      {/* Status & Produktion */}
+      {/* Status & Produktion - Status-Toggle und Scale-up entfallen beim
+          Direktverschnitt (Nutzer-Anfrage 10.10.2026): kein Testansatz-Status
+          zu pflegen, kein Hochskalieren nötig, da die Komponenten bereits die
+          realen Mengen sind. */}
       <Card>
         <CardHeader><CardTitle className="text-base">Status</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex gap-2 flex-wrap">
-            {(['entwurf', 'test', 'freigegeben'] as const).map(s => (
-              <Button key={s} size="sm" variant={rezeptur.status === s ? 'default' : 'outline'} disabled={gesperrt} onClick={() => setStatus(s)}>
-                {REZEPTUR_STATUS_LABELS[s]}
-              </Button>
-            ))}
-          </div>
+          {!rezeptur.istDirektverschnitt && (
+            <div className="flex gap-2 flex-wrap">
+              {(['entwurf', 'test', 'freigegeben'] as const).map(s => (
+                <Button key={s} size="sm" variant={rezeptur.status === s ? 'default' : 'outline'} disabled={gesperrt} onClick={() => setStatus(s)}>
+                  {REZEPTUR_STATUS_LABELS[s]}
+                </Button>
+              ))}
+            </div>
+          )}
 
           {!freigabe.kannFreigeben && rezeptur.status !== 'produziert' && (
             <p className="text-xs text-amber-700">Für "Produzieren & Buchen" noch offen: {freigabe.gruende.join(' · ')}</p>
@@ -591,7 +612,7 @@ export default function RezepturEditor() {
             </div>
           ) : (
             <div className="flex gap-2 flex-wrap">
-              {rezeptur.status === 'freigegeben' && (
+              {!rezeptur.istDirektverschnitt && rezeptur.status === 'freigegeben' && (
                 <Button variant="outline" onClick={handleOpenScaleUp}>
                   <ArrowUpCircle className="w-4 h-4 mr-1" />Scale-up ableiten
                 </Button>

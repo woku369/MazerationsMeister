@@ -8,6 +8,7 @@ import {
   berechneMaxProduktionsmenge,
   erstelleScaleUp,
   validiereRezeptur,
+  kannFreigebenWerden,
   erstelleNeueRezeptur,
   fuegeKomponenteHinzu,
   fuegeFreieZutatHinzu,
@@ -76,6 +77,56 @@ describe('berechneRezeptur', () => {
     expect(result.ergebnis!.gesamtMengeLiter).toBe(1000);
     expect(result.ergebnis!.gesamtLiterAlkohol).toBeCloseTo(460, 3);
     expect(result.ergebnis!.durchschnittAlkohol).toBeCloseTo(46, 3); // 460/1000*100
+  });
+});
+
+describe('Direktverschnitt bereits gelagerter Mengen (Nutzer-Anfrage 10.10.2026, nach einem GFKC-Verschnitt aus bereits bekannten Lagermengen ohne echten Testansatz-/Skalierungsbedarf)', () => {
+  it('erstelleNeueRezeptur() startet mit basisMenge 0 statt 1L, wenn istDirektverschnitt gesetzt ist', () => {
+    const rezeptur = erstelleNeueRezeptur('GFKC-N', 'GFKC-N', true);
+    expect(rezeptur.istDirektverschnitt).toBe(true);
+    expect(rezeptur.basisMenge).toBe(0);
+  });
+
+  it('berechneRezeptur() hält die Basismenge automatisch synchron mit der Summe der absolut eingetragenen Litermengen', () => {
+    let rezeptur = erstelleNeueRezeptur('GFKC-N', 'GFKC-N', true);
+    rezeptur.komponenten = [
+      makeKomponente({ id: 'a', eingabeWert: 3190, alkoholgehalt: 53.5 }),
+      makeKomponente({ id: 'b', eingabeWert: 460, alkoholgehalt: 55.5 }),
+      makeKomponente({ id: 'c', eingabeWert: 2090, alkoholgehalt: 54 }),
+    ];
+    const result = berechneRezeptur(rezeptur);
+    expect(result.basisMenge).toBe(5740);
+    expect(result.ergebnis!.gesamtMengeLiter).toBe(5740);
+    // anteilProzent nutzt die SOFORT aktualisierte Basismenge, nicht den Stand von vor diesem Aufruf
+    expect(result.komponenten[0].anteilProzent).toBeCloseTo((3190 / 5740) * 100, 3);
+  });
+
+  it('die Basismenge explodiert NICHT mehr beim Skalieren, da sie der realen Gesamtmenge entspricht (Regressionstest für den gefundenen anteilProzent-319000%-Bug)', () => {
+    let rezeptur = erstelleNeueRezeptur('GFKC-N', 'GFKC-N', true);
+    rezeptur.komponenten = [makeKomponente({ id: 'a', eingabeWert: 3190, alkoholgehalt: 53.5 })];
+    rezeptur = berechneRezeptur(rezeptur);
+    expect(rezeptur.komponenten[0].anteilProzent).toBeLessThanOrEqual(100);
+    expect(rezeptur.komponenten[0].anteilProzent).not.toBe(319000);
+  });
+
+  it('kannFreigebenWerden() verlangt bei Direktverschnitt weder Sensorik-Freigabe noch einen Status-Fortschritt über "entwurf" hinaus', () => {
+    let rezeptur = erstelleNeueRezeptur('GFKC-N', 'GFKC-N', true);
+    rezeptur.komponenten = [makeKomponente({ id: 'a', eingabeWert: 100, alkoholgehalt: 50 })];
+    rezeptur = berechneRezeptur(rezeptur);
+    // status bleibt 'entwurf', keine sensorikBewertungen - würde ohne istDirektverschnitt ablehnen
+    const freigabe = kannFreigebenWerden(rezeptur);
+    expect(freigabe.kannFreigeben).toBe(true);
+    expect(freigabe.gruende).toEqual([]);
+  });
+
+  it('kannFreigebenWerden() verlangt bei einer normalen Rezeptur (kein Direktverschnitt) weiterhin Sensorik-Freigabe', () => {
+    let rezeptur = erstelleNeueRezeptur('Testansatz', 'GFKC-O'); // istDirektverschnitt default false
+    rezeptur.basisMenge = 100;
+    rezeptur.komponenten = [makeKomponente({ id: 'a', eingabeWert: 100, alkoholgehalt: 50 })];
+    rezeptur = berechneRezeptur(rezeptur);
+    const freigabe = kannFreigebenWerden(rezeptur);
+    expect(freigabe.kannFreigeben).toBe(false);
+    expect(freigabe.gruende.join(' ')).toContain('Sensorik');
   });
 });
 

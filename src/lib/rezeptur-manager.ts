@@ -42,6 +42,20 @@ export function berechneKomponente(
 export function berechneRezeptur(rezeptur: Rezeptur): Rezeptur {
   const updated = { ...rezeptur };
 
+  // Direktverschnitt bereits gelagerter Mengen (Nutzer-Anfrage 10.10.2026):
+  // keine separat gepflegte Testansatz-Basismenge, sondern immer die Summe
+  // der (in echten Litern eingetragenen) Komponenten - vorab bestimmt, damit
+  // anteilProzent schon im selben Durchlauf stimmt statt dem zuletzt
+  // bekannten Stand hinterherzuhinken. Ohne diesen Modus bleibt basisMenge
+  // unverändert eine frei eingegebene Testansatz-Größe (z.B. 1L).
+  let basisMenge = rezeptur.basisMenge;
+  if (rezeptur.istDirektverschnitt) {
+    basisMenge = rezeptur.komponenten.reduce((summe, k) => (
+      k.eingabeTyp === 'liter' ? summe + k.eingabeWert : summe
+    ), 0);
+    updated.basisMenge = basisMenge;
+  }
+
   // Skalierungsfaktor für eine bereits abgeleitete Scale-up-Rezeptur (produktionsMenge
   // gesetzt) - hält mengeFuerProduktion automatisch synchron, falls nach dem Scale-up
   // noch eine Komponente nachjustiert wird (siehe echter Ablauf, Stufe 2: "eventuell
@@ -49,12 +63,12 @@ export function berechneRezeptur(rezeptur: Rezeptur): Rezeptur {
   // Produktionsmenge bleibt weiterhin skaliereRezeptur() vorbehalten (braucht frische
   // Inventory-Daten) - produziereRezeptur() prüft das Lager ohnehin nochmal verbindlich
   // beim tatsächlichen Buchen, das hier ist nur die Anzeige.
-  const produktionsFaktor = rezeptur.produktionsMenge != null && rezeptur.basisMenge > 0
-    ? rezeptur.produktionsMenge / rezeptur.basisMenge
+  const produktionsFaktor = rezeptur.produktionsMenge != null && basisMenge > 0
+    ? rezeptur.produktionsMenge / basisMenge
     : null;
 
   updated.komponenten = rezeptur.komponenten.map(k => {
-    const berechnet = berechneKomponente(k, rezeptur.basisMenge);
+    const berechnet = berechneKomponente(k, basisMenge);
     if (produktionsFaktor != null) {
       berechnet.mengeFuerProduktion = berechnet.mengeInLiter * produktionsFaktor;
     }
@@ -347,14 +361,18 @@ export function validiereRezeptur(rezeptur: Rezeptur): {
 /**
  * Erstellt eine neue leere Rezeptur.
  */
-export function erstelleNeueRezeptur(name: string, zielProduktName: string): Rezeptur {
+export function erstelleNeueRezeptur(name: string, zielProduktName: string, istDirektverschnitt: boolean = false): Rezeptur {
   const now = new Date().toISOString();
 
   return {
     id: `rez_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     name,
     zielProduktName,
-    basisMenge: 1.0,
+    istDirektverschnitt,
+    // Direktverschnitt startet bei 0, da die Basismenge gleich die Summe der
+    // (in echten Litern eingetragenen) Komponenten ist und von berechneRezeptur()
+    // automatisch mitgeführt wird - ein Testansatz startet weiterhin bei 1L.
+    basisMenge: istDirektverschnitt ? 0 : 1.0,
     komponenten: [],
     sensorikBewertungen: [],
     status: 'entwurf',
@@ -484,13 +502,19 @@ export function kannFreigebenWerden(rezeptur: Rezeptur): {
 } {
   const gruende: string[] = [];
 
-  if (rezeptur.status === 'entwurf') {
-    gruende.push('Rezeptur muss erst getestet werden');
-  }
+  // Direktverschnitt bereits gelagerter Mengen (Nutzer-Anfrage 10.10.2026):
+  // kein Testansatz, keine Sensorik-Pflicht - die Komponenten sind bereits
+  // bekannte, bereits gelagerte und damit implizit freigegebene Mengen.
+  // Für echte neue Rezepturen bleibt die Sensorik-Freigabe weiterhin Pflicht.
+  if (!rezeptur.istDirektverschnitt) {
+    if (rezeptur.status === 'entwurf') {
+      gruende.push('Rezeptur muss erst getestet werden');
+    }
 
-  const positiveBewertungen = rezeptur.sensorikBewertungen.filter(b => b.freigegeben);
-  if (positiveBewertungen.length === 0) {
-    gruende.push('Mindestens eine positive Sensorik-Bewertung erforderlich');
+    const positiveBewertungen = rezeptur.sensorikBewertungen.filter(b => b.freigegeben);
+    if (positiveBewertungen.length === 0) {
+      gruende.push('Mindestens eine positive Sensorik-Bewertung erforderlich');
+    }
   }
 
   const validierung = validiereRezeptur(rezeptur);
