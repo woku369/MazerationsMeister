@@ -185,6 +185,38 @@ export function recordCorrection(
 }
 
 /**
+ * Korrigiert NUR das Vorgangsdatum (transactionDate) eines bereits
+ * gebuchten Journal-Eintrags - bewusst eng begrenzter Ausschnitt aus der
+ * zurückgestellten "Buchungen korrigieren"-Aufgabe (ROADMAP Aufgabe 80,
+ * Nutzer-Anfrage 10.10.2026: "kann ich das Datum des Vorgangs manuell
+ * korrigieren?", z.B. für die Primasprit-Einlagerung, die mangels
+ * Datumsfeld auf der Einlagern-Seite zunächst mit dem heutigen statt dem
+ * echten Datum gebucht wurde). Rührt NIE an Menge/Artikel/Typ/Lagerbestand
+ * - ändert ausschließlich das Datum. `erfasstAm` bleibt unverändert (das
+ * ist der echte, ursprüngliche Erfassungszeitpunkt und darf durch eine
+ * spätere Korrektur nicht überschrieben werden). Hängt eine kurze
+ * Nachvollziehbarkeits-Notiz an, damit eine Datumsänderung im Journal nicht
+ * spurlos bleibt.
+ */
+export function correctTransactionDate(
+  transactions: InventoryTransaction[],
+  transactionId: string,
+  newDate: Date,
+): InventoryTransaction[] {
+  return transactions.map(t => {
+    if (t.id !== transactionId) return t;
+    const altesDatum = new Date(t.transactionDate).toLocaleDateString('de-DE');
+    const neuesDatum = newDate.toLocaleDateString('de-DE');
+    const hinweis = `Datum korrigiert: ${altesDatum} → ${neuesDatum}`;
+    return {
+      ...t,
+      transactionDate: newDate,
+      notes: t.notes ? `${t.notes} · ${hinweis}` : hinweis,
+    };
+  });
+}
+
+/**
  * Wie removeEntry (Lagerposten vollständig entfernen), aber schreibt
  * zusätzlich einen "Abgang"-Journal-Eintrag über die komplette entfernte
  * Menge. Ohne das verschwindet ein gelöschter Posten spurlos aus dem

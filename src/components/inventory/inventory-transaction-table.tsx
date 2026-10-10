@@ -17,7 +17,8 @@ import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ListChecks, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ListChecks, ArrowUpDown, ArrowUp, ArrowDown, Pencil } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,11 @@ import { filterTransactionsByDateRange } from '@/lib/transaction-filter';
 
 type InventoryTransactionTableProps = {
   transactions: InventoryTransaction[];
+  // Bewusst eng begrenzt auf das Datum - siehe correctTransactionDate() in
+  // stock-service.ts für den Hintergrund (ROADMAP Aufgabe 80/92, Nutzer-
+  // Anfrage 10.10.2026). Menge/Artikel/Typ bleiben über diesen Weg bewusst
+  // unantastbar.
+  onCorrectDate: (transactionId: string, newDate: Date) => void;
 };
 
 type SortableKeys = keyof Pick<InventoryTransaction, 'transactionDate' | 'erfasstAm' | 'artikelNummer' | 'produktName' | 'chargenNummer' | 'tankNr' | 'type' | 'quantityLiters'>;
@@ -62,12 +68,25 @@ function loadStoredFilters(): StoredFilters {
   return fallback;
 }
 
-export default function InventoryTransactionTable({ transactions }: InventoryTransactionTableProps) {
+export default function InventoryTransactionTable({ transactions, onCorrectDate }: InventoryTransactionTableProps) {
   const [initialFilters] = useState(loadStoredFilters);
   const [transactionTypeFilter, setTransactionTypeFilter] = useState<string>(initialFilters.transactionTypeFilter);
   const [searchText, setSearchText] = useState(initialFilters.searchText);
   const [dateFrom, setDateFrom] = useState(initialFilters.dateFrom);
   const [dateTo, setDateTo] = useState(initialFilters.dateTo);
+
+  // Datum-Korrektur-Dialog (ROADMAP Aufgabe 80/92, Nutzer-Anfrage 10.10.2026)
+  const [editingTransaction, setEditingTransaction] = useState<InventoryTransaction | null>(null);
+  const [editDateValue, setEditDateValue] = useState('');
+  const openEditDate = (t: InventoryTransaction) => {
+    setEditingTransaction(t);
+    setEditDateValue(format(t.transactionDate, 'yyyy-MM-dd'));
+  };
+  const handleSaveEditDate = () => {
+    if (!editingTransaction || !editDateValue) return;
+    onCorrectDate(editingTransaction.id, new Date(editDateValue));
+    setEditingTransaction(null);
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -267,7 +286,18 @@ export default function InventoryTransactionTable({ transactions }: InventoryTra
               )}
               {sortedAndFilteredTransactions.map((transaction) => (
                 <TableRow key={transaction.id}>
-                  <TableCell>{format(transaction.transactionDate, 'dd.MM.yyyy HH:mm')}</TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center gap-1">
+                      {format(transaction.transactionDate, 'dd.MM.yyyy HH:mm')}
+                      <Button
+                        size="icon" variant="ghost" className="h-5 w-5 shrink-0"
+                        title="Datum korrigieren"
+                        onClick={() => openEditDate(transaction)}
+                      >
+                        <Pencil className="h-3 w-3 text-muted-foreground" />
+                      </Button>
+                    </span>
+                  </TableCell>
                   <TableCell className="text-muted-foreground text-xs">
                     {transaction.erfasstAm ? format(transaction.erfasstAm, 'dd.MM.yyyy HH:mm') : '–'}
                   </TableCell>
@@ -313,6 +343,27 @@ export default function InventoryTransactionTable({ transactions }: InventoryTra
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </CardContent>
+
+      <Dialog open={!!editingTransaction} onOpenChange={(open) => { if (!open) setEditingTransaction(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Datum korrigieren</DialogTitle>
+            <DialogDescription>
+              {editingTransaction && (
+                <>Ändert nur das Vorgangsdatum von „{editingTransaction.produktName}" ({editingTransaction.type}, {formatNumber(editingTransaction.quantityLiters)} L) — Menge, Artikel und Lagerbestand bleiben unverändert.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div>
+            <Label>Neues Datum</Label>
+            <Input type="date" value={editDateValue} onChange={e => setEditDateValue(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingTransaction(null)}>Abbrechen</Button>
+            <Button onClick={handleSaveEditDate} disabled={!editDateValue}>Speichern</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

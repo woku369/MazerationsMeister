@@ -815,6 +815,15 @@ export default function InventoryManagement() {
     });
     handleCloseTransactionDialog();
   };
+
+  // Datum-Korrektur eines bereits gebuchten Journal-Eintrags (ROADMAP
+  // Aufgabe 80/92, Nutzer-Anfrage 10.10.2026) - bewusst eng begrenzt auf nur
+  // das Datum, siehe correctTransactionDate() in stock-service.ts.
+  const handleCorrectTransactionDate = (transactionId: string, newDate: Date) => {
+    setInventoryTransactions(prev => StockService.correctTransactionDate(prev, transactionId, newDate));
+    toast({ title: 'Datum korrigiert', description: 'Das Vorgangsdatum wurde aktualisiert.' });
+  };
+
   useEffect(() => { setClientMounted(true); }, []);
 
   /**
@@ -935,7 +944,7 @@ export default function InventoryManagement() {
                     <Download className="mr-2 h-4 w-4" /> Transaktionsprotokoll exportieren (XLSX)
                 </Button>
               </div>
-              <InventoryTransactionTable transactions={inventoryTransactions} />
+              <InventoryTransactionTable transactions={inventoryTransactions} onCorrectDate={handleCorrectTransactionDate} />
             </TabsContent>
 
             <TabsContent value="artikelstamm" className="space-y-4">

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { addEntry, updateEntry, applyTransaction, recordTransaction, recordNewEntry, recordRemoveEntry, poolIntoTank, recordPoolIntoTank, recordCorrection, findAehnlichenWert } from '../stock-service';
+import { addEntry, updateEntry, applyTransaction, recordTransaction, recordNewEntry, recordRemoveEntry, poolIntoTank, recordPoolIntoTank, recordCorrection, correctTransactionDate, findAehnlichenWert } from '../stock-service';
 import { calcLA } from '../mazeration-calc';
 import type { StoredInventoryItem, InventoryTransaction } from '@/schemas/inventorySchema';
 
@@ -304,6 +304,40 @@ describe('recordCorrection: Inventur-Korrektur (gespindelter ABV / Steigrohr-Dif
     const fremderPosten = makeItem({ id: 'unbekannt' });
     const result = recordCorrection([], [], fremderPosten);
     expect(result.transactions).toEqual([]);
+  });
+});
+
+describe('correctTransactionDate: nachträgliche Datumskorrektur eines Journal-Eintrags (Nutzer-Anfrage 10.10.2026 - Primasprit wurde mangels Datumsfeld zunächst mit dem falschen Datum gebucht)', () => {
+  it('ändert transactionDate, lässt alles andere unverändert UND rührt erfasstAm nicht an', () => {
+    const posten = makeItem({ id: 'item-10' });
+    const { transactions } = expectOk(recordTransaction([posten], [], 'item-10', 'Zugang', 6000, { date: new Date('2026-10-10T06:47:52.000Z') }));
+    const original = transactions[0];
+    const korrigiert = correctTransactionDate(transactions, original.id, new Date('2026-07-15T00:00:00.000Z'));
+
+    expect(korrigiert[0].transactionDate).toEqual(new Date('2026-07-15T00:00:00.000Z'));
+    expect(korrigiert[0].erfasstAm).toEqual(original.erfasstAm);
+    expect(korrigiert[0].quantityLiters).toBe(original.quantityLiters);
+    expect(korrigiert[0].type).toBe(original.type);
+    expect(korrigiert[0].id).toBe(original.id);
+  });
+
+  it('hängt eine nachvollziehbare Notiz mit altem/neuem Datum an', () => {
+    const posten = makeItem({ id: 'item-11' });
+    const { transactions } = expectOk(recordTransaction([posten], [], 'item-11', 'Zugang', 100, {
+      date: new Date('2026-10-10T00:00:00.000Z'), notes: 'Einlagerung Ethanol Prima 60%',
+    }));
+    const korrigiert = correctTransactionDate(transactions, transactions[0].id, new Date('2026-07-15T00:00:00.000Z'));
+    expect(korrigiert[0].notes).toContain('Einlagerung Ethanol Prima 60%');
+    expect(korrigiert[0].notes).toContain('Datum korrigiert');
+    expect(korrigiert[0].notes).toContain('15.7.2026');
+  });
+
+  it('lässt andere Transaktionen unberührt', () => {
+    const posten = makeItem({ id: 'item-12' });
+    const a = expectOk(recordTransaction([posten], [], 'item-12', 'Zugang', 100));
+    const b = expectOk(recordTransaction(a.items, a.transactions, 'item-12', 'Zugang', 50));
+    const korrigiert = correctTransactionDate(b.transactions, b.transactions[0].id, new Date('2026-01-01'));
+    expect(korrigiert[1]).toEqual(b.transactions[1]);
   });
 });
 
