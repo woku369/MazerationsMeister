@@ -464,11 +464,11 @@
       "produktName": "GFKC-M",
       "category": "M",
       "tankNr": "T 349",
-      "currentQuantityLiters": 0,
+      "currentQuantityLiters": 3190,
       "alcoholVolProzent": 53.5,
       "dichte20C": 0.9257,
-      "literAbsolutalkohol": 0,
-      "lastInventoryDate": "2026-10-10T13:51:11.705Z",
+      "literAbsolutalkohol": 1706.65,
+      "lastInventoryDate": "2025-12-30T23:00:00.000Z",
       "bemerkungen": ""
     },
     {
@@ -479,11 +479,11 @@
       "produktName": "GFKC-M",
       "category": "M",
       "tankNr": "T 342",
-      "currentQuantityLiters": 0,
+      "currentQuantityLiters": 460,
       "alcoholVolProzent": 55.5,
       "dichte20C": 0.9138,
-      "literAbsolutalkohol": 0,
-      "lastInventoryDate": "2026-10-10T13:51:11.705Z",
+      "literAbsolutalkohol": 255.3,
+      "lastInventoryDate": "2025-12-30T23:00:00.000Z",
       "bemerkungen": ""
     },
     {
@@ -643,11 +643,11 @@
       "produktName": "Zitronenmelisse",
       "category": "M",
       "tankNr": "T 346",
-      "currentQuantityLiters": 1820,
+      "currentQuantityLiters": 3910,
       "alcoholVolProzent": 54,
       "dichte20C": 0.9301,
-      "literAbsolutalkohol": 982.8,
-      "lastInventoryDate": "2026-10-10T13:51:11.705Z",
+      "literAbsolutalkohol": 2111.4,
+      "lastInventoryDate": "2025-12-30T23:00:00.000Z",
       "bemerkungen": ""
     },
     {
@@ -1497,21 +1497,7 @@
         }
       ],
       "literAbsolutalkohol": 2407.48
-    },
-    {
-      "id": "4f878c65-db61-439f-b5db-60cd0b7a236f",
-      "artikelNummer": "GFKC-N",
-      "produktName": "GFKC-N",
-      "chargenNummer": "GFKC-N",
-      "category": "GFKC",
-      "tankNr": "T 349",
-      "currentQuantityLiters": 5740,
-      "alcoholVolProzent": 53.84,
-      "lastInventoryDate": "2026-10-10T13:51:11.705Z",
-      "bemerkungen": "Ausmischung GFKC-N Muster",
-      "kennzeichen": "S",
-      "literAbsolutalkohol": 3090.42
     }
   ],
-  "lastUpdated": "2026-10-10T13:55:26.742Z"
+  "lastUpdated": "2026-10-10T18:40:17.616Z"
 }
