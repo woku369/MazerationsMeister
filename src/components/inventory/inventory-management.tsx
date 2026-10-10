@@ -23,6 +23,7 @@ import type { StoredInventoryItem, InventoryTransaction, InventoryTransactionCor
 import type { ArtikelDefinition, ArtikelDefinitionFormInput } from '@/schemas/artikelDefinitionSchema';
 import { format } from 'date-fns';
 import { syncTankDefinitionsWithInventory } from '@/lib/tank-sync';
+import { computeMissingArtikelDefinitionen } from '@/lib/artikel-definition-sync';
 import * as StockService from '@/lib/stock-service';
 import * as BackupService from '@/lib/backup-service';
 import * as ElectronBridge from '@/lib/electron-bridge';
@@ -428,24 +429,12 @@ export default function InventoryManagement() {
 
   useEffect(() => {
     if (inventoryItems.length === 0) return;
-    // Erzeuge fehlende Artikeldefinitionen aus importierten Lagerartikeln
-    const existierendeNamen = new Set(artikelDefinitionen.map(a => a.produktName));
-    const produktNamenFromInventory = Array.from(new Set(inventoryItems.map(i => (i.produktName || '').toString().trim()).filter(Boolean)));
-    const fehlendeNamen = produktNamenFromInventory.filter(name => !existierendeNamen.has(name));
-    if (fehlendeNamen.length === 0) return;
-    const neueArtikel: ArtikelDefinition[] = fehlendeNamen.map(name => {
-      const item = inventoryItems.find(i => (i.produktName || '').toString().trim() === name);
-      return {
-        id: uuidv4(),
-        artikelNummer: '',
-        produktName: name,
-        category: item?.category || '',
-        beschreibung: '',
-        alcoholVolProzent: item?.alcoholVolProzent,
-        dichte20C: item?.dichte20C,
-        kennzeichen: item ? (artikelDefinitionen.find(a => a.produktName === item.produktName)?.kennzeichen || '') : '',
-      };
-    });
+    // Erzeuge fehlende Artikeldefinitionen aus importierten Lagerartikeln -
+    // siehe computeMissingArtikelDefinitionen() für den Hintergrund (Nutzer-
+    // Meldung 10.10.2026: Mazerat/Destillat derselben Pflanze wurden nicht
+    // als getrennte Artikel erkannt).
+    const neueArtikel = computeMissingArtikelDefinitionen(inventoryItems, artikelDefinitionen);
+    if (neueArtikel.length === 0) return;
     setArtikelDefinitionen(prev => [...prev, ...neueArtikel]);
     toast({ title: 'Artikelstamm aktualisiert', description: `${neueArtikel.length} Produkte aus Lagerbestand übernommen.` });
   }, [inventoryItems]);
