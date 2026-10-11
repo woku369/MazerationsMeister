@@ -192,7 +192,18 @@ export function recordCorrection(
   const mengeDelta = Math.abs((updated.currentQuantityLiters ?? 0) - (before.currentQuantityLiters ?? 0));
   const vorherText = `${before.currentQuantityLiters.toFixed(2)} L @ ${before.alcoholVolProzent}%`;
   const nachherText = `${updated.currentQuantityLiters.toFixed(2)} L @ ${updated.alcoholVolProzent}%`;
-  const detailNote = `Inventur-Korrektur: ${vorherText} → ${nachherText}${opts.notes ? ` (${opts.notes})` : ''}`;
+  // LA-Differenz explizit im Journal ausweisen (Nutzer-Anfrage 11.10.2026: "pflege
+  // ich den [ABV] nach, ändert sich ja auch zwangsläufig die gesamt-LA-menge im
+  // lagerbestand" - vorher stand nur Menge/ABV im Vorher/Nachher, die eigentlich
+  // interessierende LA-Konsequenz musste man sich selbst ausrechnen).
+  const laVorher = calcLA(before.currentQuantityLiters ?? 0, before.alcoholVolProzent ?? 0);
+  const laNachher = calcLA(updated.currentQuantityLiters ?? 0, updated.alcoholVolProzent ?? 0);
+  const laText = `LA: ${laVorher.toFixed(2)} → ${laNachher.toFixed(2)} L`;
+  // Dichte nur erwähnen, wenn sie sich tatsächlich geändert hat (meist unverändert).
+  const dichteText = before.dichte20C !== updated.dichte20C
+    ? `, Dichte: ${before.dichte20C ?? '–'} → ${updated.dichte20C ?? '–'}`
+    : '';
+  const detailNote = `Inventur-Korrektur: ${vorherText} → ${nachherText} (${laText}${dichteText})${opts.notes ? ` – ${opts.notes}` : ''}`;
 
   const entry = makeTransactionEntry(updated, 'Korrektur', parseFloat(mengeDelta.toFixed(3)), { ...opts, notes: detailNote });
   return { items: updatedItems, transactions: [...transactions, entry] };

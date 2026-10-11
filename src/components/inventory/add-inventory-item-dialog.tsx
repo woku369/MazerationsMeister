@@ -91,6 +91,7 @@ export default function AddInventoryItemDialog({
           tankNr: initialData.tankNr,
           quantityLiters: initialData.currentQuantityLiters,
           alcoholVolProzent: initialData.alcoholVolProzent,
+          dichte20C: initialData.dichte20C,
           // initialData kommt oft aus JSON.parse(localStorage) - lastInventoryDate ist dann ein
           // String, kein echtes Date-Objekt, und die Zod-Validierung (z.date()) lehnt das beim
           // Speichern sonst mit "Ungültiges Datum" ab, ohne dass sichtbar wird warum.
@@ -110,6 +111,7 @@ export default function AddInventoryItemDialog({
           tankNr: '',
           quantityLiters: 0,
           alcoholVolProzent: 0,
+          dichte20C: undefined,
           inventoryDate: new Date(),
           bemerkungen: '',
         });
@@ -141,15 +143,18 @@ export default function AddInventoryItemDialog({
   };
 
   const onSubmit = (data: InventoryItemFormInput) => {
-    // Bei einer Mengen- oder ABV-Änderung eines bestehenden Postens (z.B. Inventur-
-    // Korrektur nach Steigrohr-Ablesung) muss ein Grund angegeben werden, damit die
-    // Korrektur im Buchungsjournal nachvollziehbar/begründbar bleibt - nicht nur die
-    // reinen Vorher/Nachher-Zahlen.
+    // Bei einer Mengen-, ABV- oder Dichte-Änderung eines bestehenden Postens (z.B.
+    // Inventur-Korrektur nach Steigrohr-Ablesung oder amtliche Alkoholbestimmung per
+    // Probedestillation) muss ein Grund angegeben werden, damit die Korrektur im
+    // Buchungsjournal nachvollziehbar/begründbar bleibt - nicht nur die reinen
+    // Vorher/Nachher-Zahlen. Dichte dabei bewusst gleich behandelt wie Menge/ABV
+    // (Nutzer-Anfrage 11.10.2026: beide sollen korrigierbar sein).
     if (isEditing && initialData) {
       const mengeGeaendert = data.quantityLiters !== initialData.currentQuantityLiters;
       const abvGeaendert = data.alcoholVolProzent !== initialData.alcoholVolProzent;
-      if ((mengeGeaendert || abvGeaendert) && !data.korrekturGrund?.trim()) {
-        form.setError('korrekturGrund', { type: 'manual', message: 'Bei einer Mengen- oder ABV-Änderung bitte einen Grund angeben (z.B. Steigrohr-Ablesung Inventur).' });
+      const dichteGeaendert = data.dichte20C !== initialData.dichte20C;
+      if ((mengeGeaendert || abvGeaendert || dichteGeaendert) && !data.korrekturGrund?.trim()) {
+        form.setError('korrekturGrund', { type: 'manual', message: 'Bei einer Mengen-, ABV- oder Dichte-Änderung bitte einen Grund angeben (z.B. amtliche Alkoholbestimmung per Probedestillation).' });
         return;
       }
     }
@@ -353,18 +358,42 @@ export default function AddInventoryItemDialog({
                 </FormItem>
               )}
             />
-            {/* Korrektur-Grund - nur beim Bearbeiten, Pflicht wenn Menge/ABV geändert wurden */}
+            {/* Dichte bei 20°C (optional) - z.B. amtliche Alkoholbestimmung per
+                Probedestillation liefert neben dem ABV oft auch einen korrigierten
+                Dichte-Wert (Nutzer-Anfrage 11.10.2026). Bisher nur per XLSX-Import
+                setzbar, hier erstmals auch manuell pflegbar/korrigierbar. */}
+            <FormField
+              control={form.control}
+              name="dichte20C"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Dichte bei 20°C (optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="z.B. 0,9123"
+                      {...field}
+                      value={getNumericFieldValueForDisplay(field.value)}
+                      onChange={e => handleNumericInputChange(field, e.target.value)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {/* Korrektur-Grund - nur beim Bearbeiten, Pflicht wenn Menge/ABV/Dichte geändert wurden */}
             {isEditing && (
               <FormField
                 control={form.control}
                 name="korrekturGrund"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Grund bei Mengen-/ABV-Korrektur (falls zutreffend)</FormLabel>
+                    <FormLabel>Grund bei Mengen-/ABV-/Dichte-Korrektur (falls zutreffend)</FormLabel>
                     <FormControl>
                       <Input
                         type="text"
-                        placeholder="z.B. Steigrohr-Ablesung Inventur 31.12., 13°C"
+                        placeholder="z.B. amtliche Alkoholbestimmung per Probedestillation"
                         {...field}
                         value={field.value ?? ''}
                       />

@@ -343,6 +343,23 @@ describe('recordCorrection: Inventur-Korrektur (gespindelter ABV / Steigrohr-Dif
     const result = recordCorrection([], [], fremderPosten);
     expect(result.transactions).toEqual([]);
   });
+
+  it('weist die LA-Differenz explizit im Journal aus, wenn eine amtliche Alkoholbestimmung (Probedestillation) den ABV korrigiert (Nutzer-Anfrage 11.10.2026)', () => {
+    const bestand = makeItem({ currentQuantityLiters: 1000, alcoholVolProzent: 60 }); // LA vorher: 600
+    const korrigiert = { ...bestand, alcoholVolProzent: 58 }; // LA nachher: 580, Menge unveraendert
+    const result = recordCorrection([bestand], [], korrigiert, { notes: 'Amtliche Alkoholbestimmung per Probedestillation' });
+    expect(result.transactions[0].notes).toContain('LA: 600.00 → 580.00 L');
+    expect(result.transactions[0].notes).toContain('Amtliche Alkoholbestimmung per Probedestillation');
+  });
+
+  it('erwaehnt die Dichte im Journal nur, wenn sie sich tatsaechlich geaendert hat', () => {
+    const bestand = makeItem({ dichte20C: 0.95 });
+    const ohneDichteAenderung = recordCorrection([bestand], [], { ...bestand, alcoholVolProzent: 58 });
+    expect(ohneDichteAenderung.transactions[0].notes).not.toContain('Dichte:');
+
+    const mitDichteAenderung = recordCorrection([bestand], [], { ...bestand, dichte20C: 0.9123 });
+    expect(mitDichteAenderung.transactions[0].notes).toContain('Dichte: 0.95 → 0.9123');
+  });
 });
 
 describe('correctTransactionDate: nachträgliche Datumskorrektur eines Journal-Eintrags (Nutzer-Anfrage 10.10.2026 - Primasprit wurde mangels Datumsfeld zunächst mit dem falschen Datum gebucht)', () => {
