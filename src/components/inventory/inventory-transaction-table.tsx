@@ -23,6 +23,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { filterTransactionsByDateRange } from '@/lib/transaction-filter';
 
 type InventoryTransactionTableProps = {
@@ -54,10 +55,16 @@ const FILTER_STORAGE_KEY = 'inventoryTransactionTableFilters';
 // "Filter zurücksetzen" klickt, bleibt diese Wahl erhalten.
 const DEFAULT_DATE_FROM = '2026-10-10';
 
-type StoredFilters = { transactionTypeFilter: string; searchText: string; dateFrom: string; dateTo: string };
+type StoredFilters = { transactionTypeFilter: string; searchText: string; dateFrom: string; dateTo: string; hideRichtigstellungen: boolean };
 
 function loadStoredFilters(): StoredFilters {
-  const fallback: StoredFilters = { transactionTypeFilter: 'all', searchText: '', dateFrom: DEFAULT_DATE_FROM, dateTo: '' };
+  // hideRichtigstellungen startet auf true (Nutzer-Anfrage 11.10.2026: Gebinde-
+  // Splitting-Buchungen "haben mit dem Zu-, Aus- und Umbuchen nichts zu tun",
+  // sollen standardmäßig nicht in der Hauptansicht stehen) - wie beim
+  // DEFAULT_DATE_FROM-Filter bewusst nur ein Default, keine Löschung: über die
+  // Checkbox jederzeit wieder einblendbar, bleibt dann wie die anderen Filter
+  // in localStorage gespeichert.
+  const fallback: StoredFilters = { transactionTypeFilter: 'all', searchText: '', dateFrom: DEFAULT_DATE_FROM, dateTo: '', hideRichtigstellungen: true };
   if (typeof window === 'undefined') return fallback;
   try {
     const raw = localStorage.getItem(FILTER_STORAGE_KEY);
@@ -74,6 +81,7 @@ export default function InventoryTransactionTable({ transactions, onCorrectDate 
   const [searchText, setSearchText] = useState(initialFilters.searchText);
   const [dateFrom, setDateFrom] = useState(initialFilters.dateFrom);
   const [dateTo, setDateTo] = useState(initialFilters.dateTo);
+  const [hideRichtigstellungen, setHideRichtigstellungen] = useState(initialFilters.hideRichtigstellungen);
 
   // Datum-Korrektur-Dialog (ROADMAP Aufgabe 80/92, Nutzer-Anfrage 10.10.2026)
   const [editingTransaction, setEditingTransaction] = useState<InventoryTransaction | null>(null);
@@ -90,8 +98,8 @@ export default function InventoryTransactionTable({ transactions, onCorrectDate 
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({ transactionTypeFilter, searchText, dateFrom, dateTo }));
-  }, [transactionTypeFilter, searchText, dateFrom, dateTo]);
+    localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({ transactionTypeFilter, searchText, dateFrom, dateTo, hideRichtigstellungen }));
+  }, [transactionTypeFilter, searchText, dateFrom, dateTo, hideRichtigstellungen]);
   const [sortConfig, setSortConfig] = useState<{ key: SortableKeys | null; direction: 'ascending' | 'descending' }>({
     key: 'transactionDate', // Default sort by date
     direction: 'descending',  // Default sort descending
@@ -119,13 +127,14 @@ export default function InventoryTransactionTable({ transactions, onCorrectDate 
     return <ArrowDown className="ml-2 h-3 w-3 text-primary" />;
   };
 
-  const hasActiveFilters = transactionTypeFilter !== 'all' || searchText.trim() !== '' || dateFrom !== '' || dateTo !== '';
+  const hasActiveFilters = transactionTypeFilter !== 'all' || searchText.trim() !== '' || dateFrom !== '' || dateTo !== '' || !hideRichtigstellungen;
 
   const resetFilters = () => {
     setTransactionTypeFilter('all');
     setSearchText('');
     setDateFrom('');
     setDateTo('');
+    setHideRichtigstellungen(true);
   };
 
   const sortedAndFilteredTransactions = useMemo(() => {
@@ -150,6 +159,10 @@ export default function InventoryTransactionTable({ transactions, onCorrectDate 
     // IMMER alles aus, sobald "Von"/"Bis" gesetzt war).
     filteredItems = filterTransactionsByDateRange(filteredItems, dateFrom, dateTo);
 
+    if (hideRichtigstellungen) {
+      filteredItems = filteredItems.filter(item => !item.istRichtigstellung);
+    }
+
     if (sortConfig.key !== null) {
       filteredItems.sort((a, b) => {
         const valA = a[sortConfig.key!];
@@ -172,7 +185,7 @@ export default function InventoryTransactionTable({ transactions, onCorrectDate 
       });
     }
     return filteredItems;
-  }, [transactions, transactionTypeFilter, searchText, dateFrom, dateTo, sortConfig]);
+  }, [transactions, transactionTypeFilter, searchText, dateFrom, dateTo, hideRichtigstellungen, sortConfig]);
 
   return (
     <Card className="shadow-lg mt-8">
@@ -210,13 +223,23 @@ export default function InventoryTransactionTable({ transactions, onCorrectDate 
               <Label className="text-xs text-muted-foreground">Bis</Label>
               <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-auto" />
             </div>
+            <div className="flex items-center gap-2 pb-1.5">
+              <Checkbox
+                id="hide-richtigstellungen"
+                checked={hideRichtigstellungen}
+                onCheckedChange={(checked) => setHideRichtigstellungen(checked === true)}
+              />
+              <Label htmlFor="hide-richtigstellungen" className="text-xs text-muted-foreground cursor-pointer">
+                Richtigstellungen ausblenden
+              </Label>
+            </div>
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={resetFilters} className="text-muted-foreground">
                 Filter zurücksetzen
               </Button>
             )}
           </div>
-          {dateFrom === DEFAULT_DATE_FROM && !searchText && transactionTypeFilter === 'all' && !dateTo && (
+          {dateFrom === DEFAULT_DATE_FROM && !searchText && transactionTypeFilter === 'all' && !dateTo && hideRichtigstellungen && (
             <p className="text-xs text-muted-foreground">
               Standardmäßig ab 10.10.2026 gefiltert (Produktivstart) — ältere Buchungen waren reine Korrekturen beim Einrichten der Tankverwaltung. „Filter zurücksetzen" zeigt auch diese wieder.
             </p>
@@ -318,6 +341,11 @@ export default function InventoryTransactionTable({ transactions, onCorrectDate 
                     >
                       {transaction.type}
                     </Badge>
+                    {transaction.istRichtigstellung && (
+                      <Badge variant="outline" className="ml-1 text-muted-foreground border-dashed">
+                        Richtigstellung
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">{formatNumber(transaction.quantityLiters)}</TableCell>
                   <TableCell>

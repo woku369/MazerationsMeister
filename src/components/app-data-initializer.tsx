@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { initializeApp, getAppDataStatus } from '@/lib/app-data-manager';
 import { getFullDataSync } from '@/lib/full-data-sync';
 import { getTankAutoSync } from '@/lib/tank-auto-sync';
+import * as StockService from '@/lib/stock-service';
 
 /**
  * Legt die beiden vom Nutzer tatsächlich benutzten Kategorien (M für Mazerat,
@@ -24,6 +25,21 @@ export function ensureDefaultCategories() {
       { name: 'Dest', color: '#8b5cf6' },
     ]));
   }
+}
+
+/**
+ * Markiert bereits gebuchte Gebinde-Splitting-Einträge nachträglich als
+ * Richtigstellung (Nutzer-Anfrage 11.10.2026: die Splits vom 06.10.2026
+ * sollen aus der Standardansicht des Buchungsjournals verschwinden können,
+ * da sie "mit dem Zu-, Aus- und Umbuchen nichts zu tun hatten"). Siehe
+ * `StockService.backfillRichtigstellungFlag()` für die Erkennungslogik -
+ * hier nur der Lese-/Schreib-Glue-Code, idempotent bei jedem App-Start.
+ */
+export function ensureSplitTransactionsBackfilled() {
+  if (typeof window === 'undefined') return;
+  const current = StockService.readTransactions();
+  const updated = StockService.backfillRichtigstellungFlag(current);
+  if (updated !== current) StockService.writeTransactions(updated);
 }
 
 /**
@@ -77,6 +93,7 @@ export default function AppDataInitializer({ children }: { children: React.React
     getFullDataSync();
     getTankAutoSync();
     ensureDefaultCategories();
+    ensureSplitTransactionsBackfilled();
   }, []);
 
   // Loading Screen

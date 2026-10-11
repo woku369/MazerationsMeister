@@ -488,7 +488,10 @@ export default function TankManagement() {
       sourceItem.id,
       'Abgang',
       sourceItem.currentQuantityLiters,
-      { notes: `Aufgeteilt auf: ${bezeichnungen.join(', ')}` },
+      // istRichtigstellung: Splitten verschiebt nur die interne Gebinde-
+      // Aufteilung, das Gesamtvolumen verlässt/betritt den Betrieb dabei
+      // nicht - fachlich kein echter Zu-/Abgang (Nutzer-Anfrage 11.10.2026).
+      { notes: `Aufgeteilt auf: ${bezeichnungen.join(', ')}`, istRichtigstellung: true },
     );
     if (!abgang.ok) {
       toast({ title: 'Split fehlgeschlagen', description: abgang.error, variant: 'destructive' });
@@ -521,7 +524,7 @@ export default function TankManagement() {
         bemerkungen: sourceItem.bemerkungen,
         kennzeichen: sourceItem.kennzeichen,
       };
-      const zugang = StockService.recordNewEntry(items, txs, neuesItem, { notes: `Aufgeteilt aus ${splittingTank.tankNr}` });
+      const zugang = StockService.recordNewEntry(items, txs, neuesItem, { notes: `Aufgeteilt aus ${splittingTank.tankNr}`, istRichtigstellung: true });
       items = zugang.items;
       txs = zugang.transactions;
       neueTanks.push({

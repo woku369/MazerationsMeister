@@ -131,6 +131,15 @@ export const inventoryTransactionSchema = z.object({
   // werden. Optional, da ältere, vor dieser Änderung gebuchte Einträge dieses
   // Feld nicht haben.
   erfasstAm: z.date().optional(),
+  // Richtigstellung statt echter Bestandsbewegung (Nutzer-Anfrage 11.10.2026):
+  // z.B. Gebinde-Splitten (tank-management.tsx) - das Gesamtvolumen verlässt
+  // oder betritt den Betrieb dabei nicht, nur die interne Aufteilung auf
+  // Gebinde ändert sich. Fachlich kein echter Zu-/Abgang, technisch aber über
+  // dieselben StockService-Buchungsfunktionen abgebildet (kein Parallel-
+  // system) - dieses Flag macht den Unterschied im Journal sichtbar/filterbar,
+  // ohne die Buchung selbst zu verändern. Optional/undefined = normale
+  // Bestandsbewegung (der weit überwiegende Normalfall).
+  istRichtigstellung: z.boolean().optional(),
   notes: z.string(), // Use empty string if not applicable
 });
 

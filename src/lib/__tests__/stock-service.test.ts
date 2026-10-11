@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { addEntry, updateEntry, applyTransaction, recordTransaction, recordNewEntry, recordRemoveEntry, poolIntoTank, recordPoolIntoTank, recordCorrection, correctTransactionDate, findAehnlichenWert } from '../stock-service';
+import { addEntry, updateEntry, applyTransaction, recordTransaction, recordNewEntry, recordRemoveEntry, poolIntoTank, recordPoolIntoTank, recordCorrection, correctTransactionDate, findAehnlichenWert, backfillRichtigstellungFlag } from '../stock-service';
 import { calcLA } from '../mazeration-calc';
 import type { StoredInventoryItem, InventoryTransaction } from '@/schemas/inventorySchema';
 
@@ -128,6 +128,44 @@ describe('stock-service: Buchungsjournal (recordTransaction/recordNewEntry)', ()
     expect(transactions[0].erfasstAm!.getTime()).toBeGreaterThanOrEqual(vorJetzt.getTime());
     // erfasstAm darf sich NICHT ueber opts.date faelschen lassen - sonst waere es nur ein zweiter Name fuer dasselbe Feld.
     expect(transactions[0].erfasstAm!.getTime()).not.toBe(historischesDatum.getTime());
+  });
+});
+
+describe('istRichtigstellung: Gebinde-Splitting als Nicht-Bestandsbewegung kennzeichnen (Nutzer-Anfrage 11.10.2026)', () => {
+  it('recordTransaction/recordNewEntry setzen istRichtigstellung nur, wenn explizit angefordert', () => {
+    const ohneFlag = expectOk(recordTransaction([makeItem()], [], 'item-1', 'Abgang', 100, { notes: 'Normaler Abgang' }));
+    expect(ohneFlag.transactions[0].istRichtigstellung).toBeUndefined();
+
+    const mitFlag = expectOk(recordTransaction([makeItem()], [], 'item-1', 'Abgang', 100, { notes: 'Aufgeteilt auf: X, Y', istRichtigstellung: true }));
+    expect(mitFlag.transactions[0].istRichtigstellung).toBe(true);
+
+    const neuerPosten = makeItem({ id: 'item-5', chargenNummer: 'C5' });
+    const { transactions } = recordNewEntry([], [], neuerPosten, { notes: 'Aufgeteilt aus T341', istRichtigstellung: true });
+    expect(transactions[0].istRichtigstellung).toBe(true);
+  });
+
+  it('backfillRichtigstellungFlag markiert ausschliesslich bereits gebuchte Split-Einträge am Notiz-Muster, ruehrt alles andere nicht an', () => {
+    const txs: InventoryTransaction[] = [
+      { id: 't1', itemId: 'item-1', artikelNummer: 'A1', produktName: 'P', chargenNummer: 'C1', tankNr: 'T341', alcoholVolProzent: 60, type: 'Abgang', quantityLiters: 500, transactionDate: new Date(), notes: 'Aufgeteilt auf: Fass A, Fass B' },
+      { id: 't2', itemId: 'item-2', artikelNummer: 'A1', produktName: 'P', chargenNummer: 'C2', tankNr: 'Fass A', alcoholVolProzent: 60, type: 'Zugang', quantityLiters: 250, transactionDate: new Date(), notes: 'Aufgeteilt aus T341' },
+      { id: 't3', itemId: 'item-3', artikelNummer: 'A2', produktName: 'Q', chargenNummer: 'C3', tankNr: 'T342', alcoholVolProzent: 50, type: 'Abgang', quantityLiters: 300, transactionDate: new Date(), notes: 'Versand LF-2026-010' },
+    ];
+    const result = backfillRichtigstellungFlag(txs);
+    expect(result[0].istRichtigstellung).toBe(true);
+    expect(result[1].istRichtigstellung).toBe(true);
+    expect(result[2].istRichtigstellung).toBeUndefined();
+  });
+
+  it('backfillRichtigstellungFlag ist idempotent: gibt dieselbe Referenz zurück, wenn nichts mehr zu tun ist', () => {
+    const txs: InventoryTransaction[] = [
+      { id: 't1', itemId: 'item-1', artikelNummer: 'A1', produktName: 'P', chargenNummer: 'C1', tankNr: 'T341', alcoholVolProzent: 60, type: 'Abgang', quantityLiters: 500, transactionDate: new Date(), notes: 'Versand LF-2026-010' },
+    ];
+    expect(backfillRichtigstellungFlag(txs)).toBe(txs);
+
+    const bereitsMarkiert: InventoryTransaction[] = [
+      { id: 't2', itemId: 'item-2', artikelNummer: 'A1', produktName: 'P', chargenNummer: 'C2', tankNr: 'Fass A', alcoholVolProzent: 60, type: 'Zugang', quantityLiters: 250, transactionDate: new Date(), notes: 'Aufgeteilt aus T341', istRichtigstellung: true },
+    ];
+    expect(backfillRichtigstellungFlag(bereitsMarkiert)).toBe(bereitsMarkiert);
   });
 });
 

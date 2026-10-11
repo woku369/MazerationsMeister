@@ -6,6 +6,19 @@ const STORAGE_KEY = 'inventoryItems';
 const TRANSACTIONS_KEY = 'inventoryTransactions';
 
 /**
+ * Gemeinsame Zusatzangaben für alle buchenden Funktionen dieser Datei -
+ * vorher an jeder einzelnen Funktion als eigenes Inline-Objektliteral
+ * dupliziert, jetzt ein benannter Typ, damit ein neues Feld (wie
+ * istRichtigstellung) nicht an 8 Stellen einzeln nachgezogen werden muss.
+ */
+export type TransactionOpts = {
+  notes?: string;
+  date?: Date;
+  /** Siehe inventorySchema.ts - z.B. Gebinde-Splitten: kein echter Zu-/Abgang. */
+  istRichtigstellung?: boolean;
+};
+
+/**
  * Findet einen bereits bekannten Wert (Chargennummer oder Tank-Nr.), der sich vom
  * eingegebenen Text nur in Groß-/Kleinschreibung oder Leerzeichen unterscheidet
  * (z.B. "GFKC-N" vs. "GFKC-n") - ein echter neuer Wert (der Normalfall bei neuen
@@ -93,7 +106,7 @@ function makeTransactionEntry(
   item: StoredInventoryItem,
   type: InventoryTransaction['type'],
   qty: number,
-  opts: { notes?: string; date?: Date } = {},
+  opts: TransactionOpts = {},
 ): InventoryTransaction {
   return {
     id: uuidv4(),
@@ -111,6 +124,7 @@ function makeTransactionEntry(
     // opts ableitbar (Nutzer-Anfrage 10.10.2026, siehe inventorySchema.ts).
     transactionDate: opts.date ?? new Date(),
     erfasstAm: new Date(),
+    istRichtigstellung: opts.istRichtigstellung || undefined,
     notes: opts.notes || '',
   };
 }
@@ -128,7 +142,7 @@ export function recordTransaction(
   id: string,
   type: 'Zugang' | 'Abgang',
   qty: number,
-  opts: { notes?: string; date?: Date } = {},
+  opts: TransactionOpts = {},
 ): { ok: true; items: StoredInventoryItem[]; transactions: InventoryTransaction[] } | { ok: false; error: string } {
   const item = items.find(i => i.id === id);
   const result = applyTransaction(items, id, type, qty);
@@ -147,7 +161,7 @@ export function recordNewEntry(
   items: StoredInventoryItem[],
   transactions: InventoryTransaction[],
   item: StoredInventoryItem,
-  opts: { notes?: string; date?: Date } = {},
+  opts: TransactionOpts = {},
 ): { items: StoredInventoryItem[]; transactions: InventoryTransaction[] } {
   const updatedItems = addEntry(items, item);
   const entry = makeTransactionEntry(item, 'Zugang', item.currentQuantityLiters, opts);
@@ -169,7 +183,7 @@ export function recordCorrection(
   items: StoredInventoryItem[],
   transactions: InventoryTransaction[],
   updated: StoredInventoryItem,
-  opts: { notes?: string; date?: Date } = {},
+  opts: TransactionOpts = {},
 ): { items: StoredInventoryItem[]; transactions: InventoryTransaction[] } {
   const before = items.find(i => i.id === updated.id);
   const updatedItems = updateEntry(items, updated);
@@ -217,6 +231,29 @@ export function correctTransactionDate(
 }
 
 /**
+ * Einmalige, idempotente Nachkennzeichnung bereits gebuchter Gebinde-
+ * Splitting-Einträge als Richtigstellung (Nutzer-Anfrage 11.10.2026) - für
+ * Transaktionen, die VOR Einführung des `istRichtigstellung`-Flags gebucht
+ * wurden (z.B. die Splits vom 06.10.2026) und das Flag deshalb noch nicht
+ * tragen. Erkennt sie am selben Notiz-Muster, das `tank-management.tsx`
+ * beim Splitten selbst erzeugt ("Aufgeteilt auf: ..."/"Aufgeteilt aus ...").
+ * Rein additiv: rührt bereits markierte oder nicht passende Einträge nicht
+ * an - sicher bei jedem App-Start erneut aufrufbar, ohne doppelt zu wirken.
+ * Gibt dieselbe Referenz zurück, wenn nichts zu ändern war (günstiger
+ * Aufrufer-Check, ob überhaupt neu geschrieben werden muss).
+ */
+export function backfillRichtigstellungFlag(transactions: InventoryTransaction[]): InventoryTransaction[] {
+  const splitMuster = /^Aufgeteilt (auf|aus)/;
+  let changed = false;
+  const result = transactions.map(t => {
+    if (t.istRichtigstellung || !splitMuster.test(t.notes)) return t;
+    changed = true;
+    return { ...t, istRichtigstellung: true };
+  });
+  return changed ? result : transactions;
+}
+
+/**
  * Wie removeEntry (Lagerposten vollständig entfernen), aber schreibt
  * zusätzlich einen "Abgang"-Journal-Eintrag über die komplette entfernte
  * Menge. Ohne das verschwindet ein gelöschter Posten spurlos aus dem
@@ -230,7 +267,7 @@ export function recordRemoveEntry(
   items: StoredInventoryItem[],
   transactions: InventoryTransaction[],
   id: string,
-  opts: { notes?: string; date?: Date } = {},
+  opts: TransactionOpts = {},
 ): { items: StoredInventoryItem[]; transactions: InventoryTransaction[] } {
   const item = items.find(i => i.id === id);
   const updatedItems = removeEntry(items, id);
@@ -363,7 +400,7 @@ export function recordPoolIntoTank(
   transactions: InventoryTransaction[],
   tankNr: string,
   neu: NeueMenge,
-  opts: { notes?: string; date?: Date; allowMismatch?: boolean } = {},
+  opts: TransactionOpts & { allowMismatch?: boolean } = {},
 ): { ok: true; items: StoredInventoryItem[]; transactions: InventoryTransaction[]; konsolidiertesItem: StoredInventoryItem; vorherMenge: number; vorherAbv: number; komponenten: PoolKomponente[] } | { ok: false; error: string } {
   const result = poolIntoTank(items, tankNr, neu, { allowMismatch: opts.allowMismatch });
   if (!result.ok) return result;
@@ -426,7 +463,7 @@ export function persistRecordTransaction(
   id: string,
   type: 'Zugang' | 'Abgang',
   qty: number,
-  opts: { notes?: string; date?: Date } = {},
+  opts: TransactionOpts = {},
 ): ReturnType<typeof recordTransaction> {
   const result = recordTransaction(readAll(), readTransactions(), id, type, qty, opts);
   if (result.ok) {
@@ -440,7 +477,7 @@ export function persistRecordTransaction(
 export function persistPoolIntoTank(
   tankNr: string,
   neu: NeueMenge,
-  opts: { notes?: string; date?: Date; allowMismatch?: boolean } = {},
+  opts: TransactionOpts & { allowMismatch?: boolean } = {},
 ): ReturnType<typeof recordPoolIntoTank> {
   const result = recordPoolIntoTank(readAll(), readTransactions(), tankNr, neu, opts);
   if (result.ok) {
