@@ -9,18 +9,24 @@ import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectLabel, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Send, Plus, Trash2 } from 'lucide-react';
 import * as StockService from '@/lib/stock-service';
 import * as VersandService from '@/lib/versand-service';
 import * as LeergebindeService from '@/lib/leergebinde-service';
+import { getTankDefinitions } from '@/lib/tank-sync';
 import { calcLA } from '@/lib/mazeration-calc';
 import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 import type { LohnabfuellerVersand, VersandContainer } from '@/schemas/versandSchema';
 import type { Leergebinde } from '@/schemas/leergebindeSchema';
+import type { TankDefinition } from '@/schemas/tankSchema';
 
-type DraftRow = { leergebindeId: string };
+// sourceId kodiert, woher die Auswahl stammt: "lg:<leergebindeId>" (über die
+// Leergebinde-Verwaltung befüllt) oder "item:<inventoryItemId>" (Fallback,
+// siehe unten). manualTaraKg nur relevant im "item"-Fall, wenn weder ein
+// Leergebinde- noch ein Tank-Datensatz eine Tara kennt.
+type DraftRow = { sourceId: string; manualTaraKg: string };
 
 function fmtL(n: number | undefined | null) {
   return n != null ? n.toLocaleString('de-DE', { maximumFractionDigits: 2 }) : '–';
@@ -42,12 +48,13 @@ export default function VersandPage() {
   const [versaende, setVersaende] = useState<LohnabfuellerVersand[]>([]);
   const [inventoryItems, setInventoryItems] = useState<StoredInventoryItem[]>([]);
   const [gebinde, setGebinde] = useState<Leergebinde[]>([]);
+  const [tanks, setTanks] = useState<TankDefinition[]>([]);
 
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [lohnabfuellerName, setLohnabfuellerName] = useState('');
   const [versanddatum, setVersanddatum] = useState(() => new Date().toISOString().slice(0, 10));
   const [bemerkungen, setBemerkungen] = useState('');
-  const [draftRows, setDraftRows] = useState<DraftRow[]>([{ leergebindeId: '' }]);
+  const [draftRows, setDraftRows] = useState<DraftRow[]>([{ sourceId: '', manualTaraKg: '' }]);
   // Nur zur Dokumentation für das externe (Schlumberger-)Lieferschein-Papierformular -
   // die App erzeugt daraus kein eigenes Dokument, siehe versandSchema.ts.
   const [plombenNummern, setPlombenNummern] = useState('');
@@ -57,23 +64,33 @@ export default function VersandPage() {
     setVersaende(VersandService.readAll());
     setInventoryItems(StockService.readAll());
     setGebinde(LeergebindeService.readAll());
+    setTanks(getTankDefinitions());
   };
   useEffect(() => { loadAll(); }, []);
 
   const historie = [...versaende].sort((a, b) => b.versanddatum.localeCompare(a.versanddatum));
   const befuellteGebinde = gebinde.filter(g => g.status === 'befuellt');
+  // Fallback für Gebinde, die nie über die Leergebinde-Verwaltung angelegt
+  // wurden (Nutzer-Meldung 11.10.2026: 3 per Tank-Splitten entstandene IBCs
+  // - IBC-GFKC-M-A/B/C - tauchten im Versand gar nicht auf, weil die
+  // Leergebinde-Liste komplett leer war, das Splitten aber unabhängig davon
+  // direkt Lagerposten anlegt, ohne je einen Leergebinde-Datensatz zu
+  // erzeugen). Jeder Lagerposten mit Bestand, der noch an keinem Leergebinde
+  // hängt, gilt hier als "direkt verschickbar".
+  const leergebindeInventoryIds = new Set(gebinde.map(g => g.inventoryItemId).filter(Boolean));
+  const direkteItems = inventoryItems.filter(i => i.currentQuantityLiters > 0 && !leergebindeInventoryIds.has(i.id));
 
   function resetNewForm() {
     setLohnabfuellerName('Mozart');
     setVersanddatum(new Date().toISOString().slice(0, 10));
     setBemerkungen('');
-    setDraftRows([{ leergebindeId: '' }]);
+    setDraftRows([{ sourceId: '', manualTaraKg: '' }]);
     setPlombenNummern('');
     setExterneLieferscheinNr('');
   }
 
   function addDraftRow() {
-    setDraftRows(prev => [...prev, { leergebindeId: '' }]);
+    setDraftRows(prev => [...prev, { sourceId: '', manualTaraKg: '' }]);
   }
   function removeDraftRow(idx: number) {
     setDraftRows(prev => prev.filter((_, i) => i !== idx));
@@ -82,13 +99,89 @@ export default function VersandPage() {
     setDraftRows(prev => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   }
 
+  /**
+   * Registriert einen direkt gewählten Lagerposten nachträglich als
+   * Leergebinde (Status gleich "befuellt", da der Inhalt ja längst da ist) -
+   * damit bleibt leergebindeId im VersandContainer durchgängig eine echte
+   * Referenz statt eines Behelfswerts, und das Gebinde taucht ab sofort auch
+   * korrekt in der Leergebinde-Verwaltung auf. Tara kommt, falls vorhanden,
+   * vom Tank-Splitten-Datensatz (tank-management.tsx erlaubt eine Tara-
+   * Eingabe beim Splitten) oder sonst aus dem manuellen Eingabefeld hier.
+   */
+  function ensureLeergebindeForItem(item: StoredInventoryItem, manualTaraKg: string): Leergebinde | null {
+    const vorhanden = LeergebindeService.readAll().find(g => g.inventoryItemId === item.id);
+    if (vorhanden) return vorhanden;
+    const tankTara = tanks.find(t => t.tankNr === item.tankNr)?.taraKg;
+    const manualTara = parseFloat(manualTaraKg.replace(',', '.'));
+    const taraKg = tankTara ?? (Number.isFinite(manualTara) ? manualTara : 0);
+    const created = LeergebindeService.persistCreateLeergebinde({
+      bezeichnung: item.tankNr || item.id,
+      taraKg,
+      status: 'leer',
+      herkunft: 'Nachträglich aus Lagerbestand registriert (Tank-Splitten o.ä.)',
+    });
+    if (!created.ok) return null;
+    const alleGebinde = LeergebindeService.readAll().map(g =>
+      g.id === created.gebinde.id ? { ...g, status: 'befuellt' as const, inventoryItemId: item.id, updatedAt: new Date().toISOString() } : g,
+    );
+    LeergebindeService.writeAll(alleGebinde);
+    return alleGebinde.find(g => g.id === created.gebinde.id) ?? null;
+  }
+
+  /** Rein lesend - löst eine Zeile auf Posten+Tara auf, OHNE etwas anzulegen. Für Live-Vorschau während der Eingabe. */
+  function resolveRowPreview(r: DraftRow): { item: StoredInventoryItem; taraKg: number | undefined } | null {
+    if (r.sourceId.startsWith('lg:')) {
+      const g = gebinde.find(x => x.id === r.sourceId.slice(3));
+      const item = g?.inventoryItemId ? inventoryItems.find(i => i.id === g.inventoryItemId) : undefined;
+      if (!g || !item) return null;
+      return { item, taraKg: g.taraKg };
+    }
+    if (r.sourceId.startsWith('item:')) {
+      const item = inventoryItems.find(i => i.id === r.sourceId.slice(5));
+      if (!item) return null;
+      const tankTara = tanks.find(t => t.tankNr === item.tankNr)?.taraKg;
+      const manualTara = parseFloat(r.manualTaraKg.replace(',', '.'));
+      return { item, taraKg: tankTara ?? (Number.isFinite(manualTara) ? manualTara : undefined) };
+    }
+    return null;
+  }
+
+  /** Nur für die Live-Summenanzeige - baut Container-ähnliche Objekte rein aus resolveRowPreview(), legt nichts an. */
+  function previewContainers(): VersandContainer[] {
+    return draftRows
+      .map(r => {
+        const resolved = resolveRowPreview(r);
+        if (!resolved) return null;
+        const { item, taraKg } = resolved;
+        const c: VersandContainer = {
+          inventoryItemId: item.id, leergebindeId: '', tankNr: item.tankNr, produktName: item.produktName,
+          chargenNummer: item.chargenNummer, mengeLiter: item.currentQuantityLiters,
+          alkoholVolProzent: item.alcoholVolProzent, dichte20C: item.dichte20C, taraKg,
+        };
+        return c;
+      })
+      .filter((c): c is VersandContainer => c !== null);
+  }
+
+  /**
+   * Nur beim tatsächlichen Anlegen aufrufen (nicht für die Vorschau!) - legt
+   * für "item:"-Zeilen bei Bedarf tatsächlich ein Leergebinde an
+   * (ensureLeergebindeForItem schreibt in localStorage).
+   */
   function buildContainerPayload(): VersandContainer[] | null {
-    const rows = draftRows.filter(r => r.leergebindeId);
+    const rows = draftRows.filter(r => r.sourceId);
     if (rows.length === 0) return null;
     const result: VersandContainer[] = [];
     for (const r of rows) {
-      const g = gebinde.find(x => x.id === r.leergebindeId);
-      const item = g?.inventoryItemId ? inventoryItems.find(i => i.id === g.inventoryItemId) : undefined;
+      let g: Leergebinde | null | undefined;
+      let item: StoredInventoryItem | undefined;
+      if (r.sourceId.startsWith('lg:')) {
+        g = gebinde.find(x => x.id === r.sourceId.slice(3));
+        item = g?.inventoryItemId ? inventoryItems.find(i => i.id === g!.inventoryItemId) : undefined;
+      } else if (r.sourceId.startsWith('item:')) {
+        item = inventoryItems.find(i => i.id === r.sourceId.slice(5));
+        if (item) g = ensureLeergebindeForItem(item, r.manualTaraKg);
+      }
       if (!g || !item) continue;
       result.push({
         inventoryItemId: item.id,
@@ -112,7 +205,7 @@ export default function VersandPage() {
     }
     const container = buildContainerPayload();
     if (!container) {
-      toast({ title: 'Ungültige Gebinde-Auswahl', description: 'Bitte für jede Zeile ein befülltes Leergebinde angeben.', variant: 'destructive' });
+      toast({ title: 'Ungültige Gebinde-Auswahl', description: 'Bitte für jede Zeile ein Gebinde angeben.', variant: 'destructive' });
       return;
     }
     const result = VersandService.persistCreateVersand({
@@ -214,34 +307,57 @@ export default function VersandPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Gebinde (befüllte Leergebinde)</Label>
-              {befuellteGebinde.length === 0 && (
-                <p className="text-xs text-amber-700">Keine befüllten Leergebinde vorhanden — zuerst unter „Leergebinde" ein Gebinde befüllen.</p>
+              <Label>Gebinde</Label>
+              {befuellteGebinde.length === 0 && direkteItems.length === 0 && (
+                <p className="text-xs text-amber-700">Weder befüllte Leergebinde noch passende Lagerposten vorhanden.</p>
               )}
               {draftRows.map((row, idx) => {
-                const g = gebinde.find(x => x.id === row.leergebindeId);
-                const item = g?.inventoryItemId ? inventoryItems.find(i => i.id === g.inventoryItemId) : undefined;
+                const resolved = resolveRowPreview(row);
+                const item = resolved?.item;
                 const rowLA = item ? calcLA(item.currentQuantityLiters, item.alcoholVolProzent) : null;
-                const bereitsGewaehlt = new Set(draftRows.filter((_, i) => i !== idx).map(r => r.leergebindeId));
+                const istDirekterPosten = row.sourceId.startsWith('item:');
+                const brauchtManuelleTara = istDirekterPosten && item && resolved?.taraKg == null;
+                const bereitsGewaehlt = new Set(draftRows.filter((_, i) => i !== idx).map(r => r.sourceId));
                 return (
                   <div key={idx} className="flex items-center gap-2">
-                    <Select value={row.leergebindeId} onValueChange={v => updateDraftRow(idx, { leergebindeId: v })}>
+                    <Select value={row.sourceId} onValueChange={v => updateDraftRow(idx, { sourceId: v, manualTaraKg: '' })}>
                       <SelectTrigger className="flex-1"><SelectValue placeholder="Gebinde wählen" /></SelectTrigger>
                       <SelectContent>
-                        {befuellteGebinde.filter(bg => !bereitsGewaehlt.has(bg.id)).map(bg => {
-                          const bgItem = bg.inventoryItemId ? inventoryItems.find(i => i.id === bg.inventoryItemId) : undefined;
-                          return (
-                            <SelectItem key={bg.id} value={bg.id}>
-                              {bg.bezeichnung}{bgItem && ` — ${bgItem.produktName} (${fmtL(bgItem.currentQuantityLiters)} L, ${bgItem.alcoholVolProzent}%)`}
-                            </SelectItem>
-                          );
-                        })}
+                        {befuellteGebinde.length > 0 && (
+                          <SelectGroup>
+                            <SelectLabel>Befüllte Leergebinde</SelectLabel>
+                            {befuellteGebinde.filter(bg => !bereitsGewaehlt.has(`lg:${bg.id}`)).map(bg => {
+                              const bgItem = bg.inventoryItemId ? inventoryItems.find(i => i.id === bg.inventoryItemId) : undefined;
+                              return (
+                                <SelectItem key={bg.id} value={`lg:${bg.id}`}>
+                                  {bg.bezeichnung}{bgItem && ` — ${bgItem.produktName} (${fmtL(bgItem.currentQuantityLiters)} L, ${bgItem.alcoholVolProzent}%)`}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectGroup>
+                        )}
+                        {direkteItems.length > 0 && (
+                          <SelectGroup>
+                            <SelectLabel>Direkt aus Lagerbestand (noch nicht als Leergebinde erfasst)</SelectLabel>
+                            {direkteItems.filter(it => !bereitsGewaehlt.has(`item:${it.id}`)).map(it => (
+                              <SelectItem key={it.id} value={`item:${it.id}`}>
+                                {it.tankNr} — {it.produktName} ({fmtL(it.currentQuantityLiters)} L, {it.alcoholVolProzent}%)
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        )}
                       </SelectContent>
                     </Select>
-                    <span className="text-xs text-muted-foreground shrink-0 w-36">
+                    {brauchtManuelleTara && (
+                      <Input
+                        type="text" inputMode="decimal" className="w-24 shrink-0" placeholder="Tara (kg)"
+                        value={row.manualTaraKg} onChange={e => updateDraftRow(idx, { manualTaraKg: e.target.value })}
+                      />
+                    )}
+                    <span className="text-xs text-muted-foreground shrink-0 w-32">
                       {item && `${fmtL(item.currentQuantityLiters)} L`}
                       {rowLA != null && ` · ${fmtLA(rowLA)}`}
-                      {g && ` · Tara ${fmtKg(g.taraKg)}`}
+                      {!brauchtManuelleTara && resolved?.taraKg != null && ` · Tara ${fmtKg(resolved.taraKg)}`}
                     </span>
                     <Button type="button" size="icon" variant="ghost" onClick={() => removeDraftRow(idx)} disabled={draftRows.length === 1}>
                       <Trash2 className="w-4 h-4" />
@@ -249,10 +365,10 @@ export default function VersandPage() {
                   </div>
                 );
               })}
-              <Button type="button" size="sm" variant="outline" onClick={addDraftRow} disabled={draftRows.length >= befuellteGebinde.length}><Plus className="w-4 h-4 mr-1" />Weiteres Gebinde</Button>
+              <Button type="button" size="sm" variant="outline" onClick={addDraftRow} disabled={draftRows.length >= befuellteGebinde.length + direkteItems.length}><Plus className="w-4 h-4 mr-1" />Weiteres Gebinde</Button>
               {(() => {
-                const container = buildContainerPayload();
-                if (!container || container.length === 0) return null;
+                const container = previewContainers();
+                if (container.length === 0) return null;
                 const gesamtL = container.reduce((s, c) => s + c.mengeLiter, 0);
                 const gesamtLA = VersandService.calcContainerLA(container);
                 const nettoKg = VersandService.calcContainerNettogewichtKg(container);
