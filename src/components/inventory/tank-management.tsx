@@ -553,7 +553,12 @@ export default function TankManagement() {
 
   // Berechne aktuellen Füllstand aus Inventar
   const getTankFillLevel = (tankNr: string) => {
-    const tankItems = inventoryItems.filter(item => item.tankNr === tankNr);
+    // Restposten mit 0L bleiben nach vollständigem Verbrauch (z.B. Rezeptur-
+    // Produktion, siehe Aufgabe 87/88 GFKC-N) als Journal-Beleg im Inventar
+    // stehen, gehören aber nicht in die Inhaltsanzeige eines Tanks (Nutzer-
+    // Meldung 11.10.2026: "GFKC-M mit 0 Liter" wird neben dem echten Inhalt
+    // mit angezeigt).
+    const tankItems = inventoryItems.filter(item => item.tankNr === tankNr && (item.currentQuantityLiters || 0) > 0.01);
     const totalVolume = tankItems.reduce((sum, item) => sum + (item.currentQuantityLiters || 0), 0);
     // Kategorie (z.B. Mazerat/Destillat) mit anzeigen - ohne sie war hier nicht
     // unterscheidbar, was tatsächlich im Gebinde liegt (Nutzer-Meldung 03.10.2026:

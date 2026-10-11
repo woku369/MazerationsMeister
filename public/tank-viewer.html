@@ -390,9 +390,13 @@
                 batch = tank.batch || '';
                 console.log('📦 Fallback-Daten verwendet:', { totalVolume, content, batch });
             } else {
-                // Full dataset - berechne aus Inventar
+                // Full dataset - berechne aus Inventar. Restposten mit 0L bleiben
+                // nach vollständigem Verbrauch (z.B. Rezeptur-Produktion, siehe
+                // Aufgabe 87/88 GFKC-N) als Journal-Beleg im Inventar stehen,
+                // gehören aber nicht in die Inhaltsanzeige (Nutzer-Meldung
+                // 11.10.2026: "GFKC-M mit 0 Liter" wird mit angezeigt).
                 tankInventory = inventory.filter(item =>
-                    item.tankNr === tank.tankNr
+                    item.tankNr === tank.tankNr && (item.currentQuantityLiters || 0) > 0.01
                 );
                 totalVolume = tankInventory.reduce((sum, item) => sum + (item.currentQuantityLiters || 0), 0);
                 console.log('📦 Inventar für Tank gefunden:', tankInventory);
@@ -594,8 +598,10 @@
                 let fill, vol, pct, color, inhalt, barHtml;
 
                 if (isUniq) {
-                    // Unique numbered tanks (T341, T349 …): fill from inventory
-                    const items = inventory.filter(i => i.tankNr === t.tankNr);
+                    // Unique numbered tanks (T341, T349 …): fill from inventory.
+                    // 0L-Restposten (siehe Einzeltank-Ansicht oben) gehören auch
+                    // hier nicht in die Inhaltsanzeige.
+                    const items = inventory.filter(i => i.tankNr === t.tankNr && (i.currentQuantityLiters || 0) > 0.01);
                     vol   = t.volumenLiter || t.volumen || 0;
                     fill  = items.reduce((s, i) => s + (i.currentQuantityLiters || 0), 0);
                     pct   = vol > 0 ? Math.min(Math.round(fill / vol * 100), 100) : 0;
