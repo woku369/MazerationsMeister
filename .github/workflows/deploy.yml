@@ -12,11 +12,22 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  # War "false" - bei den alle 15 Minuten laufenden Tank-Daten-Auto-Syncs (die
+  # ebenfalls diesen Workflow triggern, siehe Kommentar unten) reiht sich sonst
+  # jeder neue Push hinten in dieselbe Warteschlange ein, statt einen noch
+  # wartenden, veralteten Lauf zu verdraengen. Haengt dadurch (z.B. durch einen
+  # einzelnen echten GitHub-Infra-Hiccup) EIN Lauf fest, blockiert er die
+  # gesamte Schlange - genau das war die Ursache, warum seit 10.10. jeder
+  # einzelne Lauf als "cancelled" endete, statt nur der eine haengende
+  # (Nutzer-Befund 11.10.2026: PWA seit 7.10. nicht mehr aktualisiert). Bei
+  # einer Statusseite zaehlt ohnehin nur der aktuellste Stand - ein veralteter
+  # wartender Deploy hat keinen Wert und sollte verdraengt werden.
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -78,7 +89,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
-    
+    timeout-minutes: 10
+
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
