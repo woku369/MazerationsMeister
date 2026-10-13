@@ -211,10 +211,11 @@
       "id": "K-2012"
     },
     {
-      "tankNr": "K-2012-2 - FEHLT",
+      "id": "K-2012-2",
+      "tankNr": "K-2012-2",
       "bezeichnung": "Auto-erkannt: K-2012-2",
-      "volumenLiter": 10,
-      "id": "K-2012-2"
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     },
     {
       "tankNr": "B-2012",
@@ -1512,5 +1513,5 @@
       "literAbsolutalkohol": 3090.42
     }
   ],
-  "lastUpdated": "2026-10-13T18:34:21.278Z"
+  "lastUpdated": "2026-10-13T18:34:23.277Z"
 }
