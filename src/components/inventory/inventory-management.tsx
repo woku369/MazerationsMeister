@@ -9,10 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { BookOpen, PlusCircle, Download } from 'lucide-react';
+import { BookOpen, PlusCircle, Download, PlusSquare, MinusSquare } from 'lucide-react';
 import InventoryTable from './inventory-table';
 import AddInventoryItemDialog from './add-inventory-item-dialog';
 import RecordTransactionDialog from './record-transaction-dialog';
+import SelectItemForTransactionDialog from './select-item-for-transaction-dialog';
 import InventorySummary from './inventory-summary';
 import AddEditArtikelDefinitionDialog from './add-edit-artikel-definition-dialog';
 import ArtikelDefinitionTable from './artikel-definition-table';
@@ -95,6 +96,7 @@ export default function InventoryManagement() {
   const [isWarningDialogOpen, setIsWarningDialogOpen] = useState(false);
   const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false);
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
+  const [isSelectItemDialogOpen, setIsSelectItemDialogOpen] = useState(false);
   const [isArtikelDefinitionDialogOpen, setIsArtikelDefinitionDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<StoredInventoryItem | null>(null);
   const [editingArtikelDefinition, setEditingArtikelDefinition] = useState<ArtikelDefinition | null>(null);
@@ -792,6 +794,24 @@ export default function InventoryManagement() {
     setItemForTransaction(null);
     setCurrentTransactionType(null);
   };
+
+  // Schnellzugang Zugang/Abgang (Nutzer-Anfrage 30.10.2026): statt den
+  // richtigen Posten erst über die Icons in der Bestandstabelle suchen zu
+  // müssen, öffnen zwei Toolbar-Buttons zuerst eine durchsuchbare
+  // Posten-Auswahl - danach läuft es über denselben Dialog/dieselbe
+  // Buchungslogik wie bisher (handleOpenTransactionDialog/recordTransaction).
+  const handleOpenQuickTransaction = (type: 'Zugang' | 'Abgang') => {
+    setCurrentTransactionType(type);
+    setIsSelectItemDialogOpen(true);
+  };
+  const handleCloseSelectItemDialog = () => {
+    setIsSelectItemDialogOpen(false);
+    setCurrentTransactionType(null);
+  };
+  const handleItemSelectedForTransaction = (item: StoredInventoryItem) => {
+    setIsSelectItemDialogOpen(false);
+    if (currentTransactionType) handleOpenTransactionDialog(item, currentTransactionType);
+  };
   const handleSaveTransaction = (transaction: InventoryTransactionCoreData) => {
     if (!itemForTransaction || !currentTransactionType) return;
 
@@ -909,11 +929,19 @@ export default function InventoryManagement() {
             </TabsList>
 
             <TabsContent value="lagerbestand" className="space-y-4">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center flex-wrap gap-2">
                 <h2 className="text-2xl font-semibold text-primary">Lagerbestand &amp; Chargen</h2>
-                <Button onClick={handleOpenAddEditDialogForNew} className="bg-primary hover:bg-primary/90">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Neue Charge/Bestand anlegen
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => handleOpenQuickTransaction('Zugang')} variant="outline" className="text-green-700 border-green-600 hover:bg-green-50">
+                      <PlusSquare className="mr-2 h-4 w-4" /> Zugang buchen
+                  </Button>
+                  <Button onClick={() => handleOpenQuickTransaction('Abgang')} variant="outline" className="text-orange-700 border-orange-600 hover:bg-orange-50">
+                      <MinusSquare className="mr-2 h-4 w-4" /> Abgang buchen
+                  </Button>
+                  <Button onClick={handleOpenAddEditDialogForNew} className="bg-primary hover:bg-primary/90">
+                      <PlusCircle className="mr-2 h-4 w-4" /> Neue Charge/Bestand anlegen
+                  </Button>
+                </div>
               </div>
               <InventorySummary items={inventoryItems} />
               <InventoryTable
@@ -979,6 +1007,14 @@ export default function InventoryManagement() {
             onSaveTransaction={handleSaveTransaction}
             itemToTransact={itemForTransaction}
             transactionType={currentTransactionType}
+          />
+
+          <SelectItemForTransactionDialog
+            isOpen={isSelectItemDialogOpen}
+            onClose={handleCloseSelectItemDialog}
+            items={inventoryItems}
+            transactionType={currentTransactionType}
+            onSelectItem={handleItemSelectedForTransaction}
           />
 
           <AddEditArtikelDefinitionDialog
