@@ -452,6 +452,13 @@
       "volumenLiter": 5500,
       "id": "T 347",
       "hasUniqueNumber": true
+    },
+    {
+      "id": "K-2012-2",
+      "tankNr": "K-2012-2",
+      "bezeichnung": "Auto-erkannt: K-2012-2",
+      "volumenLiter": 5000,
+      "hasUniqueNumber": true
     }
   ],
   "inventory": [
@@ -1512,5 +1519,5 @@
       "literAbsolutalkohol": 3090.42
     }
   ],
-  "lastUpdated": "2026-10-30T06:43:50.843Z"
+  "lastUpdated": "2026-10-30T06:44:15.170Z"
 }
