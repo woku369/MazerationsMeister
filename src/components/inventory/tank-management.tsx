@@ -563,7 +563,14 @@ export default function TankManagement() {
     // Kategorie (z.B. Mazerat/Destillat) mit anzeigen - ohne sie war hier nicht
     // unterscheidbar, was tatsächlich im Gebinde liegt (Nutzer-Meldung 03.10.2026:
     // "wieder einmal" nicht die Kategorie, gleicher Lückentyp wie Aufgabe 42).
-    const contents = tankItems.map(item => `${item.produktName} [${item.category || '–'}] (${item.currentQuantityLiters}L)`).join(', ') || 'Leer';
+    // ABV und Chargennummer fehlten hier bisher komplett (Nutzer-Anfrage
+    // 30.10.2026: "Die Tanks sollten Inhalt und Chargenaufteilung anzeigen"),
+    // obwohl beides in den Daten vorhanden ist und z.B. beim Poolen zu einer
+    // kombinierten Chargennummer wie "2500 + 2600" zusammengeführt wird
+    // (Aufgabe 27) - dieser Wert ging in der Anzeige bisher spurlos unter.
+    const contents = tankItems.map(item =>
+      `${item.produktName} [${item.category || '–'}] (${item.currentQuantityLiters}L, ${item.alcoholVolProzent}%${item.chargenNummer ? `, Charge ${item.chargenNummer}` : ''})`
+    ).join('; ') || 'Leer';
     
     return {
       totalVolume,
@@ -888,11 +895,20 @@ export default function TankManagement() {
                             )}
                           </div>
                           
-                          {fillInfo.contents !== 'Leer' && (
+                          {fillInfo.items.length > 0 && (
                             <div className="text-sm">
                               <span className="text-muted-foreground">Inhalt:</span>
-                              <div className="mt-1 p-2 bg-blue-50 border-l-4 border-blue-300 rounded text-sm font-semibold">
-                                {fillInfo.contents}
+                              <div className="mt-1 p-2 bg-blue-50 border-l-4 border-blue-300 rounded text-sm font-semibold space-y-0.5">
+                                {/* Eigene Zeile je Posten statt einer kommagetrennten
+                                    Zeile (Nutzer-Anfrage 30.10.2026) - wichtig, sobald
+                                    ein Tank mehrere Produkte/Chargen gleichzeitig
+                                    enthält, bleibt sonst unübersichtlich. */}
+                                {fillInfo.items.map(item => (
+                                  <div key={item.id}>
+                                    {item.produktName} [{item.category || '–'}] ({item.currentQuantityLiters.toLocaleString('de-DE')} L, {item.alcoholVolProzent}%)
+                                    {item.chargenNummer && <span className="font-normal text-muted-foreground"> · Charge {item.chargenNummer}</span>}
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           )}
