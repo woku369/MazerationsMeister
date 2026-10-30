@@ -5,7 +5,7 @@ import type { StoredInventoryItem } from '@/schemas/inventorySchema';
 import { calcLA } from '@/lib/mazeration-calc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { PackageSearch } from 'lucide-react';
 
 type InventorySummaryProps = {
@@ -97,7 +97,6 @@ export default function InventorySummary({ items }: InventorySummaryProps) {
               ))}
             </TableBody>
           </Table>
-          <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </CardContent>
     </Card>

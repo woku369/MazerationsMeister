@@ -62,9 +62,17 @@ export default function RootLayout({
         <AppDataInitializer>
           <div className="flex flex-row min-h-screen">
             <Sidebar />
-            <div className="flex-1 flex flex-col lg:ml-64">
+            {/* min-w-0 ist hier Pflicht: Ein flex-1-Kind in einem flex-row-
+                Container weigert sich per CSS-Default (min-width: auto),
+                unter die Breite seines Inhalts zu schrumpfen. Breite
+                Tabellen tief im Baum (z.B. Lagerverwaltung) haben dadurch
+                die gesamte Seite horizontal überlaufen lassen, statt dass
+                nur die innere ScrollArea scrollt - der horizontale
+                Scrollbalken dort erreichte deshalb nie das Tabellenende
+                (Nutzer-Meldung 30.10.2026). */}
+            <div className="flex-1 flex flex-col lg:ml-64 min-w-0">
               <AppHeader />
-              <main className="flex-1">
+              <main className="flex-1 min-w-0">
                 {children}
               </main>
               <Toaster />

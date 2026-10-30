@@ -17,7 +17,17 @@ const ScrollArea = React.forwardRef<
     <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
       {children}
     </ScrollAreaPrimitive.Viewport>
+    {/* Horizontale Leiste gehört wie die vertikale als eigenständiges
+        Geschwisterelement des Viewports (Radix-Vorgabe), nicht als Kind von
+        ScrollArea, das über {children} INS Viewport hineingerendert würde -
+        genau das war der Fehler, wenn Aufrufer bisher selbst ein zweites
+        <ScrollBar orientation="horizontal"> als Kind übergeben haben: der
+        Balken erschien, bezog sich aber nicht auf die tatsächliche
+        Scroll-Breite und erreichte nie das Tabellenende (Nutzer-Meldung
+        30.10.2026: "Scrollbalken umfasst scheinbar nicht alle Spalten").
+        Jetzt zentral für alle 4 betroffenen breiten Tabellen behoben. */}
     <ScrollBar />
+    <ScrollBar orientation="horizontal" />
     <ScrollAreaPrimitive.Corner />
   </ScrollAreaPrimitive.Root>
 ))

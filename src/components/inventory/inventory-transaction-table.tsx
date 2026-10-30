@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ListChecks, ArrowUpDown, ArrowUp, ArrowDown, Pencil } from 'lucide-react';
@@ -368,7 +368,6 @@ export default function InventoryTransactionTable({ transactions, onCorrectDate 
               ))}
             </TableBody>
           </Table>
-          <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </CardContent>
 
