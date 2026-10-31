@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, TABLE_VIEWPORT_CLASS, STICKY_TABLE_HEADER_CLASS } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ListChecks, ArrowUpDown, ArrowUp, ArrowDown, Pencil } from 'lucide-react';
@@ -247,14 +247,14 @@ export default function InventoryTransactionTable({ transactions, onCorrectDate 
         </div>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="w-full">
+        <ScrollArea className="w-full" viewportClassName={TABLE_VIEWPORT_CLASS}>
           <Table>
              <TableCaption>
               {sortedAndFilteredTransactions.length === 0 && !hasActiveFilters ? "Noch keine Transaktionen erfasst." :
                sortedAndFilteredTransactions.length === 0 && hasActiveFilters ? "Keine Transaktionen für die gewählten Filter gefunden." :
                `Protokoll aller Lagerbewegungen (${sortedAndFilteredTransactions.length} von ${transactions.length}).`}
             </TableCaption>
-            <TableHeader>
+            <TableHeader className={STICKY_TABLE_HEADER_CLASS}>
               <TableRow>
                 <TableHead className="min-w-[120px]">
                   <Button variant="ghost" onClick={() => requestSort('transactionDate')} className="px-1 py-0 h-auto hover:bg-transparent">

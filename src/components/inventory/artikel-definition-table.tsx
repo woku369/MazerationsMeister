@@ -28,7 +28,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, TABLE_VIEWPORT_CLASS, STICKY_TABLE_HEADER_CLASS } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState, useMemo } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -139,14 +139,14 @@ export default function ArtikelDefinitionTable({ definitions, onDeleteDefinition
         </div>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="w-full">
+        <ScrollArea className="w-full" viewportClassName={TABLE_VIEWPORT_CLASS}>
           <Table>
             <TableCaption>
               {sortedAndFilteredDefinitions.length === 0 && categoryFilter === 'all' ? "Noch keine Artikel definiert." : 
                sortedAndFilteredDefinitions.length === 0 && categoryFilter !== 'all' ? `Keine Artikel in Kategorie "${categoryFilter}".` :
                `Liste aller definierten Artikel.`}
             </TableCaption>
-            <TableHeader>
+            <TableHeader className={STICKY_TABLE_HEADER_CLASS}>
               <TableRow>
                 <TableHead className="min-w-[150px]">
                   <Button variant="ghost" onClick={() => requestSort('artikelNummer')} className="px-1 py-0 h-auto hover:bg-transparent">

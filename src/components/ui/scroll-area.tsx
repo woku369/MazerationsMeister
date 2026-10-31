@@ -7,14 +7,17 @@ import { cn } from "@/lib/utils"
 
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root> & {
+    /** z.B. eine max-h-Klasse: begrenzt die Höhe, damit die Leisten sichtbar bleiben. */
+    viewportClassName?: string
+  }
+>(({ className, viewportClassName, children, ...props }, ref) => (
   <ScrollAreaPrimitive.Root
     ref={ref}
     className={cn("relative overflow-hidden", className)}
     {...props}
   >
-    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
+    <ScrollAreaPrimitive.Viewport className={cn("h-full w-full rounded-[inherit]", viewportClassName)}>
       {children}
     </ScrollAreaPrimitive.Viewport>
     {/* Horizontale Leiste gehört wie die vertikale als eigenständiges
@@ -54,5 +57,16 @@ const ScrollBar = React.forwardRef<
   </ScrollAreaPrimitive.ScrollAreaScrollbar>
 ))
 ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName
+
+/**
+ * Für breite/lange Tabellen: Höhe ans Fenster gebunden, damit die Tabelle in
+ * ihrem eigenen Bereich scrollt und der horizontale Balken immer am unteren
+ * Rand des sichtbaren Bereichs liegt statt erst am Tabellenende
+ * (Nutzer-Meldung 31.10.2026). Mindestens 20rem bei sehr kleinen Fenstern.
+ */
+export const TABLE_VIEWPORT_CLASS = "max-h-[max(20rem,calc(100vh-15rem))]"
+
+/** Spaltenköpfe bleiben beim vertikalen Scrollen innerhalb der Tabelle stehen. */
+export const STICKY_TABLE_HEADER_CLASS = "sticky top-0 z-10 bg-card shadow-[0_1px_0_hsl(var(--border))]"
 
 export { ScrollArea, ScrollBar }

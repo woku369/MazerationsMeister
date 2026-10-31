@@ -924,45 +924,51 @@ export default function InventoryManagement() {
           <Tabs defaultValue="lagerbestand">
             <TabsList>
               <TabsTrigger value="lagerbestand">Lagerbestand</TabsTrigger>
+              <TabsTrigger value="chargen">Chargenübersicht</TabsTrigger>
               <TabsTrigger value="journal">Buchungsjournal</TabsTrigger>
               <TabsTrigger value="artikelstamm">Artikelstamm</TabsTrigger>
             </TabsList>
 
+            {/* Lagerbestand (Summe je Artikel) und Chargenübersicht (einzelne
+                Posten) in eigenen Tabs (Nutzer-Wunsch 31.10.2026): vorher lagen
+                beide untereinander, die Buttons scrollten nach oben weg und der
+                horizontale Balken der Chargentabelle war erst ganz unten. */}
             <TabsContent value="lagerbestand" className="space-y-4">
               <div className="flex justify-between items-center flex-wrap gap-2">
-                <h2 className="text-2xl font-semibold text-primary">Lagerbestand &amp; Chargen</h2>
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={() => handleOpenQuickTransaction('Zugang')} variant="outline" className="text-green-700 border-green-600 hover:bg-green-50">
-                      <PlusSquare className="mr-2 h-4 w-4" /> Zugang buchen
-                  </Button>
-                  <Button onClick={() => handleOpenQuickTransaction('Abgang')} variant="outline" className="text-orange-700 border-orange-600 hover:bg-orange-50">
-                      <MinusSquare className="mr-2 h-4 w-4" /> Abgang buchen
-                  </Button>
-                  <Button onClick={handleOpenAddEditDialogForNew} className="bg-primary hover:bg-primary/90">
-                      <PlusCircle className="mr-2 h-4 w-4" /> Neue Charge/Bestand anlegen
-                  </Button>
-                </div>
+                <h2 className="text-2xl font-semibold text-primary">Lagerbestand</h2>
+                <Button onClick={handleExportSummary} variant="outline" className="text-accent border-accent hover:bg-accent/10">
+                    <Download className="mr-2 h-4 w-4" /> Lagerübersicht exportieren (XLSX)
+                </Button>
               </div>
               <InventorySummary items={inventoryItems} />
+            </TabsContent>
+
+            <TabsContent value="chargen" className="space-y-4">
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <h2 className="text-2xl font-semibold text-primary">Chargenübersicht</h2>
+                <Button onClick={handleExportAktuellenLagerbestand} variant="outline" className="text-accent border-accent hover:bg-accent/10">
+                  <Download className="mr-2 h-4 w-4" /> Aktuellen Lagerbestand exportieren (XLSX)
+                </Button>
+              </div>
               <InventoryTable
                 items={inventoryItems}
                 onDeleteItem={handleDeleteItem}
                 onEditItem={handleOpenAddEditDialogForEdit}
                 onRecordTransaction={handleOpenTransactionDialog}
+                toolbar={
+                  <>
+                    <Button onClick={() => handleOpenQuickTransaction('Zugang')} variant="outline" className="text-green-700 border-green-600 hover:bg-green-50">
+                        <PlusSquare className="mr-2 h-4 w-4" /> Zugang buchen
+                    </Button>
+                    <Button onClick={() => handleOpenQuickTransaction('Abgang')} variant="outline" className="text-orange-700 border-orange-600 hover:bg-orange-50">
+                        <MinusSquare className="mr-2 h-4 w-4" /> Abgang buchen
+                    </Button>
+                    <Button onClick={handleOpenAddEditDialogForNew} className="bg-primary hover:bg-primary/90">
+                        <PlusCircle className="mr-2 h-4 w-4" /> Neue Charge/Bestand anlegen
+                    </Button>
+                  </>
+                }
               />
-              <Card>
-                <CardHeader>
-                    <CardTitle className="text-xl text-primary">Datenexport</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col sm:flex-row gap-4">
-                    <Button onClick={handleExportSummary} variant="outline" className="text-accent border-accent hover:bg-accent/10 flex-1">
-                        <Download className="mr-2 h-4 w-4" /> Lagerübersicht exportieren (XLSX)
-                    </Button>
-                    <Button onClick={handleExportAktuellenLagerbestand} variant="outline" className="text-accent border-accent hover:bg-accent/10 flex-1">
-                      <Download className="mr-2 h-4 w-4" /> Aktuellen Lagerbestand exportieren (XLSX)
-                    </Button>
-                </CardContent>
-              </Card>
             </TabsContent>
 
             <TabsContent value="journal" className="space-y-4">

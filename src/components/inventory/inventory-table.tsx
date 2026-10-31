@@ -28,9 +28,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, TABLE_VIEWPORT_CLASS, STICKY_TABLE_HEADER_CLASS } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type InventoryTableProps = {
@@ -38,6 +38,8 @@ type InventoryTableProps = {
   onDeleteItem: (id: string) => void;
   onEditItem: (item: StoredInventoryItem) => void;
   onRecordTransaction: (item: StoredInventoryItem, type: 'Zugang' | 'Abgang') => void;
+  /** Buttons im Tabellenkopf, damit sie direkt über der Tabelle erreichbar bleiben. */
+  toolbar?: ReactNode;
 };
 
 type SortableKeys = 
@@ -49,7 +51,7 @@ const formatNumber = (num: number | undefined | null, precision: number = 2) => 
   return num.toLocaleString('de-DE', { minimumFractionDigits: precision, maximumFractionDigits: precision });
 };
 
-export default function InventoryTable({ items, onDeleteItem, onEditItem, onRecordTransaction }: InventoryTableProps) {
+export default function InventoryTable({ items, onDeleteItem, onEditItem, onRecordTransaction, toolbar }: InventoryTableProps) {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortConfig, setSortConfig] = useState<{ key: SortableKeys | null; direction: 'ascending' | 'descending' }>({
     key: 'produktName', // Default sort by product name
@@ -128,7 +130,9 @@ export default function InventoryTable({ items, onDeleteItem, onEditItem, onReco
     <Card className="shadow-lg">
       <CardHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <CardTitle className="text-xl text-primary">Aktueller Lagerbestand (Chargenübersicht)</CardTitle>
+          <CardTitle className="text-xl text-primary">Chargenübersicht</CardTitle>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {toolbar}
           <div className="w-full sm:w-auto min-w-[200px]">
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger>
@@ -151,17 +155,18 @@ export default function InventoryTable({ items, onDeleteItem, onEditItem, onReco
               </SelectContent>
             </Select>
           </div>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="w-full">
+        <ScrollArea className="w-full" viewportClassName={TABLE_VIEWPORT_CLASS}>
           <Table>
             <TableCaption>
               {sortedAndFilteredItems.length === 0 && categoryFilter === 'all' ? "Noch keine Artikel im Lager erfasst." : 
                sortedAndFilteredItems.length === 0 && categoryFilter !== 'all' ? `Keine Artikel für Kategorie "${categoryFilter}" gefunden.` :
                `Liste aller erfassten Lagerartikel und Chargen.`}
             </TableCaption>
-            <TableHeader>
+            <TableHeader className={STICKY_TABLE_HEADER_CLASS}>
               <TableRow>
                 <TableHead className="min-w-[100px]">
                   <Button variant="ghost" onClick={() => requestSort('artikelNummer')} className="px-1 py-0 h-auto hover:bg-transparent">
