@@ -825,14 +825,32 @@ export default function AnleitungenPage() {
                 <Check>Diese Buchungen sind als <strong>Richtigstellung</strong> markiert (keine echte Bestandsbewegung) und im Buchungsjournal standardmäßig ausgeblendet</Check>
               </StepCard>
 
-              <StepCard number={4} color="purple" title="QR-Code erzeugen & anbringen">
-                <Check>Bei einem Tank auf „QR-Code" klicken und im Dialog <strong>„Herunterladen"</strong> (PNG)</Check>
-                <Check>Die PNG-Datei auf selbstklebende Etiketten drucken (mindestens 4×4 cm empfohlen)</Check>
-                <Warn>Der Button „Drucken" im Dialog druckt derzeit das ganze Programmfenster, nicht nur den QR-Code — für saubere Etiketten den Weg über „Herunterladen" nehmen.</Warn>
-                <Check>Jeden QR-Code gut sichtbar und vor Feuchtigkeit geschützt am Tank/Gebinde anbringen</Check>
+              <StepCard number={4} color="purple" title="QR-Etiketten drucken (80 × 105 mm, nur QR-Code + Gebindenummer)">
+                <Check>In der Tank-Verwaltung die gewünschten Tanks ankreuzen (oder „Alle angezeigten auswählen")</Check>
+                <Check>
+                  <strong>„Liste für NiceLabel (CSV)"</strong>: schreibt die Datei <code>Etiketten/NiceLabel_Etiketten.csv</code> in
+                  den Exportordner (Spalten <code>Gebindenummer</code> und <code>QR_Link</code>), immer unter demselben Namen —
+                  die NiceLabel-Vorlage zeigt einmalig darauf und druckt danach jede neue Auswahl in einem Durchgang
+                </Check>
+                <Check>
+                  <strong>„Etiketten als Bild (PNG)"</strong>: je Tank ein fertiges Etikett 80 × 105 mm bei 300 dpi im Ordner{' '}
+                  <code>Etiketten</code> — in NiceLabel als Grafik einfügen; es erscheint sofort in der richtigen Größe.
+                  Für einen einzelnen Tank geht das auch direkt im QR-Code-Dialog über „Etikett (PNG)"
+                </Check>
+                <Check>Mit aktiver GitHub-Integration enthält das Etikett einen kurzen Live-Link — der QR-Code bleibt gültig, egal wie oft sich der Inhalt des Tanks ändert</Check>
+                <Check>Jedes Etikett gut sichtbar am Tank/Gebinde anbringen</Check>
               </StepCard>
 
-              <StepCard number={5} color="orange" title="QR-Code mit Smartphone scannen" icon={<Smartphone className="h-4 w-4 ml-1" />}>
+              <StepCard number={5} color="blue" title="NiceLabel-Vorlage einmalig einrichten">
+                <Check>Neues Etikett anlegen: Drucker wählen, Etikettengröße 80 mm breit × 105 mm hoch (Hochformat)</Check>
+                <Check>Datenquelle → Textdatei/CSV: <code>NiceLabel_Etiketten.csv</code> aus dem Ordner <code>Etiketten</code> wählen, Trennzeichen Semikolon, erste Zeile enthält Feldnamen, Kodierung UTF-8</Check>
+                <Check>Barcode-Objekt vom Typ <strong>QR-Code</strong> einfügen, Inhalt mit dem Feld <code>QR_Link</code> verbinden, möglichst groß (ca. 70 × 70 mm)</Check>
+                <Check>Textobjekt darunter einfügen, mit dem Feld <code>Gebindenummer</code> verbinden, große fette Schrift</Check>
+                <Check>Beim Drucken „alle Datensätze" wählen — ein Etikett je Zeile der CSV</Check>
+                <Tip color="blue">Wechselt der Drucker (z.B. vor Ort statt Homeoffice), nur in der Vorlage den Drucker umstellen — die CSV aus der App bleibt gleich.</Tip>
+              </StepCard>
+
+              <StepCard number={6} color="orange" title="QR-Code mit Smartphone scannen" icon={<Smartphone className="h-4 w-4 ml-1" />}>
                 <Check>Kamera-App oder QR-Scanner öffnen (iPhone/Android)</Check>
                 <Check>Auf den QR-Code richten (Abstand ca. 10–20 cm) und den Link öffnen</Check>
                 <Check>Zeigt Sorte, Charge, Inhalt (Liter) und Alkoholgehalt in großen, gut lesbaren Karten</Check>
@@ -842,7 +860,7 @@ export default function AnleitungenPage() {
                 </Check>
               </StepCard>
 
-              <StepCard number={6} color="pink" title="Alle-Tanks-Übersicht (ohne einzelnen QR-Scan)">
+              <StepCard number={7} color="pink" title="Alle-Tanks-Übersicht (ohne einzelnen QR-Scan)">
                 <Check>
                   Im GitHub-Pages-Modus ist unter{' '}
                   <code className="text-xs bg-muted px-1 py-0.5 rounded">

@@ -60,12 +60,15 @@ export async function writeToExportDir(
   fileName: string,
   content: string,
   encoding: 'utf-8' | 'base64' = 'utf-8',
+  /** Optionaler Unterordner im Exportordner (wird bei Bedarf angelegt). */
+  subDir?: string,
 ): Promise<WriteToExportDirResult> {
   const api = getElectronAPI();
   if (!api) return { ok: false, error: 'Kein Electron-Kontext verfügbar.' };
 
   const configuredDir = typeof window !== 'undefined' ? localStorage.getItem('exportPath') || '' : '';
-  const dir = configuredDir || (await api.getDefaultExportDir());
+  const baseDir = configuredDir || (await api.getDefaultExportDir());
+  const dir = subDir ? `${baseDir.replace(/[\\/]+$/, '')}/${subDir}` : baseDir;
   const result = await api.writeFile(dir, fileName, content, encoding);
   return result.ok ? { ok: true, path: result.path, dir } : { ok: false, error: result.error };
 }

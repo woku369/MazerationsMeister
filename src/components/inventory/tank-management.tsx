@@ -30,7 +30,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import QRCode from "qrcode";
+import { buildTankQrUrls, labelQrUrl, buildNiceLabelCsv, labelPngFileName, LABEL_SUBDIR, NICELABEL_CSV_FILENAME } from "@/lib/tank-label";
+import { renderTankLabelPng } from "@/lib/tank-label-render";
+import * as ElectronBridge from "@/lib/electron-bridge";
 import { getTankAutoSync } from "@/lib/tank-auto-sync";
 import { getGithubToken, getGithubEnabled, setGithubConfig, onGithubConfigChanged } from "@/lib/github-token";
 import OneDriveAutoUploader from "@/lib/onedrive-auto-uploader";
@@ -44,6 +48,8 @@ import {
   Split,
   Plus,
   Trash2,
+  Tag,
+  FileSpreadsheet,
 } from "lucide-react";
 
 type Tank = TankDefinition;
@@ -245,7 +251,6 @@ export default function TankManagement() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedTanks, setSelectedTanks] = useState<Set<string>>(new Set());
   const [qrCodeTank, setQrCodeTank] = useState<Tank | null>(null);
-  const [allSelected, setAllSelected] = useState(false);
   const [splittingTank, setSplittingTank] = useState<Tank | null>(null);
   const [splitRows, setSplitRows] = useState<SplitRow[]>([]);
   const [sortBy, setSortBy] = useState<typeof TANK_SORT_OPTIONS[number]["value"]>("tankNr");
@@ -285,6 +290,83 @@ export default function TankManagement() {
     }
   };
 
+  const toQrInput = (tank: Tank) => {
+    const fill = getTankFillLevel(tank.tankNr);
+    return {
+      tankNr: tank.tankNr,
+      bezeichnung: tank.bezeichnung,
+      volumenLiter: tank.volumenLiter,
+      fuellstandLiter: fill.totalVolume,
+      sorte: fill.contents,
+    };
+  };
+
+  /**
+   * Speichert eine Etiketten-Datei: im Programm in <Exportordner>/Etiketten,
+   * im Browser als Download.
+   */
+  const saveLabelFile = async (fileName: string, content: string, encoding: 'utf-8' | 'base64', mime: string) => {
+    if (ElectronBridge.isElectron()) {
+      const result = await ElectronBridge.writeToExportDir(fileName, content, encoding, LABEL_SUBDIR);
+      if (result.ok) return { dir: result.dir };
+    }
+    const link = document.createElement('a');
+    link.download = fileName;
+    link.href = encoding === 'base64'
+      ? `data:${mime};base64,${content}`
+      : URL.createObjectURL(new Blob([content], { type: mime }));
+    link.click();
+    return { dir: null as string | null };
+  };
+
+  const showLabelToast = (title: string, dir: string | null, description: string) => {
+    toast({
+      title,
+      description: dir ? `${description} Gespeichert in: ${dir}` : `${description} Als Download gespeichert.`,
+      action: dir ? (
+        <ToastAction altText="Ordner öffnen" onClick={() => ElectronBridge.openPath(dir)}>Ordner öffnen</ToastAction>
+      ) : undefined,
+    });
+  };
+
+  const selectedTankList = () => tanks.filter(t => selectedTanks.has(t.id));
+
+  /** Serien-Druck: CSV für die NiceLabel-Vorlage (fester Dateiname, wird überschrieben). */
+  const exportNiceLabelCsv = async () => {
+    const list = selectedTankList();
+    if (list.length === 0) return;
+    const csv = buildNiceLabelCsv(list.map(t => ({ gebindenummer: t.tankNr, qrLink: labelQrUrl(toQrInput(t), githubEnabled) })));
+    try {
+      const { dir } = await saveLabelFile(NICELABEL_CSV_FILENAME, csv, 'utf-8', 'text/csv;charset=utf-8');
+      showLabelToast('Etiketten-Liste erstellt', dir, `${list.length} Etikett(en) in ${NICELABEL_CSV_FILENAME}.`);
+    } catch (error) {
+      toast({ title: 'Etiketten-Liste fehlgeschlagen', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
+    }
+  };
+
+  /** Fertige Etiketten-Bilder (80 × 105 mm, 300 dpi), eines je Tank. */
+  const exportLabelPngs = async (list: Tank[]) => {
+    if (list.length === 0) return;
+    try {
+      let dir: string | null = null;
+      for (const t of list) {
+        const png = renderTankLabelPng(t.tankNr, labelQrUrl(toQrInput(t), githubEnabled));
+        dir = (await saveLabelFile(labelPngFileName(t.tankNr), png, 'base64', 'image/png')).dir;
+      }
+      showLabelToast(list.length === 1 ? 'Etikett erstellt' : 'Etiketten erstellt', dir, `${list.length} Etikett(en) als PNG, 80 × 105 mm bei 300 dpi.`);
+    } catch (error) {
+      toast({ title: 'Etikett fehlgeschlagen', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
+    }
+  };
+
+  const toggleTankSelected = (id: string, checked: boolean) => {
+    setSelectedTanks(prev => {
+      const next = new Set(prev);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
+
   const generateQRCode = async (tank: Tank) => {
     try {
       // Zweck des QR-Codes (Nutzer, 29.09.2026): im Tankraum gibt es kein WLAN und keinen PC,
@@ -295,32 +377,19 @@ export default function TankManagement() {
       // ist von überall per Mobilfunk erreichbar - daher immer dorthin verlinken, mit den
       // aktuellen Tank-Daten direkt im QR-Code eingebettet (funktioniert auch dann korrekt,
       // wenn der zentrale tank-data.json-Datensatz gerade nicht ganz aktuell ist).
-      const fallbackData = {
-        tankNr: tank.tankNr,
-        bezeichnung: tank.bezeichnung,
-        volumen: tank.volumenLiter,
-        aktuellerFuellstand: getTankFillLevel(tank.tankNr).totalVolume,
-        sorte: getTankFillLevel(tank.tankNr).contents || "Leer",
-        batch: githubEnabled ? "GitHub-Integration aktiv" : "Offline verfügbar",
-        temperatur: "Siehe Desktop-App",
-        alkoholgehalt: "Siehe Desktop-App",
-        ph_wert: "Nicht gemessen",
-        status: githubEnabled ? "GitHub-verbunden" : "Offline verfügbar",
-        verantwortlicher: githubEnabled ? "GitHub System" : "Lokales System",
-        naechsteKontrolle: "Bei nächster Aktualisierung",
-        letzteAktualisierung: new Date().toLocaleDateString('de-DE'),
-      };
-      const encodedFallback = encodeURIComponent(JSON.stringify(fallbackData));
+      // URL-Aufbau zentral in tank-label.ts, damit QR-Dialog und gedruckte
+      // Etiketten (NiceLabel-CSV/PNG) exakt denselben Link verwenden.
+      const { offlineUrl, liveUrl } = buildTankQrUrls(toQrInput(tank), githubEnabled);
       // Garantiert erreichbare Variante mit eingebetteten Daten - Ausgangspunkt und
       // letzter Rückfall zugleich.
-      let url = `https://woku369.github.io/MazerationsMeister/tank-offline/?tank=${tank.tankNr}&fallback=${encodedFallback}`;
+      let url = offlineUrl;
 
-      if (githubEnabled && githubToken) {
+      if (liveUrl && githubToken) {
         // Falls der zentrale Datensatz gerade aktuell synchronisiert ist, zeigt
         // tank-viewer.html den echten Live-Stand statt nur des Schnappschusses von
         // jetzt - deshalb bevorzugt versuchen, mit Rückfall auf die oben garantiert
         // funktionierende Variante.
-        const githubPagesUrl = `https://woku369.github.io/MazerationsMeister/tank-viewer.html?tank=${tank.tankNr}&fallback=${encodedFallback}&mode=github`;
+        const githubPagesUrl = liveUrl;
         try {
           await fetch(githubPagesUrl, { method: 'HEAD', mode: 'no-cors' });
           url = githubPagesUrl;
@@ -845,6 +914,47 @@ export default function TankManagement() {
             </div>
           )}
 
+          {/* QR-Etiketten (Nutzer-Anfrage 31.10.2026): Tanks ankreuzen, dann
+              CSV für die NiceLabel-Vorlage (Serien-Druck) oder fertige
+              Etiketten-Bilder 80 × 105 mm @ 300 dpi. Auf dem Etikett nur QR-Code
+              und Gebindenummer. */}
+          {tanks.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 mb-4 p-3 rounded-md border bg-muted/40">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="selectAllVisibleTanks"
+                  checked={visibleTanks.length > 0 && visibleTanks.every(({ tank }) => selectedTanks.has(tank.id))}
+                  onCheckedChange={(v) => {
+                    setSelectedTanks(prev => {
+                      const next = new Set(prev);
+                      for (const { tank } of visibleTanks) {
+                        if (v) next.add(tank.id); else next.delete(tank.id);
+                      }
+                      return next;
+                    });
+                  }}
+                />
+                <label htmlFor="selectAllVisibleTanks" className="text-sm cursor-pointer">Alle angezeigten auswählen</label>
+              </div>
+              <span className="text-sm text-muted-foreground">
+                {selectedTanks.size > 0 ? `${selectedTanks.size} für Etiketten ausgewählt` : 'Tanks für QR-Etiketten ankreuzen'}
+              </span>
+              <div className="flex flex-wrap gap-2 ml-auto">
+                <Button variant="outline" size="sm" disabled={selectedTanks.size === 0} onClick={exportNiceLabelCsv}
+                  title={`Liste für die NiceLabel-Vorlage (${LABEL_SUBDIR}/${NICELABEL_CSV_FILENAME}, wird jedes Mal überschrieben)`}>
+                  <FileSpreadsheet className="mr-1 h-4 w-4" /> Liste für NiceLabel (CSV)
+                </Button>
+                <Button variant="outline" size="sm" disabled={selectedTanks.size === 0} onClick={() => exportLabelPngs(selectedTankList())}
+                  title="Fertige Etiketten-Bilder 80 × 105 mm bei 300 dpi, eines je Tank">
+                  <Tag className="mr-1 h-4 w-4" /> Etiketten als Bild (PNG)
+                </Button>
+                {selectedTanks.size > 0 && (
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedTanks(new Set())}>Auswahl aufheben</Button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Tanks Liste */}
           <div className="space-y-4">
             {tanks.length === 0 ? (
@@ -870,6 +980,12 @@ export default function TankManagement() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-3">
+                            <Checkbox
+                              checked={selectedTanks.has(tank.id)}
+                              onCheckedChange={(v) => toggleTankSelected(tank.id, !!v)}
+                              aria-label={`${tank.tankNr} für QR-Etikett auswählen`}
+                              title="Für QR-Etikett auswählen"
+                            />
                             <span className="text-lg font-bold bg-blue-100 text-blue-800 px-3 py-1 rounded">
                               {tank.tankNr}
                             </span>
@@ -1036,16 +1152,16 @@ export default function TankManagement() {
                     <Download className="mr-2 h-4 w-4" />
                     Herunterladen
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  {/* Ersetzt das frühere "Drucken" (window.print druckte das ganze
+                      Programmfenster statt nur des QR-Codes). */}
+                  <Button
+                    variant="outline"
                     className="flex-1"
-                    onClick={() => {
-                      if (qrCodeDataUrl) {
-                        window.print();
-                      }
-                    }}
+                    onClick={() => { if (qrCodeTank) exportLabelPngs([qrCodeTank]); }}
+                    title="Fertiges Etikett 80 × 105 mm bei 300 dpi: QR-Code + Gebindenummer"
                   >
-                    Drucken
+                    <Tag className="mr-2 h-4 w-4" />
+                    Etikett (PNG)
                   </Button>
                 </div>
               </div>
