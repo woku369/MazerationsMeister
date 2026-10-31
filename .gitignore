@@ -54,3 +54,7 @@ next-env.d.ts
 # Nur tank-data.json und tank-data-live.json werden behalten
 tank-data-[0-9]*.json
 /backups/
+
+# Google-OAuth-Zugangsdaten (Client-Secret) - nie committen
+kalenderwidget google oauth client/
+client_secret_*.json
