@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Download, Upload, Trash2, Settings, Cloud, Smartphone, Github, Clock, CheckCircle, DatabaseBackup, CalendarClock } from "lucide-react";
 import { getTankAutoSync } from "@/lib/tank-auto-sync";
 import { getGithubToken, getGithubEnabled, setGithubConfig } from "@/lib/github-token";
-import { getGoogleClientId, getGoogleClientSecret, isGoogleCalendarConnected, onGoogleCalendarConfigChanged } from "@/lib/google-calendar-token";
+import { getGoogleClientId, getGoogleClientSecret, isGoogleCalendarConnected, onGoogleCalendarConfigChanged, getGoogleAuthExpiredReason } from "@/lib/google-calendar-token";
 import { connectGoogleCalendar, disconnectGoogleCalendar } from "@/lib/google-calendar";
 import { isElectron } from "@/lib/electron-bridge";
 import { useToast } from "@/hooks/use-toast";
@@ -130,10 +130,14 @@ export default function EinstellungenPage() {
   const [googleClientId, setGoogleClientId] = useState(() => getGoogleClientId());
   const [googleClientSecret, setGoogleClientSecret] = useState(() => getGoogleClientSecret());
   const [googleConnected, setGoogleConnected] = useState(() => isGoogleCalendarConnected());
+  const [googleAuthExpired, setGoogleAuthExpired] = useState(() => getGoogleAuthExpiredReason() !== null);
   const [googleConnecting, setGoogleConnecting] = useState(false);
 
   React.useEffect(() => {
-    return onGoogleCalendarConfigChanged(() => setGoogleConnected(isGoogleCalendarConnected()));
+    return onGoogleCalendarConfigChanged(() => {
+      setGoogleConnected(isGoogleCalendarConnected());
+      setGoogleAuthExpired(getGoogleAuthExpiredReason() !== null);
+    });
   }, []);
 
   const handleConnectGoogleCalendar = async () => {
@@ -544,7 +548,21 @@ export default function EinstellungenPage() {
                 Ändern und Löschen. Nur im installierten Programm verfügbar (nicht im Browser), da der
                 Verbindungsaufbau einen lokalen Server braucht.
               </p>
+              <p className="text-sm text-blue-700 mt-2">
+                <strong>Wichtig:</strong> Steht der OAuth-Zustimmungsbildschirm in der Google Cloud Console
+                auf „Testing", läuft die Anmeldung nach 7 Tagen ab. Auf „In Produktion" umstellen
+                (für die private Nutzung ist keine Prüfung durch Google nötig; beim Verbinden einmal
+                „Erweitert" → „Weiter" bestätigen).
+              </p>
             </div>
+
+            {googleAuthExpired && !googleConnected && (
+              <Alert className="mb-4 border-amber-300 bg-amber-50">
+                <AlertDescription className="text-amber-800">
+                  Die Google-Anmeldung ist abgelaufen. Bitte unten auf „Verbinden" klicken und neu anmelden.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {!isElectron() && (
               <Alert className="mb-4">
@@ -597,7 +615,7 @@ export default function EinstellungenPage() {
 
               <div className="text-xs text-muted-foreground">
                 <strong>Status:</strong><br />
-                Verbindung: <span className="font-mono">{hydrated ? (googleConnected ? 'Verbunden' : 'Nicht verbunden') : 'Lade...'}</span>
+                Verbindung: <span className="font-mono">{hydrated ? (googleConnected ? 'Verbunden' : googleAuthExpired ? 'Abgelaufen – bitte neu verbinden' : 'Nicht verbunden') : 'Lade...'}</span>
               </div>
 
               {googleConnected && (

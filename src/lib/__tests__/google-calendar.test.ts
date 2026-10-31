@@ -88,6 +88,48 @@ describe('google-calendar', () => {
     expect(await ensureValidAccessToken()).toBeNull();
   });
 
+  it('abgelehnter Refresh-Token (invalid_grant): Tokens verworfen, als abgelaufen markiert, klare Meldung (Aufgabe 105)', async () => {
+    const { setGoogleTokens, getGoogleTokens, getGoogleAuthExpiredReason, isGoogleCalendarConnected } = await import('../google-calendar-token');
+    const { listUpcomingEvents, AUTH_EXPIRED_MESSAGE } = await import('../google-calendar');
+    setGoogleTokens({ accessToken: 'alt', refreshToken: 'ref-123', expiresAt: Date.now() - 1000 });
+    refreshTokenMock.mockResolvedValue({
+      ok: false,
+      error: 'Token-Erneuerung fehlgeschlagen (400): {"error": "invalid_grant", "error_description": "Token has been expired or revoked."}',
+    });
+
+    const result = await listUpcomingEvents();
+
+    expect(result).toEqual({ ok: false, error: AUTH_EXPIRED_MESSAGE });
+    expect(getGoogleTokens()).toBeNull();
+    expect(isGoogleCalendarConnected()).toBe(false);
+    expect(getGoogleAuthExpiredReason()).toContain('invalid_grant');
+  });
+
+  it('Netzwerkfehler bei der Erneuerung: Tokens bleiben erhalten, Fehler nennt den Grund', async () => {
+    const { setGoogleTokens, getGoogleTokens, getGoogleAuthExpiredReason } = await import('../google-calendar-token');
+    const { listUpcomingEvents } = await import('../google-calendar');
+    setGoogleTokens({ accessToken: 'alt', refreshToken: 'ref-123', expiresAt: Date.now() - 1000 });
+    refreshTokenMock.mockResolvedValue({ ok: false, error: 'fetch failed' });
+
+    const result = await listUpcomingEvents();
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain('fetch failed');
+    expect(getGoogleTokens()?.refreshToken).toBe('ref-123');
+    expect(getGoogleAuthExpiredReason()).toBeNull();
+  });
+
+  it('erfolgreiches Neu-Verbinden hebt die Abgelaufen-Markierung auf', async () => {
+    const { markGoogleAuthExpired, getGoogleAuthExpiredReason } = await import('../google-calendar-token');
+    const { connectGoogleCalendar } = await import('../google-calendar');
+    markGoogleAuthExpired('invalid_grant');
+    startAuthMock.mockResolvedValue({ ok: true, accessToken: 'a1', refreshToken: 'r1', expiresIn: 3600 });
+
+    await connectGoogleCalendar('client-id-x', 'secret-y');
+
+    expect(getGoogleAuthExpiredReason()).toBeNull();
+  });
+
   it('connectGoogleCalendar speichert Tokens bei Erfolg', async () => {
     const { connectGoogleCalendar } = await import('../google-calendar');
     const { getGoogleTokens, getGoogleClientId } = await import('../google-calendar-token');

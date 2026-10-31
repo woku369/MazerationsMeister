@@ -7,6 +7,7 @@
 const CLIENT_ID_KEY = 'googleCalendarClientId';
 const CLIENT_SECRET_KEY = 'googleCalendarClientSecret';
 const TOKENS_KEY = 'googleCalendarTokens';
+const AUTH_EXPIRED_KEY = 'googleCalendarAuthExpired';
 const CONFIG_EVENT = 'googleCalendarConfigUpdated';
 
 export interface GoogleCalendarTokens {
@@ -49,6 +50,29 @@ export function setGoogleTokens(tokens: GoogleCalendarTokens | null): void {
     localStorage.removeItem(TOKENS_KEY);
   }
   window.dispatchEvent(new CustomEvent(CONFIG_EVENT));
+}
+
+/**
+ * Google hat den Refresh-Token abgelehnt (abgelaufen/widerrufen). Tokens
+ * verwerfen und den Grund merken, damit Einstellungen und Dashboard
+ * übereinstimmend "Anmeldung abgelaufen" zeigen statt hier "verbunden" und
+ * dort einen Fehler (Nutzer-Meldung 31.10.2026, Aufgabe 105).
+ */
+export function markGoogleAuthExpired(reason: string): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(AUTH_EXPIRED_KEY, reason);
+  setGoogleTokens(null);
+}
+
+/** Grund, falls die Anmeldung abgelaufen ist und noch nicht neu verbunden wurde. */
+export function getGoogleAuthExpiredReason(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(AUTH_EXPIRED_KEY);
+}
+
+export function clearGoogleAuthExpired(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(AUTH_EXPIRED_KEY);
 }
 
 export function isGoogleCalendarConnected(): boolean {

@@ -10,31 +10,59 @@
  */
 import {
   getGoogleClientId, getGoogleClientSecret, getGoogleTokens, setGoogleTokens,
-  setGoogleClientConfig, type GoogleCalendarTokens,
+  setGoogleClientConfig, markGoogleAuthExpired, clearGoogleAuthExpired, type GoogleCalendarTokens,
 } from './google-calendar-token';
 import { googleCalendarStartAuth, googleCalendarRefreshToken } from './electron-bridge';
 
 const EVENTS_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
 
+export const AUTH_EXPIRED_MESSAGE = 'Die Google-Anmeldung ist abgelaufen. Bitte in den Einstellungen neu verbinden.';
+
 export type CalendarResult<T> = { ok: true; data: T } | { ok: false; error: string };
+
+/** Grund des letzten gescheiterten Token-Abrufs, für eine verständliche Fehlermeldung. */
+let lastTokenError: string | null = null;
 
 /**
  * Liefert einen gültigen Access-Token, erneuert ihn bei Bedarf über den
  * Refresh-Token. null, wenn gar nicht (mehr) verbunden - der Nutzer muss
  * sich dann in den Einstellungen neu verbinden.
+ *
+ * Lehnt Google den Refresh-Token ab (invalid_grant - z.B. nach 7 Tagen, wenn
+ * der OAuth-Zustimmungsbildschirm noch auf "Testing" steht), werden die
+ * Tokens verworfen und als "abgelaufen" markiert. Vorher blieben sie stehen:
+ * Einstellungen zeigten "verbunden", das Dashboard nur einen Fehler ohne
+ * Grund (Nutzer-Meldung 31.10.2026, Aufgabe 105).
  */
 export async function ensureValidAccessToken(): Promise<string | null> {
+  lastTokenError = null;
   const tokens = getGoogleTokens();
   if (!tokens) return null;
   // 1 Minute Puffer, damit der Token nicht genau während eines laufenden
   // API-Aufrufs abläuft.
   if (Date.now() < tokens.expiresAt - 60_000) return tokens.accessToken;
-  if (!tokens.refreshToken) return null;
+  if (!tokens.refreshToken) {
+    markGoogleAuthExpired('Kein Refresh-Token vorhanden');
+    lastTokenError = AUTH_EXPIRED_MESSAGE;
+    return null;
+  }
 
   const clientId = getGoogleClientId();
   const clientSecret = getGoogleClientSecret();
   const result = await googleCalendarRefreshToken(tokens.refreshToken, clientId, clientSecret);
-  if (!result.ok) return null;
+  if (!result.ok) {
+    // invalid_grant: Refresh-Token abgelaufen/widerrufen; invalid_client /
+    // unauthorized_client: OAuth-Client gelöscht oder Secret geändert.
+    // In allen drei Fällen hilft nur neu verbinden.
+    if (/invalid_grant|invalid_client|unauthorized_client/i.test(result.error)) {
+      markGoogleAuthExpired(result.error);
+      lastTokenError = AUTH_EXPIRED_MESSAGE;
+    } else {
+      // z.B. kein Internet: Tokens behalten, beim nächsten Versuch klappt es evtl.
+      lastTokenError = `Google-Anmeldung konnte nicht erneuert werden: ${result.error}`;
+    }
+    return null;
+  }
 
   const updated: GoogleCalendarTokens = {
     accessToken: result.accessToken,
@@ -49,6 +77,7 @@ export async function connectGoogleCalendar(clientId: string, clientSecret: stri
   setGoogleClientConfig(clientId, clientSecret);
   const result = await googleCalendarStartAuth(clientId, clientSecret);
   if (!result.ok) return result;
+  clearGoogleAuthExpired();
   setGoogleTokens({
     accessToken: result.accessToken,
     refreshToken: result.refreshToken,
@@ -58,6 +87,7 @@ export async function connectGoogleCalendar(clientId: string, clientSecret: stri
 }
 
 export function disconnectGoogleCalendar(): void {
+  clearGoogleAuthExpired();
   setGoogleTokens(null);
 }
 
@@ -100,7 +130,7 @@ function toGoogleTime(iso: string, allDay: boolean) {
 
 async function calendarFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const token = await ensureValidAccessToken();
-  if (!token) throw new Error('Nicht mit Google Calendar verbunden.');
+  if (!token) throw new Error(lastTokenError ?? 'Nicht mit Google Calendar verbunden.');
   return fetch(`${EVENTS_URL}${path}`, {
     ...options,
     headers: { ...(options.headers || {}), Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },

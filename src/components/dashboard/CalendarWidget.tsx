@@ -26,9 +26,12 @@ import {
 import { CalendarClock, Plus, Pencil, Trash2, ExternalLink, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
-  listEventsInRange, createEvent, updateEvent, deleteEvent, type CalendarEvent, type NewCalendarEvent,
+  listEventsInRange, createEvent, updateEvent, deleteEvent, AUTH_EXPIRED_MESSAGE,
+  type CalendarEvent, type NewCalendarEvent,
 } from '@/lib/google-calendar';
-import { isGoogleCalendarConnected, onGoogleCalendarConfigChanged } from '@/lib/google-calendar-token';
+import {
+  isGoogleCalendarConnected, onGoogleCalendarConfigChanged, getGoogleAuthExpiredReason,
+} from '@/lib/google-calendar-token';
 
 function toLocalDateInput(iso: string): string {
   return iso.slice(0, 10);
@@ -61,6 +64,7 @@ const EMPTY_FORM = { summary: '', description: '', startDate: '', startTime: '09
 export default function CalendarWidget() {
   const { toast } = useToast();
   const [connected, setConnected] = useState(false);
+  const [authExpired, setAuthExpired] = useState(false);
   const [displayMonth, setDisplayMonth] = useState<Date>(new Date());
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -90,9 +94,12 @@ export default function CalendarWidget() {
   }, []);
 
   useEffect(() => {
-    setConnected(isGoogleCalendarConnected());
-    const unsubscribe = onGoogleCalendarConfigChanged(() => setConnected(isGoogleCalendarConnected()));
-    return unsubscribe;
+    const refresh = () => {
+      setConnected(isGoogleCalendarConnected());
+      setAuthExpired(getGoogleAuthExpiredReason() !== null);
+    };
+    refresh();
+    return onGoogleCalendarConfigChanged(refresh);
   }, []);
 
   useEffect(() => {
@@ -180,11 +187,22 @@ export default function CalendarWidget() {
           <CardDescription>Dein persönlicher Google Calendar</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-3">
-            Noch nicht mit Google Calendar verbunden.
-          </p>
+          {authExpired ? (
+            <div className="mb-3 space-y-2">
+              <p className="text-sm font-medium text-amber-700">{AUTH_EXPIRED_MESSAGE}</p>
+              <p className="text-xs text-muted-foreground">
+                Läuft die Anmeldung alle 7 Tage ab, steht der OAuth-Zustimmungsbildschirm in der
+                Google Cloud Console noch auf „Testing". Auf „In Produktion" umstellen, dann bleibt
+                die Verbindung bestehen.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground mb-3">
+              Noch nicht mit Google Calendar verbunden.
+            </p>
+          )}
           <Link href="/einstellungen">
-            <Button variant="outline" size="sm">In Einstellungen verbinden</Button>
+            <Button variant="outline" size="sm">{authExpired ? 'Neu verbinden' : 'In Einstellungen verbinden'}</Button>
           </Link>
         </CardContent>
       </Card>

@@ -950,6 +950,7 @@ export default function AnleitungenPage() {
                 <Check>„APIs & Dienste" → „Bibliothek" → „Google Calendar API" aktivieren</Check>
                 <Check>„OAuth-Zustimmungsbildschirm": Nutzertyp „Extern", Bereich <code>https://www.googleapis.com/auth/calendar</code> hinzufügen, eigene Google-Mail-Adresse als Testnutzer eintragen</Check>
                 <Check>„Anmeldedaten" → „OAuth-Client-ID" erstellen, Anwendungstyp <strong>„Desktop-App"</strong> wählen → Client-ID und Client-Secret notieren</Check>
+                <Check>„OAuth-Zustimmungsbildschirm" → Veröffentlichungsstatus auf <strong>„In Produktion"</strong> stellen. Im Status „Testing" läuft die Anmeldung nach 7 Tagen ab. Für die private Nutzung ist keine Prüfung durch Google nötig; beim Verbinden erscheint einmalig „Google hat diese App nicht überprüft" → „Erweitert" → „Weiter".</Check>
               </StepCard>
 
               <StepCard number={2} color="purple" title="In der App verbinden">
