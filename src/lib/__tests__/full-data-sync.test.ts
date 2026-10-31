@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 
 // vi.mock()-Fabriken werden gehoisted - Variablen, auf die sie zugreifen,
 // müssen deshalb über vi.hoisted() deklariert werden.
@@ -45,8 +45,15 @@ function seedLocal(inventoryItems: unknown[]) {
 describe('FullDataSync', () => {
   let sync: FullDataSync | null = null;
 
-  beforeEach(() => {
+  // Nach einem Remote-Abgleich lädt full-data-sync die Seite verzögert per
+  // window.location.reload() neu. Dieser Timer feuert erst nach Testende,
+  // daher bleiben window/location für die ganze Datei gesetzt.
+  beforeAll(() => {
     (globalThis as any).window = globalThis;
+    (globalThis as any).location = { reload: vi.fn() };
+  });
+
+  beforeEach(() => {
     (globalThis as any).localStorage = makeLocalStorage();
     uploadBackupMock.mockReset().mockResolvedValue({ ok: true });
     fetchBackupMock.mockReset();
@@ -58,7 +65,6 @@ describe('FullDataSync', () => {
   afterEach(() => {
     sync?.stop();
     sync = null;
-    delete (globalThis as any).window;
     delete (globalThis as any).localStorage;
   });
 

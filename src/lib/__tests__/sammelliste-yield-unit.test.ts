@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getYieldUnit, type Protocol } from '@/app/mazerationen/sammelliste/page';
+import { getYieldUnit, type Protocol } from '@/lib/sammelliste-helpers';
 
 function makeProtocol(overrides: Partial<Protocol> = {}): Protocol {
   return { ...overrides };
