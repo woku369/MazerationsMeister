@@ -28,7 +28,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea, TABLE_VIEWPORT_CLASS, STICKY_TABLE_HEADER_CLASS } from '@/components/ui/scroll-area';
+import { ScrollArea, STICKY_TABLE_HEADER_CLASS } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState, useMemo } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -139,7 +139,7 @@ export default function ArtikelDefinitionTable({ definitions, onDeleteDefinition
         </div>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="w-full" viewportClassName={TABLE_VIEWPORT_CLASS}>
+        <ScrollArea className="w-full" type="always" fitToWindow>
           <Table>
             <TableCaption>
               {sortedAndFilteredDefinitions.length === 0 && categoryFilter === 'all' ? "Noch keine Artikel definiert." : 

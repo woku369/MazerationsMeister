@@ -901,20 +901,19 @@ export default function InventoryManagement() {
               verwirrend - der dortige Pfad ist jetzt die einzige Stelle und
               schreibt in denselben "exportPath"-Schlüssel, den der frühere
               Dialog hier tatsächlich benutzte). */}
-          <div className="mb-2 flex justify-end">
-            <div className="flex items-center gap-2">
-              <Button type="button" onClick={() => createBackup()} variant="outline" className="border-amber-600 text-amber-600">Backup erstellen</Button>
-            </div>
-          </div>
-          {/* Hauptinhalt der Komponente */}
           {/* Import XLSX bleibt oberhalb der Tabs, da eine Datei je nach erkanntem
               Header entweder den Artikelstamm oder den Lagerbestand befüllt - ihn
               in einen der beiden Tabs zu legen, würde für den jeweils anderen
-              Fall einen Tab-Wechsel vor dem Import erzwingen. */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-primary mb-2">Import XLSX</label>
-            <input type="file" accept=".xlsx,.xls" onChange={handleImportXLSX} className="block" />
-            <p className="text-muted-foreground text-xs mt-1">Importiere Artikelstammdaten oder Lagerbestände als XLSX. Die Kategorie muss nachträglich ergänzt werden.</p>
+              Fall einen Tab-Wechsel vor dem Import erzwingen. Backup und Import
+              in einer Zeile (31.10.2026), damit die Tabellen darunter mehr
+              Fensterhöhe bekommen. */}
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <label className="block text-sm font-medium text-primary mb-2">Import XLSX</label>
+              <input type="file" accept=".xlsx,.xls" onChange={handleImportXLSX} className="block" />
+              <p className="text-muted-foreground text-xs mt-1">Importiere Artikelstammdaten oder Lagerbestände als XLSX. Die Kategorie muss nachträglich ergänzt werden.</p>
+            </div>
+            <Button type="button" onClick={() => createBackup()} variant="outline" className="border-amber-600 text-amber-600">Backup erstellen</Button>
           </div>
 
           {/* Tabs statt durchgehender Scroll-Seite (Nutzer-Feedback 30.09.2026,
@@ -944,12 +943,6 @@ export default function InventoryManagement() {
             </TabsContent>
 
             <TabsContent value="chargen" className="space-y-4">
-              <div className="flex justify-between items-center flex-wrap gap-2">
-                <h2 className="text-2xl font-semibold text-primary">Chargenübersicht</h2>
-                <Button onClick={handleExportAktuellenLagerbestand} variant="outline" className="text-accent border-accent hover:bg-accent/10">
-                  <Download className="mr-2 h-4 w-4" /> Aktuellen Lagerbestand exportieren (XLSX)
-                </Button>
-              </div>
               <InventoryTable
                 items={inventoryItems}
                 onDeleteItem={handleDeleteItem}
@@ -965,6 +958,9 @@ export default function InventoryManagement() {
                     </Button>
                     <Button onClick={handleOpenAddEditDialogForNew} className="bg-primary hover:bg-primary/90">
                         <PlusCircle className="mr-2 h-4 w-4" /> Neue Charge/Bestand anlegen
+                    </Button>
+                    <Button onClick={handleExportAktuellenLagerbestand} variant="outline" className="text-accent border-accent hover:bg-accent/10" title="Aktuellen Lagerbestand (alle Chargen) als XLSX exportieren">
+                      <Download className="mr-2 h-4 w-4" /> Export (XLSX)
                     </Button>
                   </>
                 }

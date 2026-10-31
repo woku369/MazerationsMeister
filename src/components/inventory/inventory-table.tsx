@@ -28,7 +28,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea, TABLE_VIEWPORT_CLASS, STICKY_TABLE_HEADER_CLASS } from '@/components/ui/scroll-area';
+import { ScrollArea, STICKY_TABLE_HEADER_CLASS } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState, useMemo, type ReactNode } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -159,7 +159,7 @@ export default function InventoryTable({ items, onDeleteItem, onEditItem, onReco
         </div>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="w-full" viewportClassName={TABLE_VIEWPORT_CLASS}>
+        <ScrollArea className="w-full" type="always" fitToWindow>
           <Table>
             <TableCaption>
               {sortedAndFilteredItems.length === 0 && categoryFilter === 'all' ? "Noch keine Artikel im Lager erfasst." : 
@@ -220,7 +220,7 @@ export default function InventoryTable({ items, onDeleteItem, onEditItem, onReco
                   </Button>
                 </TableHead>
                 <TableHead className="min-w-[200px]">Bemerkungen</TableHead>
-                <TableHead className="text-center min-w-[180px]">Aktionen</TableHead>
+                <TableHead className="text-center min-w-[200px]">Aktionen</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -266,7 +266,9 @@ export default function InventoryTable({ items, onDeleteItem, onEditItem, onReco
                       item.bemerkungen || '-'
                     )}
                   </TableCell>
-                  <TableCell className="text-center space-x-1">
+                  {/* whitespace-nowrap: die 4 Symbole brachen sonst auf zwei Zeilen um
+                      und machten jede Tabellenzeile doppelt so hoch (31.10.2026). */}
+                  <TableCell className="text-center space-x-1 whitespace-nowrap">
                     <TooltipProvider delayDuration={100}>
                       <Tooltip>
                         <TooltipTrigger asChild>
