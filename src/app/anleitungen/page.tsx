@@ -285,10 +285,12 @@ export default function AnleitungenPage() {
               <StepCard number={1} color="purple" title="Basisdaten & Pflanzeninformationen">
                 <Check>Bezeichnung, Chargennummer und Ansatzdatum erfassen</Check>
                 <Check>Pflanzenmaterial, Menge (kg) und Herkunft eintragen</Check>
+                <Check>Bei Einwaage mit Kisten bzw. Paletten: Anzahl und Tara eintragen — das Nettogewicht wird automatisch berechnet</Check>
               </StepCard>
 
               <StepCard number={2} color="blue" title="Alkoholinformationen">
                 <Check>Eingesetzten Sprit (Menge in Litern, Alkoholgehalt %vol.) erfassen</Check>
+                <Check>Oder Anfangs- und Endstand am <strong>Steigrohr</strong> eintragen — die Spritmenge ergibt sich automatisch aus der Differenz</Check>
                 <Check>Nach Mazerationsende: Ausbeute-Menge und Endalkohol eintragen</Check>
                 <Tip color="blue">
                   Alternativ Ausbeute aus <strong>Masse (kg) + Dichte</strong> berechnen lassen — Volumen wird dann
@@ -326,8 +328,9 @@ export default function AnleitungenPage() {
                   die Charge in die fortlaufende Chargen-Liste ein
                 </Check>
                 <Check>
-                  <strong>„Leeres Protokoll Exportieren"</strong> für einen unausgefüllten Vordruck (z.B. zum
-                  handschriftlichen Erfassen im Mazerationsraum)
+                  <strong>„Leeres Protokoll Exportieren"</strong> für einen einseitigen Vordruck mit Ausfülllinien
+                  (z.B. zum handschriftlichen Erfassen im Mazerationsraum) — inkl. Kisten-/Paletten-Tara, Steigrohr,
+                  Zieltank, Spindel-Methode und Zeitaufzeichnung
                 </Check>
                 <Check>
                   <strong>„Aus GitHub laden"</strong> importiert Protokolle, die über die Mazeration-PWA am
@@ -380,9 +383,11 @@ export default function AnleitungenPage() {
                 still überschrieben.
               </p>
               <p className="text-green-700 text-sm mt-2">
-                Die Seite ist in drei Tabs gegliedert: <strong>Lagerbestand</strong> (öffnet sich standardmäßig, da
-                am häufigsten gebraucht), <strong>Buchungsjournal</strong> und <strong>Artikelstamm</strong> — letzterer
-                steht bewusst hinten, da Produkte meist nur einmalig angelegt werden.
+                Die Seite ist in vier Tabs gegliedert: <strong>Lagerbestand</strong> (Summen je Artikel, öffnet sich
+                standardmäßig), <strong>Chargenübersicht</strong> (jeder einzelne Posten mit Charge, Tank, Menge und
+                ABV — hier wird gebucht), <strong>Buchungsjournal</strong> und <strong>Artikelstamm</strong> — letzterer
+                steht bewusst hinten, da Produkte meist nur einmalig angelegt werden. Lange Tabellen scrollen in ihrem
+                eigenen Bereich; der horizontale Scrollbalken liegt immer am unteren Rand der Tabelle.
               </p>
             </div>
 
@@ -390,10 +395,11 @@ export default function AnleitungenPage() {
               <StepCard number={1} color="green" title="Artikelstamm anlegen oder importieren">
                 <Check>Im Tab <strong>Artikelstamm</strong>: neue Artikel manuell anlegen oder als XLSX importieren (Artikelnummer, Produktname erforderlich)</Check>
                 <Check>Kategorie je Artikel nachträglich zuordnen (z.B. Mazerat, Destillat, Sprit, GFKC)</Check>
+                <Check>Fehlende Artikel werden beim Öffnen der Lagerverwaltung automatisch aus dem Lagerbestand übernommen — Mazerat und Destillat derselben Pflanze als zwei getrennte Artikel</Check>
               </StepCard>
 
               <StepCard number={2} color="blue" title="Lagerbestand erfassen oder importieren">
-                <Check>Im Tab <strong>Lagerbestand</strong>: einzeln über „Neue Charge/Bestand anlegen" mit Chargennummer, Tanknummer, Menge und Alkoholgehalt anlegen</Check>
+                <Check>Im Tab <strong>Chargenübersicht</strong>: einzeln über „Neue Charge/Bestand anlegen" mit Chargennummer, Tanknummer, Menge und Alkoholgehalt anlegen (optional mit „Artikel aus Stammdaten" vorausfüllen)</Check>
                 <Check>Oder als XLSX-Bestandsliste importieren (Chargennummer + Menge erforderlich) — der Import-Bereich oberhalb der Tabs funktioniert für Artikelstamm- und Lagerbestand-Dateien gleichermaßen</Check>
                 <Warn>
                   Unbekannte Tanknummern werden beim Import automatisch mit einer Standardgröße (5000 L)
@@ -403,37 +409,61 @@ export default function AnleitungenPage() {
 
               <StepCard number={3} color="orange" title="Zugang / Abgang buchen">
                 <Check>
-                  Im Tab <strong>Lagerbestand</strong>, in der Artikel-Zeile das <strong>grüne Plus-Symbol</strong>{' '}
-                  für Zugang bzw. das <strong>orangene Symbol</strong> für Abgang anklicken
-                </Check>
-                <Check>Menge in Litern, Datum und optional eine Bemerkung eintragen</Check>
-                <Check>
-                  Bestand und Reinalkohol (LA) werden nach jeder Buchung automatisch neu berechnet — sichtbar in
-                  Tabelle, Zusammenfassung und Rohexport
+                  Im Tab <strong>Chargenübersicht</strong> oben im Tabellenkopf auf <strong>„Zugang buchen"</strong>{' '}
+                  bzw. <strong>„Abgang buchen"</strong> klicken, im Suchfeld den Posten finden (z.B. „Sprit" oder eine
+                  Tanknummer eintippen) und anklicken
                 </Check>
                 <Check>
-                  Jede Buchung landet zusätzlich im <strong>Buchungsjournal</strong>-Tab — chronologisch und
-                  nachvollziehbar, egal ob manuell, aus Rezeptur, Versand oder Lohnbrand ausgelöst
+                  Alternativ ganz rechts in der Tabellenzeile das <strong>grüne Plus-Symbol</strong> (Zugang) bzw. das{' '}
+                  <strong>orangene Minus-Symbol</strong> (Abgang) — Spalte „Aktionen"
+                </Check>
+                <Check>Menge in Litern, Datum des Vorgangs und optional eine Bemerkung eintragen</Check>
+                <Check>
+                  Bestand und Reinalkohol (LA) werden nach jeder Buchung automatisch neu berechnet
                 </Check>
                 <Warn>
-                  Ein Abgang über dem verfügbaren Bestand wird jetzt abgelehnt (Fehlermeldung statt stiller,
-                  falscher Buchung).
+                  Ein Abgang über dem verfügbaren Bestand wird abgelehnt. Bei „Abgang buchen" werden leere Posten
+                  (0 L) gar nicht erst zur Auswahl angeboten.
                 </Warn>
               </StepCard>
 
-              <StepCard number={4} color="purple" title="Export & Übersicht">
-                <Check>Im Tab <strong>Lagerbestand</strong>: „Lagerübersicht" (Summen je Artikel) und „Aktuellen Lagerbestand" (alle Einzelposten) je als XLSX exportieren — z.B. für Inventur oder Zollmeldung</Check>
-                <Check>Im Tab <strong>Buchungsjournal</strong>: das Transaktionsprotokoll (alle Zugänge/Abgänge/Korrekturen) ebenfalls als XLSX exportierbar, dort auch durchsuch- und filterbar</Check>
+              <StepCard number={4} color="pink" title="Bestand korrigieren (Menge, ABV, Dichte)">
+                <Check>In der Chargenübersicht beim Posten auf das <strong>Stift-Symbol</strong> (Bearbeiten) klicken und Menge, Alkoholgehalt oder Dichte bei 20°C anpassen — z.B. nach Inventur oder einer amtlichen Alkoholbestimmung</Check>
+                <Check>Sobald sich Menge, ABV oder Dichte ändern, ist ein <strong>Grund</strong> Pflicht — er landet zusammen mit Vorher/Nachher und der LA-Differenz als „Korrektur" im Buchungsjournal</Check>
+              </StepCard>
+
+              <StepCard number={5} color="blue" title="Buchungsjournal">
+                <Check>
+                  Jede Buchung landet automatisch im <strong>Buchungsjournal</strong> — egal ob manuell, aus Einlagern,
+                  Rezeptur, Versand oder Lohnbrand ausgelöst. Durchsuchbar nach Produkt, Charge, Artikel-Nr. und Tank,
+                  filterbar nach Typ und Zeitraum
+                </Check>
+                <Check>
+                  Zwei Datumsspalten: <strong>„Datum"</strong> ist der tatsächliche Vorgang (beim Nachbuchen frei
+                  wählbar), <strong>„Erfasst am"</strong> zeigt, wann die Buchung eingetragen wurde
+                </Check>
+                <Check>Ein falsches Vorgangsdatum lässt sich über das kleine Stift-Symbol neben dem Datum korrigieren („Datum korrigieren") — die Korrektur wird in den Bemerkungen vermerkt</Check>
+                <Check>
+                  Standardmäßig ab 10.10.2026 gefiltert (Produktivstart) und mit gesetztem Haken{' '}
+                  <strong>„Richtigstellungen ausblenden"</strong> (z.B. Gebinde-Splitten, keine echte Bestandsbewegung).
+                  Die Filter bleiben gespeichert; <strong>„Filter zurücksetzen"</strong> zeigt alles wieder
+                </Check>
+                <Warn>Buchungen werden nie gelöscht, nur ausgeblendet — das Journal bleibt lückenlos.</Warn>
+              </StepCard>
+
+              <StepCard number={6} color="purple" title="Export">
+                <Check>Tab <strong>Lagerbestand</strong>: „Lagerübersicht exportieren" (Summen je Artikel)</Check>
+                <Check>Tab <strong>Chargenübersicht</strong>: „Export (XLSX)" im Tabellenkopf (alle Einzelposten) — z.B. für Inventur oder Zollmeldung</Check>
+                <Check>Tab <strong>Buchungsjournal</strong>: das Transaktionsprotokoll mit Tank, ABV und LA je Buchung</Check>
               </StepCard>
             </div>
 
             <Tip color="green">
               Tank-Definitionen und QR-Codes für die physischen Behälter werden im eigenen Menüpunkt
-              „Tank-Verwaltung" verwaltet — siehe Abschnitt „QR-Code Tankverwaltung" unten. Wird ein Tank mehrfach
-              mit unterschiedlichen Chargen
-              nachgefüllt (gepoolt), zeigt die Spalte „Charge" in der Bestandstabelle die kombinierte
-              Chargennummer (z.B. „2500 + 2600"); die genaue Aufteilung nach Litern je Charge zeigt zusätzlich
-              der QR-Code-Tankviewer (siehe unten).
+              „Tank-Verwaltung" verwaltet — siehe Abschnitt „Tank-Verwaltung &amp; QR-Codes" unten. Wird ein Tank
+              mehrfach mit unterschiedlichen Chargen nachgefüllt (gepoolt), zeigt die Spalte „Charge" die kombinierte
+              Chargennummer (z.B. „2500 + 2600"); die Tank-Verwaltung zeigt je Tank Inhalt, ABV und Charge, der
+              QR-Code-Tankviewer zusätzlich die Aufteilung nach Litern je Charge.
             </Tip>
           </CardContent>
         )}
@@ -459,9 +489,11 @@ export default function AnleitungenPage() {
 
             <div className="space-y-4">
               <StepCard number={1} color="blue" title="Produktdaten erfassen">
-                <Check>Produktname und optional Chargennummer eintragen (bekannte Chargen werden als Vorschlag angeboten)</Check>
-                <Check>Kategorie, Alkoholgehalt (%vol.) und Gesamtmenge (L) angeben</Check>
-                <Warn>Ist unter „Kategorie" nichts auswählbar, zuerst unter Einstellungen → Kategorien mindestens eine Kategorie anlegen.</Warn>
+                <Check>Am besten über <strong>„Artikel aus Stammdaten (optional)"</strong> einen bestehenden Artikel wählen — füllt Produktname, Kategorie und Dichte vor und verhindert Tippfehler-Dubletten</Check>
+                <Check>Optional Chargennummer eintragen (bekannte Chargen werden als Vorschlag angeboten)</Check>
+                <Check>Kategorie, Alkoholgehalt (%vol.) und Gesamtmenge (L) angeben — ohne Kategorie lässt sich nicht einlagern</Check>
+                <Check><strong>„Datum der Einlagerung"</strong>: standardmäßig heute, beim Nachbuchen auf das tatsächliche Datum setzen</Check>
+                <Warn>Die Kategorien „M" und „Dest" sind von Anfang an vorhanden; weitere unter Einstellungen → Kategorien anlegen.</Warn>
               </StepCard>
 
               <StepCard number={2} color="green" title="Zieltank(s) wählen">
@@ -506,6 +538,11 @@ export default function AnleitungenPage() {
                   Freigabeprozess, eine Abweichung bedeutet nur, dass der Lohnabfüller die ABV-Berechnung fürs
                   Endprodukt neu machen muss.
                 </p>
+                <p>
+                  <strong>Sonderfall Direktverschnitt:</strong> Sollen nur bereits gelagerte, bekannte Mengen zu einem
+                  Posten zusammengeführt werden (z.B. GFKC-Altbestände), beim Anlegen das Häkchen{' '}
+                  <strong>„Direktverschnitt bereits gelagerter Mengen"</strong> setzen — siehe Schritt 6.
+                </p>
               </div>
             </div>
 
@@ -530,6 +567,7 @@ export default function AnleitungenPage() {
               <StepCard number={3} color="orange" title="Scale-up ableiten">
                 <Check>Sobald der Testansatz „Freigegeben" ist, erscheint der Button <strong>„Scale-up ableiten"</strong></Check>
                 <Check>Ausmisch-Tank wählen — die App zeigt sofort die maximal mögliche Produktionsmenge, begrenzt durch die knappste verfügbare Komponente <strong>oder</strong> die Tankkapazität (im Klartext, welcher der beiden Faktoren tatsächlich greift)</Check>
+                <Check>Ist der Ausmisch-Tank schon teilweise befüllt, zeigt der Dialog die bereits enthaltene Menge und rechnet nur mit der freien Kapazität</Check>
                 <Check>Produktionsmenge eintragen (Maximalmenge lässt sich per Klick übernehmen) und „Scale-up erstellen" bestätigen</Check>
                 <Check>Legt eine neue, verknüpfte Rezeptur im selben Komponentenverhältnis an und öffnet sie direkt</Check>
               </StepCard>
@@ -542,7 +580,7 @@ export default function AnleitungenPage() {
               </StepCard>
 
               <StepCard number={5} color="green" title="Produzieren & Buchen" icon={<PackageCheck className="h-4 w-4 ml-1" />}>
-                <Check>Auf der freigegebenen Scale-up-Rezeptur: Zieltank und Chargennummer angeben und „Buchen" bestätigen</Check>
+                <Check>Auf der freigegebenen Scale-up-Rezeptur: Zieltank, Chargennummer und <strong>„Datum der Produktion"</strong> (beim Nachbuchen das tatsächliche Datum) angeben und „Buchen" bestätigen</Check>
                 <Check>
                   Bucht automatisch Abgang für jede Komponente in Produktionsmenge (inkl. einer eventuellen
                   Sprit-Korrektur) und legt den fertigen GFKC-Posten im Zieltank an
@@ -554,6 +592,18 @@ export default function AnleitungenPage() {
                 </Check>
                 <Warn>Eine produzierte Rezeptur ist abgeschlossen und kann nicht mehr verändert werden.</Warn>
               </StepCard>
+
+              <StepCard number={6} color="orange" title="Sonderfall: Direktverschnitt bereits gelagerter Mengen">
+                <Check>„Neue Rezeptur" → Häkchen <strong>„Direktverschnitt bereits gelagerter Mengen"</strong> setzen</Check>
+                <Check>Komponenten direkt in echten Litern eintragen — die Basismenge ergibt sich automatisch aus der Summe</Check>
+                <Check>Kein Testansatz, keine Sensorik-Freigabe, kein Scale-up: „Produzieren &amp; Buchen" ist sofort verfügbar, sobald gültige Komponenten eingetragen sind</Check>
+                <Warn>Nicht für echte neue Rezepturen verwenden — dafür gilt weiterhin der Ablauf Testansatz → Scale-up.</Warn>
+              </StepCard>
+
+              <Tip color="pink">
+                Nicht mehr benötigte Rezepturen (z.B. verunglückte Entwürfe) lassen sich in der Rezeptur-Liste
+                löschen. Bei bereits produzierten Rezepturen bleiben die gebuchten Lagerbewegungen dabei erhalten.
+              </Tip>
             </div>
           </CardContent>
         )}
@@ -682,6 +732,12 @@ export default function AnleitungenPage() {
               <StepCard number={1} color="blue" title="Neuen Versand anlegen">
                 <Check>Lohnabfüller-Name und Versanddatum eintragen</Check>
                 <Check>Ein oder mehrere bereits befüllte Leergebinde auswählen — jedes geht komplett mit seiner gesamten Füllmenge raus, keine erneute Mengeneingabe nötig</Check>
+                <Check>
+                  Gebinde, die nicht über „Leergebinde" befüllt wurden (z.B. per Splitten in der Tank-Verwaltung
+                  entstanden), stehen in der Auswahl unter <strong>„Direkt aus Lagerbestand (noch nicht als
+                  Leergebinde erfasst)"</strong>. Fehlt dort das Tara, erscheint ein eigenes Eingabefeld dafür; das
+                  Gebinde wird beim Anlegen des Versands automatisch als Leergebinde registriert
+                </Check>
                 <Check>Die Gesamtsumme (Liter, LA und Gewicht) über alle gewählten Gebinde wird direkt im Dialog live angezeigt</Check>
               </StepCard>
 
@@ -726,19 +782,19 @@ export default function AnleitungenPage() {
                 <div className="bg-white rounded p-3 mt-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                     <div>
-                      <strong>✅ GitHub-Pages-Modus (empfohlen):</strong>
+                      <strong>✅ Live-Modus (empfohlen):</strong>
                       <ul className="mt-1 space-y-1">
-                        <li>• Funktioniert von überall — auch unterwegs, ohne WLAN</li>
                         <li>• Voraussetzung: GitHub-Integration aktiviert (siehe unten)</li>
-                        <li>• QR-Code zeigt auf die öffentliche GitHub-Pages-Seite</li>
+                        <li>• Zeigt beim Scannen immer den aktuell synchronisierten Stand</li>
+                        <li>• Funktioniert von überall per Mobilfunk — auch unterwegs, ohne WLAN</li>
                       </ul>
                     </div>
                     <div>
-                      <strong>📶 Lokaler Fallback:</strong>
+                      <strong>📸 Schnappschuss-Modus:</strong>
                       <ul className="mt-1 space-y-1">
-                        <li>• Nur im selben WLAN wie der Computer nutzbar</li>
-                        <li>• Greift automatisch, falls GitHub Pages (noch) nicht erreichbar ist</li>
-                        <li>• Enthält Basisdaten offline als Fallback in der QR-URL</li>
+                        <li>• Greift ohne GitHub-Integration (oder falls GitHub Pages gerade nicht erreichbar ist)</li>
+                        <li>• Ebenfalls per Mobilfunk von überall lesbar</li>
+                        <li>• Zeigt aber nur den Stand vom Zeitpunkt, an dem der QR-Code erzeugt wurde — nach Buchungen neu erzeugen</li>
                       </ul>
                     </div>
                   </div>
@@ -751,25 +807,28 @@ export default function AnleitungenPage() {
 
               <StepCard number={1} color="blue" title="GitHub-Integration aktivieren (empfohlen)">
                 <Check>Siehe Abschnitt „GitHub-Integration" unten — einmalig einrichten (geht auch direkt von dieser Seite aus über den Button „GitHub verbinden")</Check>
-                <Warn>Ohne aktivierte Integration funktionieren QR-Codes nur im lokalen WLAN.</Warn>
+                <Warn>Ohne aktivierte Integration zeigen QR-Codes nur den Stand vom Zeitpunkt ihrer Erzeugung.</Warn>
               </StepCard>
 
               <StepCard number={2} color="green" title="Tanks/Gebinde anlegen oder automatisch übernehmen">
                 <Check>Navigieren Sie zu <strong>Tank-Verwaltung</strong> in der Seitenleiste</Check>
                 <Check>Neue Tanknummern aus Mazeration/Einlagerung/Import werden automatisch als Tank übernommen — kein manueller Sync-Schritt nötig</Check>
                 <Check>Alternativ „Neuen Tank hinzufügen" für eine manuelle Anlage (Tank-Nummer, Bezeichnung, Kapazität, optional Tara)</Check>
-                <Check>Jede Karte zeigt Kapazität, aktuellen Inhalt inkl. Kategorie (z.B. Mazerat/Destillat) und, falls eingetragen, das Tara-Gewicht</Check>
+                <Check>Jede Karte zeigt Kapazität, Tara (falls eingetragen) und den Inhalt — je Posten eine eigene Zeile mit Kategorie, Menge, Alkoholgehalt und Charge</Check>
+                <Check>Über der Liste: Sortierung nach Tanknummer, Bezeichnung, Sorte oder Kapazität sowie das Häkchen „Nur leere Tanks/Gebinde anzeigen"</Check>
               </StepCard>
 
               <StepCard number={3} color="orange" title="Gebinde splitten (falls ein Posten mehrere physische Behälter zusammenfasst)">
                 <Check>„Splitten" bei einem befüllten Gebinde öffnet den Aufteilungs-Dialog</Check>
                 <Check>Je neuem Gebinde eigene Bezeichnung, Menge, Kapazität und optional Tara eintragen — die Summe der Mengen muss der bisherigen Gesamtmenge entsprechen</Check>
                 <Check>Bucht den Abgang beim bisherigen Sammelposten und legt die neuen Gebinde als eigene, einzeln QR-codierbare Tanks an</Check>
+                <Check>Diese Buchungen sind als <strong>Richtigstellung</strong> markiert (keine echte Bestandsbewegung) und im Buchungsjournal standardmäßig ausgeblendet</Check>
               </StepCard>
 
               <StepCard number={4} color="purple" title="QR-Code erzeugen & anbringen">
-                <Check>Bei einem Tank auf „QR-Code" klicken, im Dialog „Herunterladen" (PNG) oder „Drucken"</Check>
-                <Check>Auf selbstklebende Etiketten drucken (mindestens 4×4 cm empfohlen)</Check>
+                <Check>Bei einem Tank auf „QR-Code" klicken und im Dialog <strong>„Herunterladen"</strong> (PNG)</Check>
+                <Check>Die PNG-Datei auf selbstklebende Etiketten drucken (mindestens 4×4 cm empfohlen)</Check>
+                <Warn>Der Button „Drucken" im Dialog druckt derzeit das ganze Programmfenster, nicht nur den QR-Code — für saubere Etiketten den Weg über „Herunterladen" nehmen.</Warn>
                 <Check>Jeden QR-Code gut sichtbar und vor Feuchtigkeit geschützt am Tank/Gebinde anbringen</Check>
               </StepCard>
 
@@ -789,7 +848,8 @@ export default function AnleitungenPage() {
                   <code className="text-xs bg-muted px-1 py-0.5 rounded">
                     https://woku369.github.io/MazerationsMeister/tank-viewer.html?view=all
                   </code>{' '}
-                  eine Übersicht <strong>aller</strong> Tanks auf einmal abrufbar — sortierbar nach Größe oder Artikel
+                  eine Übersicht <strong>aller</strong> Tanks auf einmal abrufbar — sortierbar nach Tanknummer, Name,
+                  Größe oder Artikel, mit Filter „Nur leere anzeigen"
                 </Check>
                 <Check>
                   Nützlich, wenn schnell der Gesamtstand gebraucht wird (z.B. Frage des Lohnabfüllers nach aktuellem
@@ -821,8 +881,8 @@ export default function AnleitungenPage() {
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   <div>📱 <strong>QR nicht erkannt:</strong> Mehr Licht, näher heran, saubere Linse</div>
-                  <div>🌐 <strong>Seite lädt nicht unterwegs:</strong> GitHub-Integration aktiviert? Siehe unten</div>
-                  <div>📶 <strong>Nur im Büro erreichbar:</strong> Läuft noch im lokalen Fallback-Modus</div>
+                  <div>🌐 <strong>Seite lädt nicht:</strong> Mobilfunk/Internet am Handy prüfen</div>
+                  <div>🕓 <strong>Zeigt veralteten Stand:</strong> GitHub-Integration aktiviert? Sonst QR-Code nach Buchungen neu erzeugen</div>
                   <div>🔄 <strong>QR beschädigt:</strong> Neuen Code generieren &amp; drucken</div>
                 </CardContent>
               </Card>
@@ -842,9 +902,10 @@ export default function AnleitungenPage() {
                 Wofür wird das gebraucht?
               </h3>
               <p className="text-slate-700 text-sm">
-                Die GitHub-Integration lädt Tank-Daten auf eine öffentliche GitHub-Pages-Seite hoch. Das ist die
-                Grundlage dafür, dass QR-Codes auch <strong>von unterwegs</strong> (ohne WLAN im Betrieb)
-                funktionieren, und ermöglicht automatische Backup-Commits der Tank-Daten.
+                Die GitHub-Integration hat zwei Aufgaben: Sie lädt die Tank-Daten auf eine öffentliche
+                GitHub-Pages-Seite hoch (Grundlage dafür, dass QR-Codes <strong>von unterwegs</strong> den aktuellen
+                Stand zeigen), und sie sichert den kompletten Datenstand, damit er auf einem zweiten Rechner
+                (z.B. Heimrechner und Büro) verfügbar ist.
               </p>
             </div>
 
@@ -860,15 +921,36 @@ export default function AnleitungenPage() {
               <Check>„GitHub-Konfiguration speichern" klicken</Check>
             </StepCard>
 
-            <StepCard number={2} color="green" title="Auto-Sync einrichten (optional)">
-              <Check>„Auto-Sync aktivieren" setzen und das gewünschte Sync-Intervall in Minuten festlegen</Check>
+            <StepCard number={2} color="green" title="Tank-Daten automatisch hochladen (für die QR-Codes)">
+              <Check>Im selben Tab „Auto-Sync aktivieren" setzen und das gewünschte Sync-Intervall in Minuten festlegen</Check>
               <Check>Tank-Daten werden dann automatisch im gewählten Rhythmus zu GitHub hochgeladen</Check>
               <Check>„Jetzt synchronisieren" stößt bei Bedarf sofort eine manuelle Synchronisation an</Check>
             </StepCard>
 
+            <StepCard number={3} color="orange" title="Datensicherung & Abgleich zwischen mehreren Rechnern">
+              <Check>
+                Unter <strong>Einstellungen → Datensicherung</strong>: „Jetzt zu GitHub sichern" bzw. „Von GitHub
+                laden" — umfasst Artikelstamm, Lagerbestand, Buchungsjournal, Tanks, Mazerationen, Rezepturen,
+                Lohnbrand und Versand
+              </Check>
+              <Check>
+                Mit <strong>„Automatisch synchronisieren"</strong> läuft der Abgleich regelmäßig und beim Beenden der
+                App von selbst. Beim Schließen erscheint kurz „Vor dem Beenden gesichert" (oder eine Fehlermeldung,
+                falls das Sichern nicht geklappt hat)
+              </Check>
+              <Check>
+                Ein neuerer Stand vom anderen Rechner wird nur dann automatisch übernommen, wenn hier seit dem
+                letzten Abgleich nichts geändert wurde. Wurde auf beiden Rechnern gearbeitet, erscheint ein
+                „Sync-Konflikt" mit der Wahl „Diesen Rechner behalten" oder „Anderen Rechner übernehmen"
+              </Check>
+              <Check>Unabhängig von GitHub: „Backup jetzt speichern" legt eine lokale Sicherungsdatei an, „Aus Datei wiederherstellen" spielt sie zurück (mit Vorschau und automatischer Sicherung des jetzigen Stands davor)</Check>
+              <Warn>GitHub-Token, Speicherpfade und die Google-Calendar-Anmeldung werden nicht mitübertragen — die richtet man auf jedem Rechner einmal selbst ein.</Warn>
+            </StepCard>
+
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
-              Der Status-Block unten auf der Einstellungen-Seite zeigt jederzeit, ob Integration und Token korrekt
-              konfiguriert sind.
+              Der <strong>Sync-Verlauf</strong> unter Einstellungen → Datensicherung protokolliert jeden Abgleich
+              (bis zu 1000 Einträge, bleibt über Neustarts erhalten) — hilfreich, um im Nachhinein zu sehen, wann
+              was hoch- oder heruntergeladen wurde oder warum ein Abgleich fehlschlug.
             </div>
           </CardContent>
         )}
@@ -885,9 +967,10 @@ export default function AnleitungenPage() {
                 Überblick
               </h3>
               <p className="text-blue-700 text-sm">
-                Alle Eingaben werden sofort im Browser (localStorage) gespeichert. Für eine zusätzliche
-                Cloud-Sicherung lassen sich Daten manuell als XLSX/JSON in einen OneDrive-Ordner exportieren —{' '}
-                <strong>keine Azure-Registrierung nötig</strong>.
+                Alle Eingaben werden sofort im Programm gespeichert. Für eine zusätzliche Ablage lassen sich
+                Exporte und Tank-Daten in einen OneDrive-Ordner schreiben —{' '}
+                <strong>keine Azure-Registrierung nötig</strong>. Für den Abgleich zwischen zwei Rechnern ist
+                dagegen die Datensicherung über GitHub gedacht (siehe Abschnitt „GitHub-Integration").
               </p>
             </div>
 
@@ -896,9 +979,10 @@ export default function AnleitungenPage() {
                 <CardTitle className="text-lg">⚙️ Setup in der App</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Check>Einstellungen → Tab „OneDrive QR-Codes" öffnen</Check>
-                <Check>OneDrive-Freigabe-URL eintragen (für QR-Code-Fallback ohne GitHub-Integration)</Check>
-                <Check>„Konfiguration speichern" und anschließend „Verbindung testen" klicken</Check>
+                <Check>Einstellungen → Tab <strong>„Speicherpfade"</strong> öffnen</Check>
+                <Check>„Lokaler Exportpfad": Ordner für XLSX-Exporte und lokale Backups — kann direkt ein Ordner innerhalb von OneDrive sein</Check>
+                <Check>„OneDrive-Synchronisation": OneDrive-Ordner, in den die Tank-Daten automatisch geschrieben werden</Check>
+                <Check>Jeweils „Pfad speichern" klicken</Check>
               </CardContent>
             </Card>
 
