@@ -757,6 +757,14 @@ export default function AnleitungenPage() {
                 <Check>Jeder Versand zeigt Gebinde, Mengen, Alkoholgehalt und die Gesamt-LA</Check>
                 <Check>Darunter die aufbereiteten Lieferschein-Hilfsdaten (Ladestelle, Charge, Gebindeanzahl, Nettogewicht) zum Abtippen ins externe Formular</Check>
               </StepCard>
+
+              <StepCard number={5} color="purple" title="Gebinde-Etiketten für die IBCs drucken">
+                <Check>Beim Versand in der Historie auf <strong>„Etiketten"</strong> klicken — ein Etikett je Gebinde mit Artikel, Charge, Datum, Liter / %vol. / LA, Tara / Netto / Brutto (kg) und „Gebinde x von y"</Check>
+                <Check><strong>Thermotransfer 80 × 105 mm</strong> (gleiche Rolle wie die QR-Etiketten): ein Etikett je Seite, im Druckdialog den Etikettendrucker und Papiergröße 80 × 105 mm wählen</Check>
+                <Check><strong>A4-Bogen mit 4 Etiketten 105 × 148 mm</strong> (z.B. Avery Zweckform 3483) für den schnellen Druck am Büro-Drucker; bei einem angebrochenen Bogen das erste noch freie Feld anklicken</Check>
+                <Check>Das PDF wird im Exportordner unter <code>Etiketten</code> gespeichert und gleich zum Drucken geöffnet</Check>
+                <Warn>Beim Drucken die Skalierung auf „Tatsächliche Größe" stellen (nicht „An Seite anpassen"), sonst passt der Druck nicht auf die Etiketten. Fehlt bei einem Gebinde Tara oder Dichte, steht bei Netto/Brutto „–" statt eines geschätzten Werts.</Warn>
+              </StepCard>
             </div>
           </CardContent>
         )}

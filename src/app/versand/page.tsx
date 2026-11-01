@@ -11,7 +11,13 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectGroup, SelectLabel, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Send, Plus, Trash2 } from 'lucide-react';
+import { ToastAction } from '@/components/ui/toast';
+import { Send, Plus, Trash2, Tag } from 'lucide-react';
+import * as ElectronBridge from '@/lib/electron-bridge';
+import { LABEL_SUBDIR } from '@/lib/tank-label';
+import {
+  buildVersandLabelData, generateVersandLabelsPdf, versandLabelFileName, type VersandLabelFormat,
+} from '@/lib/versand-label';
 import * as StockService from '@/lib/stock-service';
 import * as VersandService from '@/lib/versand-service';
 import * as LeergebindeService from '@/lib/leergebinde-service';
@@ -59,6 +65,47 @@ export default function VersandPage() {
   // die App erzeugt daraus kein eigenes Dokument, siehe versandSchema.ts.
   const [plombenNummern, setPlombenNummern] = useState('');
   const [externeLieferscheinNr, setExterneLieferscheinNr] = useState('');
+
+  // Gebinde-Etiketten (Nutzer-Anfrage 31.10.2026): Thermotransfer 80 × 105 mm
+  // oder A4-Bogen mit 4 Etiketten 105 × 148 mm. Zuletzt gewähltes Format merken.
+  const [labelVersand, setLabelVersand] = useState<LohnabfuellerVersand | null>(null);
+  const [labelFormat, setLabelFormat] = useState<VersandLabelFormat>(() => {
+    try { return (localStorage.getItem('versandLabelFormat') as VersandLabelFormat) || 'thermo'; } catch { return 'thermo'; }
+  });
+  const [labelStartSlot, setLabelStartSlot] = useState(1);
+
+  async function handleCreateLabels() {
+    if (!labelVersand) return;
+    try {
+      try { localStorage.setItem('versandLabelFormat', labelFormat); } catch { /* egal */ }
+      const labels = buildVersandLabelData(labelVersand);
+      const { base64, pages } = generateVersandLabelsPdf(labels, labelFormat, labelStartSlot);
+      const fileName = versandLabelFileName(labelVersand.versandNummer, labelFormat);
+      const was = `${labels.length} Etikett(en) auf ${pages} Seite(n)`;
+      if (ElectronBridge.isElectron()) {
+        const result = await ElectronBridge.writeToExportDir(fileName, base64, 'base64', LABEL_SUBDIR);
+        if (result.ok) {
+          // Direkt öffnen, damit gleich gedruckt werden kann.
+          await ElectronBridge.openPath(result.path);
+          toast({
+            title: 'Etiketten erstellt',
+            description: `${was} — ${fileName} wurde geöffnet. Gespeichert in: ${result.dir}`,
+            action: <ToastAction altText="Ordner öffnen" onClick={() => ElectronBridge.openPath(result.dir)}>Ordner öffnen</ToastAction>,
+          });
+          setLabelVersand(null);
+          return;
+        }
+      }
+      const link = document.createElement('a');
+      link.download = fileName;
+      link.href = `data:application/pdf;base64,${base64}`;
+      link.click();
+      toast({ title: 'Etiketten erstellt', description: `${was} — als Download gespeichert.` });
+      setLabelVersand(null);
+    } catch (error) {
+      toast({ title: 'Etiketten fehlgeschlagen', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
+    }
+  }
 
   const loadAll = () => {
     setVersaende(VersandService.readAll());
@@ -256,6 +303,10 @@ export default function VersandPage() {
                 <span className="font-semibold">{v.versandNummer}</span>
                 <Badge variant="outline">{v.lohnabfuellerName}</Badge>
                 <span className="text-xs text-muted-foreground">Versand: {fmtDate(v.versanddatum)}</span>
+                <Button size="sm" variant="outline" className="ml-auto" onClick={() => { setLabelStartSlot(1); setLabelVersand(v); }}
+                  title="Gebinde-Etiketten zum Bekleben der IBCs drucken">
+                  <Tag className="w-4 h-4 mr-1" />Etiketten
+                </Button>
               </div>
               <div className="text-sm text-muted-foreground mt-1">
                 {v.container.map((c, i) => (
@@ -286,6 +337,62 @@ export default function VersandPage() {
           ))}
         </CardContent>
       </Card>
+
+      {/* Gebinde-Etiketten */}
+      <Dialog open={!!labelVersand} onOpenChange={(open) => { if (!open) setLabelVersand(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Gebinde-Etiketten{labelVersand ? ` – ${labelVersand.versandNummer}` : ''}</DialogTitle>
+            <DialogDescription>
+              Ein Etikett je Gebinde ({labelVersand?.container.length ?? 0}): Artikel, Charge, Datum, Liter / %vol. / LA,
+              Tara / Netto / Brutto und „Gebinde x von y". Das PDF wird gespeichert und zum Drucken geöffnet.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Format</Label>
+              <label className="flex items-start gap-2 border rounded-md p-3 cursor-pointer">
+                <input type="radio" name="labelFormat" className="mt-1" checked={labelFormat === 'thermo'} onChange={() => setLabelFormat('thermo')} />
+                <span>
+                  <span className="font-medium">Thermotransfer 80 × 105 mm</span>
+                  <span className="block text-xs text-muted-foreground">Hochformat, ein Etikett je Seite — im Druckdialog den Etikettendrucker wählen, Papiergröße 80 × 105 mm, Skalierung „Tatsächliche Größe".</span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2 border rounded-md p-3 cursor-pointer">
+                <input type="radio" name="labelFormat" className="mt-1" checked={labelFormat === 'a4'} onChange={() => setLabelFormat('a4')} />
+                <span>
+                  <span className="font-medium">A4-Bogen, 4 Etiketten 105 × 148 mm</span>
+                  <span className="block text-xs text-muted-foreground">Z.B. Avery Zweckform 3483 — am normalen Drucker, Skalierung „Tatsächliche Größe" (nicht „An Seite anpassen").</span>
+                </span>
+              </label>
+            </div>
+
+            {labelFormat === 'a4' && (
+              <div className="space-y-2">
+                <Label>Erstes freies Etikett auf dem Bogen</Label>
+                <p className="text-xs text-muted-foreground -mt-1">Für einen schon angebrochenen Bogen: auf das erste noch freie Feld klicken.</p>
+                <div className="grid grid-cols-2 gap-1 w-40 border rounded p-1 bg-muted/40">
+                  {[1, 2, 3, 4].map(slot => (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => setLabelStartSlot(slot)}
+                      className={`h-14 rounded text-sm font-medium border ${slot < labelStartSlot ? 'bg-muted text-muted-foreground line-through' : slot === labelStartSlot ? 'bg-primary text-primary-foreground' : 'bg-background'}`}
+                      title={slot < labelStartSlot ? 'Bereits verbraucht' : `Ab Feld ${slot} drucken`}
+                    >
+                      {slot}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLabelVersand(null)}>Abbrechen</Button>
+            <Button onClick={handleCreateLabels}><Tag className="w-4 h-4 mr-1" />PDF erstellen</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Neuer Versand */}
       <Dialog open={isNewOpen} onOpenChange={(open) => { setIsNewOpen(open); if (!open) resetNewForm(); }}>
