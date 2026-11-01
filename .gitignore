@@ -58,3 +58,7 @@ tank-data-[0-9]*.json
 # Google-OAuth-Zugangsdaten (Client-Secret) - nie committen
 kalenderwidget google oauth client/
 client_secret_*.json
+
+# Eskapade Fraktur ist eine kommerzielle Schrift - nicht im oeffentlichen Repo/auf GitHub Pages verteilen.
+# Liegt lokal in public/fonts/ (Quelle: C:\Users\wolfg\Desktop\CI VS\fonts) und kommt so in die lokal gebaute exe.
+public/fonts/

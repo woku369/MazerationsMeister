@@ -3,6 +3,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Meister-Suite CI (C:\Users\wolfg\Desktop\CI VS): Markenschrift nur für die
+   Wortmarke, Fließtext bleibt Inter. App-Akzentfarbe Tiefviolett nur im Logo -
+   das Grün der Oberfläche bleibt (Nutzer-Entscheidung 01.11.2026). */
+@font-face {
+  font-family: 'EskapadeFraktur';
+  src: url('/fonts/EskapadeFraktur-Regular.ttf') format('truetype');
+  font-display: swap;
+}
+
+:root {
+  --meister-black: #1A1A1A;
+  --meister-mazeration: #7B3FA8;
+}
+
 body {
   font-family: var(--font-inter), Arial, Helvetica, sans-serif; /* Updated font variable */
 }

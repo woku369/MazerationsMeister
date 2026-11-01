@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import BrandMark from './brand-mark';
 import { Home, FlaskConical, Warehouse, Settings, BookOpen, TableProperties, Truck, Beaker, Send, Droplets, Package, QrCode } from 'lucide-react';
 
 const navItems = [
@@ -20,8 +21,8 @@ const navItems = [
 export default function Sidebar() {
   return (
   <aside className="bg-card border-r border-border min-h-screen w-64 flex flex-col fixed top-0 left-0 h-screen z-40 hidden lg:flex">
-      <div className="h-16 flex items-center justify-center border-b border-border">
-        <span className="text-2xl font-bold text-primary">MazerationsMeister</span>
+      <div className="h-16 flex items-center px-4 border-b border-border">
+        <BrandMark showVersion />
       </div>
       <nav className="flex-1 flex flex-col gap-2 p-4">
         {navItems.map((item) => (

@@ -12,6 +12,7 @@ export default {
   	extend: {
       fontFamily: {
         sans: ['var(--font-inter)', 'Arial', 'Helvetica', 'sans-serif'],
+        fraktur: ['EskapadeFraktur', 'serif'],
       },
   		colors: {
   			background: 'hsl(var(--background))',

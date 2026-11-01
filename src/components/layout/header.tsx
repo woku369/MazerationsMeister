@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import buildInfo from '@/build-info.json';
+import BrandMark from './brand-mark';
 
 export default function AppHeader() {
   const pathname = usePathname();
@@ -40,8 +40,8 @@ export default function AppHeader() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0">
-              <div className="h-16 flex items-center justify-center border-b border-border">
-                <span className="text-xl font-bold text-primary">MazerationsMeister</span>
+              <div className="h-16 flex items-center px-4 border-b border-border">
+                <BrandMark showVersion />
               </div>
               <nav className="flex flex-col gap-2 p-4">
                 {navItems.map((item) => (
@@ -62,17 +62,10 @@ export default function AppHeader() {
             </SheetContent>
           </Sheet>
 
-          <Link
-            href="/"
-            className="text-lg lg:text-3xl font-bold text-primary hover:text-primary/90 transition-colors"
-            title={`Build ${buildInfo.buildNumber} · ${buildInfo.gitCommit} · ${new Date(buildInfo.buildDate).toLocaleString('de-DE')}`}
-          >
-            <span className="hidden sm:inline">Mazerations-Meister v{buildInfo.version}</span>
-            <span className="sm:hidden">MM v{buildInfo.version}</span>
-            <span className="hidden lg:inline text-xs font-normal text-muted-foreground align-super ml-1">
-              Build {buildInfo.buildNumber}
-            </span>
-          </Link>
+          {/* Logo nur, solange die Sidebar ausgeblendet ist (unter lg) - auf
+              dem Desktop steht es bereits oben in der Sidebar (Nutzer-Wunsch
+              01.11.2026: Name nur einmal, mit Icon und Logo). */}
+          <BrandMark size="sm" className="lg:hidden" />
         </div>
 
         {/* Desktop Navigation */}
